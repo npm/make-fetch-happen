@@ -39,6 +39,7 @@
     "http-proxy-agent": "^2.1.0",
     "https-proxy-agent": "^2.2.1",
     "lru-cache": "^5.1.1",
+    "minipass-fetch": "^1.0.1",
     "mississippi": "^3.0.0",
     "node-fetch-npm": "^2.0.2",
     "promise-retry": "^1.1.1",
