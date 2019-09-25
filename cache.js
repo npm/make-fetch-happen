@@ -1,13 +1,14 @@
 'use strict'
 
+const fetch = require('minipass-fetch')
 const cacache = require('cacache')
-const fetch = require('node-fetch-npm')
-const pipe = require('mississippi').pipe
 const ssri = require('ssri')
-const through = require('mississippi').through
-const to = require('mississippi').to
 const url = require('url')
-const stream = require('stream')
+
+const Minipass = require('minipass')
+const MinipassFlush = require('minipass-flush')
+const MinipassCollect = require('minipass-collect')
+const MinipassPipeline = require('minipass-pipeline')
 
 const MAX_MEM_SIZE = 5 * 1024 * 1024 // 5MB
 
@@ -60,39 +61,33 @@ module.exports = class Cache {
             status: 200
           })
         }
-        let body
         const cachePath = this._path
         // avoid opening cache file handles until a user actually tries to
         // read from it.
-        if (opts.memoize !== false && info.size > MAX_MEM_SIZE) {
-          body = new stream.PassThrough()
-          const realRead = body._read
-          body._read = function (size) {
-            body._read = realRead
-            pipe(
-              cacache.get.stream.byDigest(cachePath, info.integrity, {
+        const body = new Minipass()
+        const notFitInMemory = false && info.size > MAX_MEM_SIZE
+        const removeOnResume = () => body.removeListener('resume', onResume)
+        const onResume =
+          opts.memoize !== notFitInMemory
+            ? () => {
+              const c = cacache.get.stream.byDigest(cachePath, info.integrity, {
                 memoize: opts.memoize
-              }),
-              body,
-              err => body.emit(err))
-            return realRead.call(this, size)
-          }
-        } else {
-          let readOnce = false
-          // cacache is much faster at bulk reads
-          body = new stream.Readable({
-            read () {
-              if (readOnce) return this.push(null)
-              readOnce = true
+              })
+              c.on('error', err => body.emit('error', err))
+              c.pipe(body)
+            }
+            : () => {
+              removeOnResume()
               cacache.get.byDigest(cachePath, info.integrity, {
                 memoize: opts.memoize
-              }).then(data => {
-                this.push(data)
-                this.push(null)
-              }, err => this.emit('error', err))
+              })
+                .then(data => body.end(data))
+                .catch(err => {
+                  body.emit('error', err)
+                })
             }
-          })
-        }
+        body.once('resume', onResume)
+        body.once('end', () => removeOnResume)
         return this.Promise.resolve(new fetch.Response(body, {
           url: req.url,
           headers: resHeaders,
@@ -127,65 +122,59 @@ module.exports = class Cache {
         addCacheHeaders(
           response.headers, this._path, ckey, info.integrity, info.time
         )
-        return new this.Promise((resolve, reject) => {
-          pipe(
-            cacache.get.stream.byDigest(this._path, info.integrity, cacheOpts),
-            cacache.put.stream(this._path, cacheKey(req), cacheOpts),
-            err => err ? reject(err) : resolve(response)
-          )
-        })
-      }).then(() => response)
+
+        return new MinipassPipeline(
+          cacache.get.stream.byDigest(this._path, info.integrity, cacheOpts),
+          cacache.put.stream(this._path, cacheKey(req), cacheOpts)
+        ).promise().then(() => response)
+      })
     }
-    let buf = []
-    let bufSize = 0
-    let cacheTargetStream = false
-    const cachePath = this._path
-    let cacheStream = to((chunk, enc, cb) => {
-      if (!cacheTargetStream) {
-        if (fitInMemory) {
-          cacheTargetStream =
-          to({highWaterMark: MAX_MEM_SIZE}, (chunk, enc, cb) => {
-            buf.push(chunk)
-            bufSize += chunk.length
-            cb()
-          }, done => {
-            cacache.put(
-              cachePath,
-              cacheKey(req),
-              Buffer.concat(buf, bufSize),
-              cacheOpts
-            ).then(
-              () => done(),
-              done
-            )
-          })
-        } else {
-          cacheTargetStream =
-          cacache.put.stream(cachePath, cacheKey(req), cacheOpts)
-        }
-      }
-      cacheTargetStream.write(chunk, enc, cb)
-    }, done => {
-      cacheTargetStream ? cacheTargetStream.end(done) : done()
-    })
+
     const oldBody = response.body
-    const newBody = through({highWaterMark: fitInMemory && MAX_MEM_SIZE})
-    response.body = newBody
-    oldBody.once('error', err => newBody.emit('error', err))
-    newBody.once('error', err => oldBody.emit('error', err))
-    cacheStream.once('error', err => newBody.emit('error', err))
-    pipe(oldBody, to((chunk, enc, cb) => {
-      cacheStream.write(chunk, enc, () => {
-        newBody.write(chunk, enc, cb)
+    const newBody = new MinipassFlush({
+      flush () {
+        return cacheWritePromise
+      }
+    })
+
+    let cacheWriteResolve, cacheWriteReject
+    const cacheWritePromise = new Promise((resolve, reject) => {
+      cacheWriteResolve = resolve
+      cacheWriteReject = reject
+    })
+    const cachePath = this._path
+
+    if (fitInMemory) {
+      const collecter = new MinipassCollect.PassThrough()
+      collecter.on('collect', data => {
+        cacache.put(
+          cachePath,
+          cacheKey(req),
+          data,
+          cacheOpts
+        ).then(cacheWriteResolve, cacheWriteReject)
       })
-    }, done => {
-      cacheStream.end(() => {
-        newBody.end(() => {
-          done()
-        })
-      })
-    }), err => err && newBody.emit('error', err))
-    return response
+      oldBody
+        .on('error', er => collecter.emit('error', er))
+        .pipe(collecter)
+        .on('error', er => newBody.emit('error', er))
+        .pipe(newBody)
+    } else {
+      const tee = new Minipass()
+      const cacheStream = cacache.put.stream(
+        cachePath,
+        cacheKey(req),
+        cacheOpts
+      )
+      tee.pipe(cacheStream)
+      tee.pipe(newBody)
+      cacheStream.promise().then(cacheWriteResolve, cacheWriteReject)
+      oldBody.on('error', er => tee.emit('error', er))
+        .pipe(tee)
+        .on('error', er => newBody.emit('error', er))
+    }
+
+    return Promise.resolve(new fetch.Response(newBody, response))
   }
 
   // Finds the Cache entry whose key is the request, and if found, deletes the

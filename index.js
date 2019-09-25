@@ -3,11 +3,12 @@
 let Cache
 const url = require('url')
 const CachePolicy = require('http-cache-semantics')
-const fetch = require('node-fetch-npm')
+const fetch = require('minipass-fetch')
 const pkg = require('./package.json')
 const retry = require('promise-retry')
 let ssri
-const Stream = require('stream')
+
+const Minipass = require('minipass')
 const getAgent = require('./agent')
 const setWarning = require('./warning')
 
@@ -108,7 +109,7 @@ function cachingFetch (uri, _opts) {
 
   if (opts.integrity) {
     initializeSsri()
-    // if verifying integrity, node-fetch must not decompress
+    // if verifying integrity, fetch must not decompress
     opts.compress = false
   }
 
@@ -172,7 +173,6 @@ function cachingFetch (uri, _opts) {
       return remoteFetch(req.url, opts)
     })
   }
-
   return remoteFetch(uri, opts)
 }
 
@@ -297,13 +297,9 @@ function remoteFetchHandleIntegrity (res, integrity) {
     integrity
   })
   oldBod.pipe(newBod)
-  res.body = newBod
-  oldBod.once('error', err => {
-    newBod.emit('error', err)
-  })
-  newBod.once('error', err => {
-    oldBod.emit('error', err)
-  })
+  oldBod.on('error', er => newBod.emit('error'))
+
+  return new fetch.Response(newBod, res)
 }
 
 function remoteFetch (uri, opts) {
@@ -331,13 +327,13 @@ function remoteFetch (uri, opts) {
       const req = new fetch.Request(uri, reqOpts)
       return fetch(req)
         .then(res => {
-          res.headers.set('x-fetch-attempts', attemptNum)
-
           if (opts.integrity) {
-            remoteFetchHandleIntegrity(res, opts.integrity)
+            res = remoteFetchHandleIntegrity(res, opts.integrity)
           }
 
-          const isStream = req.body instanceof Stream
+          res.headers.set('x-fetch-attempts', attemptNum)
+
+          const isStream = Minipass.isStream(req.body)
 
           if (opts.cacheManager) {
             const isMethodGetHead = req.method === 'GET' ||
@@ -387,22 +383,19 @@ function remoteFetch (uri, opts) {
             return res
           }
 
-          // handle redirects - matches behavior of npm-fetch: https://github.com/bitinn/node-fetch
+          // handle redirects - matches behavior of fetch: https://github.com/bitinn/node-fetch
           if (opts.redirect === 'error') {
-            const err = new Error(`redirect mode is set to error: ${uri}`)
-            err.code = 'ENOREDIRECT'
+            const err = new fetch.FetchError(`redirect mode is set to error: ${uri}`, 'no-redirect', { code: 'ENOREDIRECT' })
             throw err
           }
 
           if (!res.headers.get('location')) {
-            const err = new Error(`redirect location header missing at: ${uri}`)
-            err.code = 'EINVALIDREDIRECT'
+            const err = new fetch.FetchError(`redirect location header missing at: ${uri}`, 'no-location', { code: 'EINVALIDREDIRECT' })
             throw err
           }
 
           if (req.counter >= req.follow) {
-            const err = new Error(`maximum redirect reached at: ${uri}`)
-            err.code = 'EMAXREDIRECT'
+            const err = new fetch.FetchError(`maximum redirect reached at: ${uri}`, 'max-redirect', { code: 'EMAXREDIRECT' })
             throw err
           }
 

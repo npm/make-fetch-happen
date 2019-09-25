@@ -1,9 +1,7 @@
 'use strict'
 
-const BB = require('bluebird')
 const Buffer = require('safe-buffer').Buffer
 
-const finished = BB.promisify(require('mississippi').finished)
 const ssri = require('ssri')
 const test = require('tap').test
 const tnock = require('./util/tnock')
@@ -164,7 +162,7 @@ test('supports request streaming', t => {
     let buf = []
     let bufLen = 0
     res.body.on('data', d => { buf.push(d); bufLen += d.length })
-    return finished(res.body).then(() => {
+    return res.body.promise().then(() => {
       t.deepEqual(
         Buffer.concat(buf, bufLen),
         CONTENT,
@@ -179,7 +177,7 @@ test('supports request streaming', t => {
     let buf = []
     let bufLen = 0
     res.body.on('data', d => { buf.push(d); bufLen += d.length })
-    return finished(res.body).then(() => {
+    return res.body.promise().then(() => {
       t.deepEqual(
         Buffer.concat(buf, bufLen),
         CONTENT,
@@ -368,14 +366,10 @@ test('does not return stale cache on failure if `must-revalidate`', t => {
     })
   }).then(res => {
     t.equal(res.status, 500, '500-range error returned as-is')
-    return fetch(`${HOST}/test`, {
+    return t.rejects(fetch(`${HOST}/test`, {
       cacheManager: CACHE,
       retry: { retries: 0 }
-    })
-  }).then(() => {
-    throw new Error('unexpected fetch success')
-  }).catch(err => {
-    t.equal(err.type, 'system', 'programmatic error returned as-is')
+    }), { type: 'system' }, 'programmatic error returned as-is')
   })
 })
 
