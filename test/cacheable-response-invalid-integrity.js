@@ -14,7 +14,6 @@ t.test('setup server', t => {
   const http = require('http')
   const data = Buffer.from('{"some":"data"}')
   const server = http.createServer((req, res) => {
-    console.error(`GOT REQUEST ${req.method} ${req.url}`)
     res.setHeader('cache-control', 'max-age=432000')
     res.setHeader('accept-ranges', 'bytes')
     res.setHeader('etag', '"a2177e7d2ad8d263e6c38e6fe8dd6f79"')
