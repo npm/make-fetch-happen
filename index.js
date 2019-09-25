@@ -3,7 +3,7 @@
 let Cache
 const url = require('url')
 const CachePolicy = require('http-cache-semantics')
-const fetch = require('node-fetch-npm')
+const fetch = require('minipass-fetch')
 const pkg = require('./package.json')
 const retry = require('promise-retry')
 let ssri
@@ -108,7 +108,7 @@ function cachingFetch (uri, _opts) {
 
   if (opts.integrity) {
     initializeSsri()
-    // if verifying integrity, node-fetch must not decompress
+    // if verifying integrity, fetch must not decompress
     opts.compress = false
   }
 
@@ -298,6 +298,7 @@ function remoteFetchHandleIntegrity (res, integrity) {
   })
   oldBod.pipe(newBod)
   res.body = newBod
+  // XXX errors should probably only go one direction?
   oldBod.once('error', err => {
     newBod.emit('error', err)
   })
@@ -337,6 +338,7 @@ function remoteFetch (uri, opts) {
             remoteFetchHandleIntegrity(res, opts.integrity)
           }
 
+          // XXX should check if it's an EventEmitter with a .pipe() method
           const isStream = req.body instanceof Stream
 
           if (opts.cacheManager) {
@@ -387,7 +389,11 @@ function remoteFetch (uri, opts) {
             return res
           }
 
-          // handle redirects - matches behavior of npm-fetch: https://github.com/bitinn/node-fetch
+          // XXX should create FetchError for these, not just normal errors
+          // throw new fetch.FetchError(message, type, { code })
+          // Match type to what minipass-fetch is setting for these cases
+          //
+          // handle redirects - matches behavior of fetch: https://github.com/bitinn/node-fetch
           if (opts.redirect === 'error') {
             const err = new Error(`redirect mode is set to error: ${uri}`)
             err.code = 'ENOREDIRECT'
