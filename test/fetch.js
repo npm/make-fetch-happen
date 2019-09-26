@@ -1,13 +1,11 @@
 'use strict'
 
-const BB = require('bluebird')
 const Buffer = require('safe-buffer').Buffer
 
-const finished = BB.promisify(require('mississippi').finished)
-const test = require('tap').test
-const through = require('mississippi').through
+const Minipass = require('minipass')
 const tnock = require('./util/tnock')
 const nock = require('nock')
+const test = require('tap').test
 
 const CONTENT = Buffer.from('hello, world!', 'utf8')
 const HOST = 'https://make-fetch-happen.npm'
@@ -233,7 +231,7 @@ test('supports streaming content', t => {
       buf.push(d)
       bufLen += d.length
     })
-    return finished(res.body).then(() => Buffer.concat(buf, bufLen))
+    return res.body.promise().then(() => Buffer.concat(buf, bufLen))
   }).then(body => t.deepEqual(body, CONTENT, 'streamed body ok'))
 })
 
@@ -288,7 +286,7 @@ test('handles 15 concurrent requests', t => {
   for (let i = 0; i < 15; i++) {
     requests.push(fetch(`${HOST}/test`).then(r => r.buffer()))
   }
-  return BB.all(requests).then(results => {
+  return Promise.all(requests).then(results => {
     const expected = []
     for (let i = 0; i < 15; i++) {
       expected.push(CONTENT)
@@ -381,7 +379,7 @@ test('retries non-POST requests on 500 errors', t => {
   }).then(res => {
     t.equal(res.status, 500, 'bad post gives a 500 without retries')
     srv.put('/test').reply(500)
-    const stream = through()
+    const stream = new Minipass()
     setTimeout(() => {
       stream.write('bleh')
       stream.end()
