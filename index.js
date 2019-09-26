@@ -254,10 +254,22 @@ function conditionalFetch (req, cachedRes, opts) {
       }
 
       if (condRes.status === 304) { // 304 Not Modified
-        condRes.body = cachedRes.body
-        return opts.cacheManager.put(req, condRes, opts)
+        // Create a synthetic response from the cached body and original req
+        const synthRes = new fetch.Response(cachedRes.body, condRes)
+        return opts.cacheManager.put(req, synthRes, opts)
           .then(newRes => {
-            newRes.headers = new fetch.Headers(revalidatedPolicy.policy.responseHeaders())
+            // Get the list first, because if we delete while iterating,
+            // it'll throw off the count and not make it through all
+            // of them.
+            const newHeaders = revalidatedPolicy.policy.responseHeaders()
+            const toDelete = [...newRes.headers.keys()]
+              .filter(k => !newHeaders[k])
+            for (const key of toDelete) {
+              newRes.headers.delete(key)
+            }
+            for (const [key, val] of Object.entries(newHeaders)) {
+              newRes.headers.set(key, val)
+            }
             return newRes
           })
       }
