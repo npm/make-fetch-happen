@@ -291,19 +291,24 @@ test('forces revalidation if cached response is `must-revalidate`', t => {
     cacheManager: CACHE,
     retry: {retries: 0}
   }).then(res => {
+    console.error('GOT RESPONSE')
     return res.buffer()
   }).then(body => {
+    console.error('GOT BODY', body.toString())
     t.deepEqual(body, CONTENT, 'got remote content')
     srv.get('/test').reply(304, function () {
+      console.error('IN SRV GET FUNCTION')
       t.equal(this.req.headers['if-none-match'][0], 'thisisanetag', 'got etag')
     })
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE
     })
   }).then(res => {
+    console.error('GOT 304 RESPONSE')
     t.equal(res.status, 304, 'revalidated cached req returns 304')
     return res.buffer()
   }).then(body => {
+    console.error('GOT BODY FROM 304')
     t.deepEqual(body, CONTENT, 'got cached content')
   })
 })

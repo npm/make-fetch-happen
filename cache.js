@@ -81,10 +81,10 @@ module.exports = class Cache {
               cacache.get.byDigest(cachePath, info.integrity, {
                 memoize: opts.memoize
               })
-              .then(data => body.end(data))
-              .catch(err => {
-                body.emit('error', err)
-              })
+                .then(data => body.end(data))
+                .catch(err => {
+                  body.emit('error', err)
+                })
             }
         body.once('resume', onResume)
         body.once('end', () => removeOnResume)
@@ -115,17 +115,30 @@ module.exports = class Cache {
       memoize: fitInMemory && opts.memoize
     }
     if (req.method === 'HEAD' || response.status === 304) {
+      console.error('CC RESPONSE IS 304')
       // Update metadata without writing
       return cacache.get.info(this._path, ckey).then(info => {
+        console.error('CC GOT INFO', info)
         // Providing these will bypass content write
         cacheOpts.integrity = info.integrity
         addCacheHeaders(
           response.headers, this._path, ckey, info.integrity, info.time
         )
-        return new MinipassPipeline(
-          cacache.get.stream.byDigest(this._path, info.integrity, cacheOpts),
-          cacache.put.stream(this._path, cacheKey(req), cacheOpts)
-        ).promise()
+
+        const getByDigest = cacache.get.stream.byDigest(this._path, info.integrity, cacheOpts)
+        console.error('CC GET BY DIGEST', getByDigest)
+        const putStream = cacache.put.stream(this._path, cacheKey(req), cacheOpts)
+        console.error('CC PUT STREAM', putStream)
+
+        const pipeline = new MinipassPipeline(
+          getByDigest,
+          putStream
+        )
+        console.error('CC PIPELINE', pipeline)
+        return pipeline.collect().then((data) => {
+          console.error('CC PUT STREAM 304 PIPELINE END', data)
+          return response
+        })
       })
     }
 
@@ -187,8 +200,8 @@ module.exports = class Cache {
         .on('error', er => newBody.emit('error', er))
     }
 
-    response.body = newBody
-    return response
+    console.error('CC CREATING NEW FETCH RESPONSE FOR CACHE PUT')
+    return Promise.resolve(new fetch.Response(newBody, response))
   }
 
   // Finds the Cache entry whose key is the request, and if found, deletes the

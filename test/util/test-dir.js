@@ -44,5 +44,4 @@ function reset (testDir) {
       })
     })
   })
-
 }

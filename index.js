@@ -298,10 +298,9 @@ function remoteFetchHandleIntegrity (res, integrity) {
     integrity
   })
   oldBod.pipe(newBod)
-  res.body = newBod
-  oldBod.once('error', err => {
-    newBod.emit('error', err)
-  })
+  oldBod.on('error', er => newBod.emit('error'))
+
+  return new fetch.Response(newBod, res)
 }
 
 function remoteFetch (uri, opts) {
@@ -329,11 +328,11 @@ function remoteFetch (uri, opts) {
       const req = new fetch.Request(uri, reqOpts)
       return fetch(req)
         .then(res => {
-          res.headers.set('x-fetch-attempts', attemptNum)
-
           if (opts.integrity) {
-            remoteFetchHandleIntegrity(res, opts.integrity)
+            res = remoteFetchHandleIntegrity(res, opts.integrity)
           }
+
+          res.headers.set('x-fetch-attempts', attemptNum)
 
           const isStream = Minipass.isStream(req.body)
 
