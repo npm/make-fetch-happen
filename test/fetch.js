@@ -133,9 +133,8 @@ test('supports error redirect flag', t => {
     'Location': `${HOST}/test`
   })
 
-  return fetch(`${HOST}/redirect`, {redirect: 'error'}).catch(error => {
-    t.equal(error instanceof Error, true)
-    t.equal(error.message, 'redirect mode is set to error: https://make-fetch-happen.npm/redirect')
+  return t.rejects(fetch(`${HOST}/redirect`, {redirect: 'error'}), {
+    message: 'redirect mode is set to error: https://make-fetch-happen.npm/redirect'
   })
 })
 
@@ -144,9 +143,8 @@ test('throws error when redirect location is missing', t => {
 
   srv.get('/redirect').reply(301)
 
-  return fetch(`${HOST}/redirect`).catch(error => {
-    t.equal(error instanceof Error, true)
-    t.equal(error.message, 'redirect location header missing at: https://make-fetch-happen.npm/redirect')
+  return t.rejects(fetch(`${HOST}/redirect`), {
+    message: 'redirect location header missing at: https://make-fetch-happen.npm/redirect'
   })
 })
 
@@ -162,13 +160,9 @@ test('removes authorization header if changing hostnames', t => {
   srv.matchHeader('authorization', 'test')
     .get('/test').reply(200, CONTENT)
 
-  return fetch(`${HTTPHOST}/redirect`, {
+  return t.rejects(fetch(`${HTTPHOST}/redirect`, {
     headers: { 'authorization': 'test' }
-  })
-    .catch(error => {
-      t.equal(error instanceof Error, true)
-      nock.cleanAll()
-    })
+  })).then(() => nock.cleanAll())
 })
 
 test('supports passthrough of options on redirect', t => {
@@ -215,9 +209,8 @@ test('throws error if follow is less than request count', t => {
     'Location': `${HOST}/test`
   })
 
-  return fetch(`${HOST}/redirect`, {follow: 0}).catch(error => {
-    t.equal(error instanceof Error, true)
-    t.equal(error.message, 'maximum redirect reached at: https://make-fetch-happen.npm/redirect')
+  return t.rejects(fetch(`${HOST}/redirect`, {follow: 0}), {
+    message: 'maximum redirect reached at: https://make-fetch-happen.npm/redirect'
   })
 })
 
@@ -298,13 +291,11 @@ test('handles 15 concurrent requests', t => {
 test('supports opts.timeout for controlling request timeout time', t => {
   const srv = tnock(t, HOST)
   srv.get('/test').delay(10).reply(200, CONTENT)
-  return fetch(`${HOST}/test`, {
+  return t.rejects(fetch(`${HOST}/test`, {
     timeout: 1,
     retry: { retries: 0 }
-  }).then(res => {
-    throw new Error('unexpected req success')
-  }).catch(err => {
-    t.deepEqual(err.type, 'request-timeout', 'timeout error triggered')
+  }), {
+    type: 'request-timeout'
   })
 })
 
@@ -327,22 +318,20 @@ test('retries non-POST requests on timeouts', t => {
   }).then(res => res.buffer()).then(buf => {
     t.deepEqual(buf, CONTENT, 'request retried until success')
     srv.get('/test').delay(10).twice().reply(200)
-    return fetch(`${HOST}/test`, {
+    return t.rejects(fetch(`${HOST}/test`, {
       timeout: 1,
       retry: {retries: 1, minTimeout: 1}
-    }).catch(err => {
-      t.equal(err.type, 'request-timeout', 'exhausted timeout retries')
+    }), {
+      type: 'request-timeout'
     })
   }).then(() => {
     srv.post('/test').delay(10).reply(201)
-    return fetch(`${HOST}/test`, {
+    return t.rejects(fetch(`${HOST}/test`, {
       method: 'POST',
       timeout: 1,
       retry: {retries: 1, minTimeout: 1}
-    }).catch(err => {
-      t.equal(
-        err.type, 'request-timeout', 'POST got timeout error w/o retries'
-      )
+    }), {
+      type: 'request-timeout'
     })
   })
 })
