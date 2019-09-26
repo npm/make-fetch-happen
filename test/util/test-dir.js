@@ -1,11 +1,9 @@
 'use strict'
 
-const BB = require('bluebird')
-
 const cacache = require('cacache')
+const rimraf = require('rimraf')
 const mkdirp = require('mkdirp')
 const path = require('path')
-const rimraf = require('rimraf')
 const tap = require('tap')
 
 const cacheDir = path.resolve(__dirname, '../cache')
@@ -36,13 +34,13 @@ module.exports.reset = reset
 function reset (testDir) {
   cacache.clearMemoized()
   process.chdir(__dirname)
-  return BB.fromNode(cb => {
+  return new Promise((resolve, reject) => {
     rimraf(testDir, function (err) {
-      if (err) { return cb(err) }
+      if (err) { return reject(err) }
       mkdirp(testDir, function (err) {
-        if (err) { return cb(err) }
+        if (err) { return reject(err) }
         process.chdir(testDir)
-        cb()
+        resolve()
       })
     })
   })
