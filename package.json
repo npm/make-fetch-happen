@@ -41,12 +41,12 @@
     "lru-cache": "^5.1.1",
     "minipass": "^2.8.6",
     "minipass-collect": "^1.0.1",
-    "minipass-fetch": "^1.0.1",
+    "minipass-fetch": "^1.1.0",
     "minipass-flush": "^1.0.4",
-    "minipass-pipeline": "^1.2.0",
+    "minipass-pipeline": "^1.2.1",
     "promise-retry": "^1.1.1",
     "socks-proxy-agent": "^4.0.0",
-    "ssri": "^6.0.0"
+    "ssri": "^7.0.0"
   },
   "devDependencies": {
     "mkdirp": "^0.5.1",
