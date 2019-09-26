@@ -7,7 +7,8 @@ const fetch = require('minipass-fetch')
 const pkg = require('./package.json')
 const retry = require('promise-retry')
 let ssri
-const Stream = require('stream')
+
+const Minipass = require('minipass')
 const getAgent = require('./agent')
 const setWarning = require('./warning')
 
@@ -298,12 +299,8 @@ function remoteFetchHandleIntegrity (res, integrity) {
   })
   oldBod.pipe(newBod)
   res.body = newBod
-  // XXX errors should probably only go one direction?
   oldBod.once('error', err => {
     newBod.emit('error', err)
-  })
-  newBod.once('error', err => {
-    oldBod.emit('error', err)
   })
 }
 
@@ -338,8 +335,7 @@ function remoteFetch (uri, opts) {
             remoteFetchHandleIntegrity(res, opts.integrity)
           }
 
-          // XXX should check if it's an EventEmitter with a .pipe() method
-          const isStream = req.body instanceof Stream
+          const isStream = Minipass.isStream(req.body)
 
           if (opts.cacheManager) {
             const isMethodGetHead = req.method === 'GET' ||

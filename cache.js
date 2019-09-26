@@ -1,20 +1,14 @@
 'use strict'
 
+const fetch = require('minipass-fetch')
 const cacache = require('cacache')
-const fetch = require('node-fetch-npm')
 const ssri = require('ssri')
 const url = require('url')
 
 const Minipass = require('minipass')
 const MinipassFlush = require('minipass-flush')
-const MinipassPipeline = require('minipass-pipeline')
 const MinipassCollect = require('minipass-collect')
-
-// XXX remove these!
-const pipe = require('mississippi').pipe
-const through = require('mississippi').through
-const to = require('mississippi').to
-const stream = require('stream')
+const MinipassPipeline = require('minipass-pipeline')
 
 const MAX_MEM_SIZE = 5 * 1024 * 1024 // 5MB
 
@@ -71,25 +65,27 @@ module.exports = class Cache {
         // avoid opening cache file handles until a user actually tries to
         // read from it.
         const body = new Minipass()
+        const notFitInMemory = false && info.size > MAX_MEM_SIZE
         const removeOnResume = () => body.removeListener('resume', onResume)
         const onResume =
-          opts.memoize !== false && info.size > MAX_MEM_SIZE
-          ? () => {
+          opts.memoize !== notFitInMemory
+            ? () => {
               const c = cacache.get.stream.byDigest(cachePath, info.integrity, {
                 memoize: opts.memoize
               })
-              c.on('error', er => body.emit('error', er))
+              c.on('error', err => body.emit('error', err))
               c.pipe(body)
             }
-          : () => {
-            removeOnResume()
-            cacache.get.byDigest(cachePath, info.integrity, {
-              memoize: opts.memoize
-            }).then(
-              data => body.end(data),
-              er => body.emit('error', er)
-            )
-          }
+            : () => {
+              removeOnResume()
+              cacache.get.byDigest(cachePath, info.integrity, {
+                memoize: opts.memoize
+              })
+              .then(data => body.end(data))
+              .catch(err => {
+                body.emit('error', err)
+              })
+            }
         body.once('resume', onResume)
         body.once('end', () => removeOnResume)
         return this.Promise.resolve(new fetch.Response(body, {
@@ -130,7 +126,7 @@ module.exports = class Cache {
           cacache.get.stream.byDigest(this._path, info.integrity, cacheOpts),
           cacache.put.stream(this._path, cacheKey(req), cacheOpts)
         ).promise()
-      }).then(() => response)
+      })
     }
 
     /*
@@ -155,10 +151,11 @@ module.exports = class Cache {
     })
 
     let cacheWriteResolve, cacheWriteReject
-    const cacheWritePromise = new Promise((res, rej) => {
-      cacheWriteResolve = res
-      cacheWriteReject = rej
+    const cacheWritePromise = new Promise((resolve, reject) => {
+      cacheWriteResolve = resolve
+      cacheWriteReject = reject
     })
+    const cachePath = this._path
 
     if (fitInMemory) {
       const collecter = new MinipassCollect.PassThrough()
@@ -189,6 +186,7 @@ module.exports = class Cache {
         .pipe(tee)
         .on('error', er => newBody.emit('error', er))
     }
+
     response.body = newBody
     return response
   }
