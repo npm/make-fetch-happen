@@ -469,7 +469,8 @@ function remoteFetch (uri, opts) {
     },
     opts.retry
   ).catch(err => {
-    if (err.status >= 400) {
+    if (err.status >= 400 && err.type !== 'system') {
+      // this is an HTTP response "error" that we care about
       return err
     }
 
