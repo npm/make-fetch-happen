@@ -534,6 +534,31 @@ test('heuristic freshness lifetime', t => {
   })
 })
 
+test('heuristic age warning', t => {
+  const srv = tnock(t, HOST)
+  // just a very old thing
+  srv.get('/heuristic').reply(200, CONTENT, {
+    age: 3600 * 72,
+    'last-modified': 'Tue, 15 Nov 1994 12:45:26 GMT',
+    date: 'Tue, 15 Nov 1994 12:45:26 GMT'
+  })
+  return fetch(`${HOST}/heuristic`, {
+    cacheManager: CACHE,
+    retry: {retries: 0}
+  }).then(res => res.buffer().then(body => {
+    t.equal(res.headers.get('warning'), null, 'no warnings')
+    t.deepEqual(body, CONTENT, 'got remote content')
+    return fetch(`${HOST}/heuristic`, {
+      cacheManager: CACHE,
+      retry: {retries: 0}
+    })
+  })).then(res => {
+    t.equal(res.status, 200, 'got 200 response')
+    t.same(res.headers.get('warning'), '113 - "rfc7234 5.5.4"')
+    return res.buffer()
+  })
+})
+
 test('refreshes cached request on HEAD request', t => {
   const srv = tnock(t, HOST)
   srv.get('/test').reply(200, CONTENT, {
