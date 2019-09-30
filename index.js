@@ -219,6 +219,14 @@ function isStale (req, res) {
   policy._responseTime = new Date(responseTime)
 
   const bool = !policy.satisfiesWithoutRevalidation(_req)
+  const headers = policy.responseHeaders()
+  if (headers.warning && /^113\b/.test(headers.warning)) {
+    // Possible to pick up a rfc7234 warning at this point.
+    // This is kind of a weird place to stick this, should probably go
+    // in cachingFetch.  But by putting it here, we save an extra
+    // CachePolicy object construction.
+    res.headers.append('warning', headers.warning)
+  }
   return bool
 }
 
