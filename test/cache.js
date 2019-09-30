@@ -159,12 +159,9 @@ test('supports request streaming', t => {
     cacheManager: CACHE,
     retry: {retries: 0}
   }).then(res => {
-    let buf = []
-    let bufLen = 0
-    res.body.on('data', d => { buf.push(d); bufLen += d.length })
-    return res.body.promise().then(() => {
+    return res.body.concat().then(data => {
       t.deepEqual(
-        Buffer.concat(buf, bufLen),
+        data,
         CONTENT,
         'initial request streamed correct content'
       )
@@ -174,12 +171,9 @@ test('supports request streaming', t => {
       cacheManager: CACHE
     })
   }).then(res => {
-    let buf = []
-    let bufLen = 0
-    res.body.on('data', d => { buf.push(d); bufLen += d.length })
-    return res.body.promise().then(() => {
+    return res.body.concat().then(data => {
       t.deepEqual(
-        Buffer.concat(buf, bufLen),
+        data,
         CONTENT,
         'cached request streamed correct content'
       )
