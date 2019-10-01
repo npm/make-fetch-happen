@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="6.0.0"></a>
+# [6.0.0](https://github.com/npm/make-fetch-happen/compare/v5.0.0...v6.0.0) (2019-10-01)
+
+### Bug Fixes
+
+* preserve rfc7234 5.5.4 warnings ([001b91e](https://github.com/npm/make-fetch-happen/commit/001b91e))
+* properly detect thrown HTTP "error" objects ([d7cbeb4](https://github.com/npm/make-fetch-happen/commit/d7cbeb4))
+* safely create synthetic response body for 304 ([bc70f88](https://github.com/npm/make-fetch-happen/commit/bc70f88))
+
+### Features
+
+* **promises:** refactor bluebird with native promises ([7482d54](https://github.com/npm/make-fetch-happen/commit/7482d54))
+
+### BREAKING CHANGES
+
+* **streams:** refactor node streams with minipass ([1d7f5a3](https://github.com/npm/make-fetch-happen/commit/1d7f5a3))
+
 <a name="5.0.0"></a>
 # [5.0.0](https://github.com/npm/make-fetch-happen/compare/v4.0.2...v5.0.0) (2019-07-15)
 
