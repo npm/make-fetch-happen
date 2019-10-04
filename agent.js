@@ -1,6 +1,7 @@
 'use strict'
 const LRU = require('lru-cache')
 const url = require('url')
+const isLambda = require('is-lambda')
 
 const AGENT_CACHE = new LRU({ max: 50 })
 let HttpsAgent
@@ -44,12 +45,25 @@ function getAgent (uri, opts) {
     return opts.agent
   }
 
+  // keep alive in AWS lambda makes no sense
+  const lambdaAgent = !isLambda ? null
+    : isHttps ? require('https').globalAgent
+      : require('http').globalAgent
+
+  if (isLambda && !pxuri) {
+    return lambdaAgent
+  }
+
   if (AGENT_CACHE.peek(key)) {
     return AGENT_CACHE.get(key)
   }
 
   if (pxuri) {
-    const proxy = getProxy(pxuri, opts, isHttps)
+    const pxopts = isLambda ? {
+      ...opts,
+      agent: lambdaAgent
+    } : opts
+    const proxy = getProxy(pxuri, pxopts, isHttps)
     AGENT_CACHE.set(key, proxy)
     return proxy
   }
