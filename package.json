@@ -10,7 +10,7 @@
   "scripts": {
     "prerelease": "npm t",
     "release": "standard-version -s",
-    "postrelease": "npm publish && git push --follow-tags",
+    "postrelease": "npm publish --tag=legacy && git push --follow-tags",
     "pretest": "standard",
     "test": "tap --coverage --nyc-arg=--all --timeout=35 -J test/*.js",
     "update-coc": "weallbehave -o . && git add CODE_OF_CONDUCT.md && git commit -m 'docs(coc): updated CODE_OF_CONDUCT.md'",
