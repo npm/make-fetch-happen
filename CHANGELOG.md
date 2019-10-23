@@ -1,6 +1,8 @@
-# Change Log
+# Changelog
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
+
+### [6.0.1](https://github.com/npm/make-fetch-happen/compare/v6.0.0...v6.0.1) (2019-10-23)
 
 <a name="6.0.0"></a>
 # [6.0.0](https://github.com/npm/make-fetch-happen/compare/v5.0.0...v6.0.0) (2019-10-01)
