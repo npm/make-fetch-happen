@@ -66,7 +66,6 @@ fetch('https://registry.npmjs.org/make-fetch-happen').then(res => {
 * Node.js Stream support
 * Transparent gzip and deflate support
 * [Subresource Integrity](https://developer.mozilla.org/en-US/docs/Web/Security/Subresource_Integrity) support
-* Literally punches nazis
 * (PENDING) Range request caching and resuming
 
 ### Contributing
@@ -396,9 +395,3 @@ fetch('https://malicious-registry.org/make-fetch-happen/-/make-fetch-happen-1.0.
   integrity: 'sha1-o47j7zAYnedYFn1dF/fR9OV3z8Q='
 }) // Error: EINTEGRITY
 ```
-
-### <a name="wow"></a> Message From Our Sponsors
-
-![](stop.gif)
-
-![](happening.gif)
