@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="5.0.1"></a>
+## [5.0.1](https://github.com/zkat/make-fetch-happen/compare/v5.0.0...v5.0.1) (2019-10-23)
+
+
+
 <a name="5.0.0"></a>
 # [5.0.0](https://github.com/zkat/make-fetch-happen/compare/v4.0.2...v5.0.0) (2019-07-15)
 
