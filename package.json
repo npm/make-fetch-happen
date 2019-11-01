@@ -37,7 +37,7 @@
     "cacache": "^13.0.1",
     "http-cache-semantics": "^3.8.1",
     "http-proxy-agent": "^2.1.0",
-    "https-proxy-agent": "^2.2.3",
+    "https-proxy-agent": "^3.0.1",
     "lru-cache": "^5.1.1",
     "minipass": "^3.0.0",
     "minipass-collect": "^1.0.2",
