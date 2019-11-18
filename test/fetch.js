@@ -46,10 +46,10 @@ test('supports https', t => {
 test('500-level responses not thrown', t => {
   const srv = tnock(t, HOST)
   srv.get('/test').reply(500)
-  return fetch(`${HOST}/test`, {retry: {retries: 0}}).then(res => {
+  return fetch(`${HOST}/test`, { retry: { retries: 0 } }).then(res => {
     t.equal(res.status, 500, 'got regular response w/ errcode 500')
     srv.get('/test').reply(543)
-    return fetch(`${HOST}/test`, {retry: {retries: 0}})
+    return fetch(`${HOST}/test`, { retry: { retries: 0 } })
   }).then(res => {
     t.equal(res.status, 543, 'got regular response w/ errcode 543, as given')
   })
@@ -121,7 +121,7 @@ test('supports manual redirect flag', t => {
     'Location': `${HOST}/test`
   })
 
-  return fetch(`${HOST}/redirect`, {redirect: 'manual'}).then(res => {
+  return fetch(`${HOST}/redirect`, { redirect: 'manual' }).then(res => {
     t.equal(res.status, 301, 'got the final status')
   })
 })
@@ -133,7 +133,7 @@ test('supports error redirect flag', t => {
     'Location': `${HOST}/test`
   })
 
-  return t.rejects(fetch(`${HOST}/redirect`, {redirect: 'error'}), {
+  return t.rejects(fetch(`${HOST}/redirect`, { redirect: 'error' }), {
     message: 'redirect mode is set to error: https://make-fetch-happen.npm/redirect'
   })
 })
@@ -209,7 +209,7 @@ test('throws error if follow is less than request count', t => {
     'Location': `${HOST}/test`
   })
 
-  return t.rejects(fetch(`${HOST}/redirect`, {follow: 0}), {
+  return t.rejects(fetch(`${HOST}/redirect`, { follow: 0 }), {
     message: 'maximum redirect reached at: https://make-fetch-happen.npm/redirect'
   })
 })
@@ -320,7 +320,7 @@ test('retries non-POST requests on timeouts', t => {
     srv.get('/test').delay(10).twice().reply(200)
     return t.rejects(fetch(`${HOST}/test`, {
       timeout: 1,
-      retry: {retries: 1, minTimeout: 1}
+      retry: { retries: 1, minTimeout: 1 }
     }), {
       type: 'request-timeout'
     })
@@ -329,7 +329,7 @@ test('retries non-POST requests on timeouts', t => {
     return t.rejects(fetch(`${HOST}/test`, {
       method: 'POST',
       timeout: 1,
-      retry: {retries: 1, minTimeout: 1}
+      retry: { retries: 1, minTimeout: 1 }
     }), {
       type: 'request-timeout'
     })
@@ -355,7 +355,7 @@ test('retries non-POST requests on 500 errors', t => {
     t.deepEqual(buf, CONTENT, 'request retried until success')
     srv.get('/test').twice().reply(500)
     return fetch(`${HOST}/test`, {
-      retry: {retries: 1, minTimeout: 1}
+      retry: { retries: 1, minTimeout: 1 }
     })
   }).then(res => {
     t.equal(res.status, 500, 'got bad request back on failure')
@@ -363,7 +363,7 @@ test('retries non-POST requests on 500 errors', t => {
     srv.post('/test').reply(500)
     return fetch(`${HOST}/test`, {
       method: 'POST',
-      retry: {retries: 5, minTimeout: 1}
+      retry: { retries: 5, minTimeout: 1 }
     })
   }).then(res => {
     t.equal(res.status, 500, 'bad post gives a 500 without retries')
@@ -376,7 +376,7 @@ test('retries non-POST requests on 500 errors', t => {
     return fetch(`${HOST}/test`, {
       method: 'put',
       body: stream,
-      retry: {retries: 5, minTimeout: 1}
+      retry: { retries: 5, minTimeout: 1 }
     })
   }).then(res => {
     t.equal(res.status, 500, 'bad put does not retry because body is stream')

@@ -20,7 +20,7 @@ test('accepts a local path for caches', t => {
   tnock(t, HOST).get('/test').reply(200, CONTENT, HEADERS)
   return fetch(`${HOST}/test`, {
     cacheManager: CACHE,
-    retry: {retries: 0}
+    retry: { retries: 0 }
   }).then(res => {
     t.notOk(
       res.headers.get('x-local-cache'),
@@ -31,7 +31,7 @@ test('accepts a local path for caches', t => {
     t.deepEqual(body, CONTENT, 'got remote content')
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: {retries: 0}
+      retry: { retries: 0 }
     })
   }).then(res => {
     t.equal(res.status, 200, 'non-stale cached res has 200 status')
@@ -64,11 +64,11 @@ test('supports defaulted fetch cache', t => {
     cacheManager: CACHE
   })
   return defaultFetch(`${HOST}/test`, {
-    retry: {retries: 0}
+    retry: { retries: 0 }
   }).then(res => res.buffer()).then(body => {
     t.deepEqual(body, CONTENT, 'got remote content')
     return defaultFetch(`${HOST}/test`, {
-      retry: {retries: 0}
+      retry: { retries: 0 }
     })
   }).then(res => {
     t.equal(res.status, 200, 'non-stale cached res has 200 status')
@@ -83,12 +83,12 @@ test('nothing cached if body stream never used', t => {
   srv.get('/test').reply(200, CONTENT, HEADERS)
   return fetch(`${HOST}/test`, {
     cacheManager: CACHE,
-    retry: {retries: 0}
+    retry: { retries: 0 }
   }).then(res => {
     srv.get('/test').reply(200, 'newcontent', HEADERS)
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: {retries: 0}
+      retry: { retries: 0 }
     })
   }).then(res => {
     t.equal(res.status, 200, 'non-stale cached res has 200 status')
@@ -102,7 +102,7 @@ test('exports cache deletion API', t => {
   tnock(t, HOST).get('/test').twice().reply(200, CONTENT, HEADERS)
   return fetch(`${HOST}/test`, {
     cacheManager: CACHE,
-    retry: {retries: 0}
+    retry: { retries: 0 }
   }).then(res => {
     t.notOk(
       res.headers.get('x-local-cache'),
@@ -117,7 +117,7 @@ test('exports cache deletion API', t => {
   }).then(() => {
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: {retries: 0}
+      retry: { retries: 0 }
     })
   }).then(res => {
     t.equal(res.status, 200, 'request succeeded')
@@ -138,12 +138,12 @@ test('small responses cached', t => {
   })
   return fetch(`${HOST}/test`, {
     cacheManager: CACHE,
-    retry: {retries: 0}
+    retry: { retries: 0 }
   }).then(res => res.buffer()).then(body => {
     t.deepEqual(body, CONTENT, 'got remote content')
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: {retries: 0}
+      retry: { retries: 0 }
     })
   }).then(res => {
     t.equal(res.status, 200, 'non-stale cached res has 200 status')
@@ -157,7 +157,7 @@ test('supports request streaming', t => {
   tnock(t, HOST).get('/test').reply(200, CONTENT, HEADERS)
   return fetch(`${HOST}/test`, {
     cacheManager: CACHE,
-    retry: {retries: 0}
+    retry: { retries: 0 }
   }).then(res => {
     return res.body.concat().then(data => {
       t.deepEqual(
@@ -189,7 +189,7 @@ test('only `200 OK` responses cached', t => {
   })
   return fetch(`${HOST}/test`, {
     cacheManager: CACHE,
-    retry: {retries: 0}
+    retry: { retries: 0 }
   }).then(res => res.buffer()).then(body => {
     t.deepEqual(body, CONTENT, 'got remote content')
     srv.get('/test').reply(200, CONTENT, {
@@ -217,7 +217,7 @@ test('status code is 304 on revalidated cache hit', t => {
   })
   return fetch(`${HOST}/test`, {
     cacheManager: CACHE,
-    retry: {retries: 0}
+    retry: { retries: 0 }
   }).then(res => {
     return res.buffer()
   }).then(body => {
@@ -245,7 +245,7 @@ test('status code is 200 on stale cache + cond request w/ new data', t => {
   })
   return fetch(`${HOST}/test`, {
     cacheManager: CACHE,
-    retry: {retries: 0}
+    retry: { retries: 0 }
   }).then(res => {
     return res.buffer()
   }).then(body => {
@@ -283,7 +283,7 @@ test('forces revalidation if cached response is `must-revalidate`', t => {
   })
   return fetch(`${HOST}/test`, {
     cacheManager: CACHE,
-    retry: {retries: 0}
+    retry: { retries: 0 }
   }).then(res => {
     return res.buffer()
   }).then(body => {
@@ -311,7 +311,7 @@ test('falls back to stale cache on request failure (adds Warning, too)', t => {
   })
   return fetch(`${HOST}/test`, {
     cacheManager: CACHE,
-    retry: {retries: 0}
+    retry: { retries: 0 }
   }).then(res => {
     return res.buffer()
   }).then(body => {
@@ -346,7 +346,7 @@ test('does not return stale cache on failure if `must-revalidate`', t => {
   })
   return fetch(`${HOST}/test`, {
     cacheManager: CACHE,
-    retry: {retries: 0}
+    retry: { retries: 0 }
   }).then(res => {
     return res.buffer()
   }).then(body => {
@@ -377,14 +377,14 @@ test('reqs never stale if Cache-control: immutable', t => {
   })
   return fetch(`${HOST}/test`, {
     cacheManager: CACHE,
-    retry: {retries: 0}
+    retry: { retries: 0 }
   }).then(res => {
     return res.buffer()
   }).then(body => {
     t.deepEqual(body, CONTENT, 'got remote content')
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: {retries: 0}
+      retry: { retries: 0 }
     })
   }).then(res => {
     t.equal(res.status, 200, 'used entry from cache even though expired')
@@ -405,7 +405,7 @@ test('treats reqs as stale on Cache-Control: no-cache in a response', t => {
   })
   return fetch(`${HOST}/test`, {
     cacheManager: CACHE,
-    retry: {retries: 0}
+    retry: { retries: 0 }
   }).then(res => {
     return res.buffer()
   }).then(body => {
@@ -416,7 +416,7 @@ test('treats reqs as stale on Cache-Control: no-cache in a response', t => {
     })
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: {retries: 0}
+      retry: { retries: 0 }
     })
   }).then(res => {
     t.equal(res.status, 304, 'revalidated cached req returns 304')
@@ -437,7 +437,7 @@ test('treats request as stale on Pragma: no-cache in a response', t => {
   })
   return fetch(`${HOST}/test`, {
     cacheManager: CACHE,
-    retry: {retries: 0}
+    retry: { retries: 0 }
   }).then(res => {
     return res.buffer()
   }).then(body => {
@@ -448,7 +448,7 @@ test('treats request as stale on Pragma: no-cache in a response', t => {
     })
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: {retries: 0}
+      retry: { retries: 0 }
     })
   }).then(res => {
     t.equal(res.status, 304, 'revalidated cached req returns 304')
@@ -468,7 +468,7 @@ test('uses Expires header if no Pragma or Cache-Control', t => {
   })
   return fetch(`${HOST}/test`, {
     cacheManager: CACHE,
-    retry: {retries: 0}
+    retry: { retries: 0 }
   }).then(res => {
     return res.buffer()
   }).then(body => {
@@ -479,7 +479,7 @@ test('uses Expires header if no Pragma or Cache-Control', t => {
     })
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: {retries: 0}
+      retry: { retries: 0 }
     })
   }).then(res => {
     t.equal(res.status, 304, 'revalidated cached req returns 304')
@@ -498,7 +498,7 @@ test('heuristic freshness lifetime', t => {
   })
   return fetch(`${HOST}/test`, {
     cacheManager: CACHE,
-    retry: {retries: 0}
+    retry: { retries: 0 }
   }).then(res => {
     t.equal(res.headers.get('Foo'), 'some-value', 'got original Foo header')
     return res.buffer()
@@ -512,7 +512,7 @@ test('heuristic freshness lifetime', t => {
     return fetch(`${HOST}/test`, {
       method: 'HEAD',
       cacheManager: CACHE,
-      retry: {retries: 0}
+      retry: { retries: 0 }
     })
   }).then(res => {
     t.equal(res.status, 304, 'revalidated cached req returns 304')
@@ -523,7 +523,7 @@ test('heuristic freshness lifetime', t => {
     t.deepEqual(body, Buffer.from(''), 'HEAD request has empty body')
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: {retries: 0}
+      retry: { retries: 0 }
     })
   }).then(res => {
     t.equal(res.status, 200, 'local cache not stale after update')
@@ -544,13 +544,13 @@ test('heuristic age warning', t => {
   })
   return fetch(`${HOST}/heuristic`, {
     cacheManager: CACHE,
-    retry: {retries: 0}
+    retry: { retries: 0 }
   }).then(res => res.buffer().then(body => {
     t.equal(res.headers.get('warning'), null, 'no warnings')
     t.deepEqual(body, CONTENT, 'got remote content')
     return fetch(`${HOST}/heuristic`, {
       cacheManager: CACHE,
-      retry: {retries: 0}
+      retry: { retries: 0 }
     })
   })).then(res => {
     t.equal(res.status, 200, 'got 200 response')
@@ -568,7 +568,7 @@ test('refreshes cached request on HEAD request', t => {
   })
   return fetch(`${HOST}/test`, {
     cacheManager: CACHE,
-    retry: {retries: 0}
+    retry: { retries: 0 }
   }).then(res => {
     return res.buffer()
   }).then(body => {
@@ -578,7 +578,7 @@ test('refreshes cached request on HEAD request', t => {
     })
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: {retries: 0}
+      retry: { retries: 0 }
     })
   }).then(res => {
     t.equal(res.status, 304, 'revalidated cached req returns 304')
@@ -592,7 +592,7 @@ test('refreshes cached request on HEAD request', t => {
     t.deepEqual(body, CONTENT, 'got original cached content')
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: {retries: 0}
+      retry: { retries: 0 }
     })
   }).then(res => {
     t.equal(res.status, 200, 'local cache not stale after update')
@@ -615,7 +615,7 @@ test('original Warning header 1xx removed on cache hit', t => {
   })
   return fetch(`${HOST}/test`, {
     cacheManager: CACHE,
-    retry: {retries: 0}
+    retry: { retries: 0 }
   }).then(res => res.buffer()).then(body => {
     t.deepEqual(body, CONTENT, 'got remote content')
     return fetch(`${HOST}/test`, {
@@ -637,7 +637,7 @@ test('Warning header 2xx retained on cache hit', t => {
   })
   return fetch(`${HOST}/test`, {
     cacheManager: CACHE,
-    retry: {retries: 0}
+    retry: { retries: 0 }
   }).then(res => res.buffer()).then(body => {
     t.deepEqual(body, CONTENT, 'got remote content')
     return fetch(`${HOST}/test`, {
@@ -663,7 +663,7 @@ test('invalidates cache on put/post/delete', t => {
   })
   return fetch(`${HOST}/test`, {
     cacheManager: CACHE,
-    retry: {retries: 0}
+    retry: { retries: 0 }
   }).then(res => {
     t.equal(res.headers.get('Foo'), 'old', 'got old Foo header')
     return res.buffer()
@@ -686,7 +686,7 @@ test('invalidates cache on put/post/delete', t => {
     })
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: {retries: 0}
+      retry: { retries: 0 }
     })
   }).then(res => {
     t.equal(res.status, 200, 'got a proper 200 code')
@@ -711,7 +711,7 @@ test('invalidates cache on put/post/delete', t => {
     })
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: {retries: 0}
+      retry: { retries: 0 }
     })
   }).then(res => {
     t.equal(res.status, 200, 'got a proper 200 code')
@@ -729,7 +729,7 @@ test('request failures invalidate cache', t => {
   })
   return fetch(`${HOST}/test`, {
     cacheManager: CACHE,
-    retry: {retries: 0}
+    retry: { retries: 0 }
   }).then(res => {
     return res.buffer()
   }).then(body => {
@@ -768,7 +768,7 @@ test('uses GET cache if request is HEAD (without returning body)', t => {
   tnock(t, HOST).get('/test').reply(200, CONTENT)
   return fetch(`${HOST}/test`, {
     cacheManager: CACHE,
-    retry: {retries: 0}
+    retry: { retries: 0 }
   }).then(res => res.buffer()).then(body => {
     t.deepEqual(body, CONTENT, 'got remote content')
     return fetch(`${HOST}/test`, {
@@ -788,7 +788,7 @@ test('file handle not opened if body stream never used', t => {
   tnock(t, HOST).get('/test').reply(200, CONTENT)
   return fetch(`${HOST}/test`, {
     cacheManager: CACHE,
-    retry: {retries: 0}
+    retry: { retries: 0 }
   }).then(res => res.buffer()).then(body => {
     t.deepEqual(body, CONTENT, 'got remote content')
     return fetch(`${HOST}/test`, {
@@ -916,7 +916,7 @@ test('mode: no-store', t => {
   srv.get('/test').reply(200, 'foo')
   return fetch(`${HOST}/test`, {
     cacheManager: CACHE,
-    retry: {retries: 0}
+    retry: { retries: 0 }
   }).then(res => res.buffer()).then(() => {
     t.comment('cache warmed up')
     srv.get('/test').reply(200, CONTENT, {
@@ -925,7 +925,7 @@ test('mode: no-store', t => {
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
       cache: 'no-store',
-      retry: {retries: 0}
+      retry: { retries: 0 }
     })
   }).then(res => {
     t.equal(res.status, 200, 'got 200 status')
@@ -935,7 +935,7 @@ test('mode: no-store', t => {
     t.deepEqual(body, CONTENT, 'got second request content')
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: {retries: 0}
+      retry: { retries: 0 }
     })
   }).then(res => res.buffer()).then(buf => {
     t.deepEqual(
@@ -949,7 +949,7 @@ test('mode: default -> no-store', t => {
   srv.get('/test').reply(200, 'foo')
   return fetch(`${HOST}/test`, {
     cacheManager: CACHE,
-    retry: {retries: 0}
+    retry: { retries: 0 }
   }).then(res => res.buffer()).then(() => {
     t.comment('cache warmed up')
     srv.get('/test').reply(200, CONTENT, {
@@ -957,7 +957,7 @@ test('mode: default -> no-store', t => {
     })
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: {retries: 0},
+      retry: { retries: 0 },
       headers: {
         'if-none-match': 'foo'
       }
@@ -974,7 +974,7 @@ test('mode: default -> no-store', t => {
     t.deepEqual(body, CONTENT, 'got second request content')
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: {retries: 0}
+      retry: { retries: 0 }
     })
   }).then(res => res.buffer()).then(buf => {
     t.deepEqual(
@@ -991,7 +991,7 @@ test('mode: reload', t => {
   })
   return fetch(`${HOST}/test`, {
     cacheManager: CACHE,
-    retry: {retries: 0}
+    retry: { retries: 0 }
   }).then(res => res.buffer()).then(() => {
     t.comment('cache warmed up')
     srv.get('/test').reply(function () {
@@ -999,13 +999,13 @@ test('mode: reload', t => {
       return [
         200,
         CONTENT,
-        {'Foo': 'second req'}
+        { 'Foo': 'second req' }
       ]
     })
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
       cache: 'reload',
-      retry: {retries: 0}
+      retry: { retries: 0 }
     })
   }).then(res => {
     t.equal(res.status, 200, 'got 200 status')
@@ -1015,7 +1015,7 @@ test('mode: reload', t => {
     t.deepEqual(body, CONTENT, 'got second request content')
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: {retries: 0}
+      retry: { retries: 0 }
     })
   }).then(res => res.buffer()).then(buf => {
     t.deepEqual(buf, CONTENT, 'reload request refreshed cache')
@@ -1030,7 +1030,7 @@ test('mode: no-cache', t => {
   })
   return fetch(`${HOST}/test`, {
     cacheManager: CACHE,
-    retry: {retries: 0}
+    retry: { retries: 0 }
   }).then(res => res.buffer()).then(() => {
     t.comment('cache warmed up')
     srv.get('/test').reply(function () {
@@ -1038,13 +1038,13 @@ test('mode: no-cache', t => {
       return [
         200,
         CONTENT,
-        {'Foo': 'second req'}
+        { 'Foo': 'second req' }
       ]
     })
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
       cache: 'no-cache',
-      retry: {retries: 0}
+      retry: { retries: 0 }
     })
   }).then(res => {
     t.equal(res.status, 200, 'got 200 status')
@@ -1054,7 +1054,7 @@ test('mode: no-cache', t => {
     t.deepEqual(body, CONTENT, 'got second request content')
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: {retries: 0}
+      retry: { retries: 0 }
     })
   }).then(res => res.buffer()).then(buf => {
     t.deepEqual(buf, CONTENT, 'reload request refreshed cache')
@@ -1071,13 +1071,13 @@ test('mode: force-cache', t => {
   return fetch(`${HOST}/test`, {
     cacheManager: CACHE,
     cache: 'force-cache',
-    retry: {retries: 0}
+    retry: { retries: 0 }
   }).then(res => res.buffer()).then(() => {
     t.comment('cache warmed up')
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
       cache: 'force-cache',
-      retry: {retries: 0}
+      retry: { retries: 0 }
     })
   }).then(res => {
     t.equal(res.status, 200, 'got 200 status')
@@ -1096,13 +1096,13 @@ test('mode: only-if-cached', t => {
   })
   return fetch(`${HOST}/test`, {
     cacheManager: CACHE,
-    retry: {retries: 0}
+    retry: { retries: 0 }
   }).then(res => res.buffer()).then(() => {
     t.comment('cache warmed up')
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
       cache: 'only-if-cached',
-      retry: {retries: 0}
+      retry: { retries: 0 }
     })
   }).then(res => {
     t.equal(res.status, 200, 'got 200 status')
@@ -1112,7 +1112,7 @@ test('mode: only-if-cached', t => {
     return fetch(`${HOST}/other`, {
       cacheManager: CACHE,
       cache: 'only-if-cached',
-      retry: {retries: 0}
+      retry: { retries: 0 }
     }).then(() => {
       throw new Error('not supposed to succeed!')
     }).catch(err => {
