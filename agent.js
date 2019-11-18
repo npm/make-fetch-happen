@@ -115,10 +115,14 @@ function getProcessEnv (env) {
 function getProxyUri (uri, opts) {
   const protocol = url.parse(uri).protocol
 
-  const proxy = opts.proxy || (
-    protocol === 'https:' && getProcessEnv('https_proxy')
-  ) || (
-      protocol === 'http:' && getProcessEnv(['https_proxy', 'http_proxy', 'proxy'])
+  const proxy = opts.proxy ||
+    (
+      protocol === 'https:' &&
+      getProcessEnv('https_proxy')
+    ) ||
+    (
+      protocol === 'http:' &&
+      getProcessEnv(['https_proxy', 'http_proxy', 'proxy'])
     )
   if (!proxy) { return null }
 

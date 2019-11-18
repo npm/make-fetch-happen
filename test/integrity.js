@@ -13,7 +13,7 @@ const INTEGRITY = ssri.fromData(CONTENT)
 const INTEGRITY_GZ = ssri.fromData(CONTENT_GZ)
 const HOST = 'https://make-fetch-happen-safely.npm'
 
-const fetch = require('..').defaults({retry: false})
+const fetch = require('..').defaults({ retry: false })
 
 test('basic integrity verification', t => {
   const srv = tnock(t, HOST)
@@ -42,7 +42,7 @@ test('picks the "best" algorithm', t => {
   })
   integrity['md5'][0].digest = 'badc0ffee'
   integrity['sha1'][0].digest = 'badc0ffee'
-  const safetch = fetch.defaults({integrity})
+  const safetch = fetch.defaults({ integrity })
   const srv = tnock(t, HOST)
   srv.get('/good').times(3).reply(200, CONTENT)
   srv.get('/bad').reply(200, 'pwnt')
@@ -81,7 +81,7 @@ test('supports multiple hashes per algorithm', t => {
   }).concat(ssri.fromData(ALTCONTENT, {
     algorithms: ['sha384']
   }))
-  const safetch = fetch.defaults({integrity})
+  const safetch = fetch.defaults({ integrity })
   const srv = tnock(t, HOST)
   srv.get('/main').reply(200, CONTENT)
   srv.get('/alt').reply(200, ALTCONTENT)
@@ -120,7 +120,7 @@ test('checks integrity on cache fetch too', t => {
     return safetch(`${HOST}/test`, {
       // try to use local cached version
       cache: 'force-cache',
-      integrity: {algorithm: 'sha512', digest: 'doesnotmatch'}
+      integrity: { algorithm: 'sha512', digest: 'doesnotmatch' }
     }).then(res => res.buffer()).then(buf => {
       throw new Error(`bad data: ${buf.toString('utf8')}`)
     }).catch(err => {

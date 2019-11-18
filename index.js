@@ -200,10 +200,6 @@ function makePolicy (req, res) {
 
 // https://tools.ietf.org/html/rfc7234#section-4.2
 function isStale (req, res) {
-  if (!res) {
-    return null
-  }
-
   const _req = {
     url: req.url,
     method: req.method,
@@ -356,13 +352,17 @@ function remoteFetch (uri, opts) {
           const isStream = Minipass.isStream(req.body)
 
           if (opts.cacheManager) {
-            const isMethodGetHead = req.method === 'GET' ||
+            const isMethodGetHead = (
+              req.method === 'GET' ||
               req.method === 'HEAD'
+            )
 
-            const isCachable = opts.cache !== 'no-store' &&
+            const isCachable = (
+              opts.cache !== 'no-store' &&
               isMethodGetHead &&
               makePolicy(req, res).storable() &&
               res.status === 200 // No other statuses should be stored!
+            )
 
             if (isCachable) {
               return opts.cacheManager.put(req, res, opts)
@@ -384,7 +384,8 @@ function remoteFetch (uri, opts) {
           }
 
           const isRetriable = req.method !== 'POST' &&
-            !isStream && (
+            !isStream &&
+            (
               res.status === 408 || // Request Timeout
               res.status === 420 || // Enhance Your Calm (usually Twitter rate-limit)
               res.status === 429 || // Too Many Requests ("standard" rate-limiting)

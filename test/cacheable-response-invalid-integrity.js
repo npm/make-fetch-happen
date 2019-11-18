@@ -2,7 +2,7 @@ const port = 15443 + (+process.env.TAP_CHILD_ID || 0)
 
 const fetch = require('../')
 
-const {resolve, basename} = require('path')
+const { resolve, basename } = require('path')
 const me = resolve(__dirname, basename(__filename, '.js'))
 const mkdirp = require('mkdirp')
 mkdirp.sync(me)
