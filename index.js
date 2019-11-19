@@ -1,8 +1,6 @@
 'use strict'
 
-let Cache
 const url = require('url')
-const CachePolicy = require('http-cache-semantics')
 const fetch = require('minipass-fetch')
 const pkg = require('./package.json')
 const retry = require('promise-retry')
@@ -11,6 +9,10 @@ let ssri
 const Minipass = require('minipass')
 const getAgent = require('./agent')
 const setWarning = require('./warning')
+
+const configureOptions = require('./utils/configure-options')
+const iterableToObject = require('./utils/iterable-to-object')
+const makePolicy = require('./utils/make-policy')
 
 const isURL = /^https?:/
 const USER_AGENT = `${pkg.name}/${pkg.version} (+https://npm.im/${pkg.name})`
@@ -57,45 +59,6 @@ function cacheDelete (uri, opts) {
     })
     return opts.cacheManager.delete(req, opts)
   }
-}
-
-function initializeCache (opts) {
-  if (typeof opts.cacheManager === 'string') {
-    if (!Cache) {
-      // Default cacache-based cache
-      Cache = require('./cache')
-    }
-
-    opts.cacheManager = new Cache(opts.cacheManager, opts)
-  }
-
-  opts.cache = opts.cache || 'default'
-
-  if (opts.cache === 'default' && isHeaderConditional(opts.headers)) {
-    // If header list contains `If-Modified-Since`, `If-None-Match`,
-    // `If-Unmodified-Since`, `If-Match`, or `If-Range`, fetch will set cache
-    // mode to "no-store" if it is "default".
-    opts.cache = 'no-store'
-  }
-}
-
-function configureOptions (_opts) {
-  const opts = Object.assign({}, _opts || {})
-  opts.method = (opts.method || 'GET').toUpperCase()
-
-  if (opts.retry && typeof opts.retry === 'number') {
-    opts.retry = { retries: opts.retry }
-  }
-
-  if (opts.retry === false) {
-    opts.retry = { retries: 0 }
-  }
-
-  if (opts.cacheManager) {
-    initializeCache(opts)
-  }
-
-  return opts
 }
 
 function initializeSsri () {
@@ -174,28 +137,6 @@ function cachingFetch (uri, _opts) {
     })
   }
   return remoteFetch(uri, opts)
-}
-
-function iterableToObject (iter) {
-  const obj = {}
-  for (let k of iter.keys()) {
-    obj[k] = iter.get(k)
-  }
-  return obj
-}
-
-function makePolicy (req, res) {
-  const _req = {
-    url: req.url,
-    method: req.method,
-    headers: iterableToObject(req.headers)
-  }
-  const _res = {
-    status: res.status,
-    headers: iterableToObject(res.headers)
-  }
-
-  return new CachePolicy(_req, _res, { shared: false })
 }
 
 // https://tools.ietf.org/html/rfc7234#section-4.2
@@ -383,7 +324,8 @@ function remoteFetch (uri, opts) {
             }
           }
 
-          const isRetriable = req.method !== 'POST' &&
+          const isRetriable = (
+            req.method !== 'POST' &&
             !isStream &&
             (
               res.status === 408 || // Request Timeout
@@ -391,6 +333,7 @@ function remoteFetch (uri, opts) {
               res.status === 429 || // Too Many Requests ("standard" rate-limiting)
               res.status >= 500 // Assume server errors are momentary hiccups
             )
+          )
 
           if (isRetriable) {
             if (typeof opts.onRetry === 'function') {
@@ -477,21 +420,4 @@ function remoteFetch (uri, opts) {
 
     throw err
   })
-}
-
-function isHeaderConditional (headers) {
-  if (!headers || typeof headers !== 'object') {
-    return false
-  }
-
-  const modifiers = [
-    'if-modified-since',
-    'if-none-match',
-    'if-unmodified-since',
-    'if-match',
-    'if-range'
-  ]
-
-  return Object.keys(headers)
-    .some(h => modifiers.indexOf(h.toLowerCase()) !== -1)
 }
