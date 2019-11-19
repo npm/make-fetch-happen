@@ -55,10 +55,10 @@
     "require-inject": "^1.4.2",
     "rimraf": "^2.6.2",
     "safe-buffer": "^5.1.1",
-    "standard": "^11.0.1",
+    "standard": "^12.0.1",
     "standard-version": "^7.0.0",
     "tacks": "^1.2.6",
-    "tap": "^14.6.9",
+    "tap": "^14.9.2",
     "weallbehave": "^1.0.0",
     "weallcontribute": "^1.0.7"
   },
