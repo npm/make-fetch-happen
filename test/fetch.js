@@ -1,17 +1,41 @@
 'use strict'
 
-const Buffer = require('safe-buffer').Buffer
-
+const requireInject = require('require-inject')
+const { Buffer } = require('safe-buffer')
 const Minipass = require('minipass')
-const tnock = require('./util/tnock')
+const { test } = require('tap')
 const nock = require('nock')
-const test = require('tap').test
+const url = require('url')
+
+const tnock = require('./util/tnock')
 
 const CONTENT = Buffer.from('hello, world!', 'utf8')
 const HOST = 'https://make-fetch-happen.npm'
 const HTTPHOST = 'http://registry.npm.test.org'
 
-const fetch = require('..')
+function mockRequire (mocks = {}) {
+  const mergedMocks = Object.assign(
+    {},
+    {
+      '../agent': (uri, opts) => {
+        if (opts.agent === false) return false
+        const parsedUri = url.parse(typeof uri === 'string' ? uri : uri.url)
+        const isHttps = parsedUri.protocol === 'https:'
+        return (isHttps)
+          ? new (require('agentkeepalive').HttpsAgent)()
+          : new (require('agentkeepalive'))()
+      },
+      '../warning': () => {},
+      '../utils/configure-options': (opts) => {
+        return Object.assign({}, { method: 'GET', retry: { retries: 0 } }, opts)
+      },
+      '../utils/iterable-to-object': () => {},
+      '../utils/make-policy': () => {}
+    },
+    mocks
+  )
+  return requireInject('../index', mergedMocks)
+}
 
 test('requests remote content', t => {
   const srv = tnock(t, HOST)
