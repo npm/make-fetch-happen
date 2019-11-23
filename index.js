@@ -76,10 +76,15 @@ function cachingFetch (uri, _opts) {
     opts.compress = false
   }
 
-  const isCachable = (opts.method === 'GET' || opts.method === 'HEAD') &&
-    opts.cacheManager &&
-    opts.cache !== 'no-store' &&
-    opts.cache !== 'reload'
+  const isCachable = (
+    (
+      opts.method === 'GET' ||
+      opts.method === 'HEAD'
+    ) &&
+      Boolean(opts.cacheManager) &&
+      opts.cache !== 'no-store' &&
+      opts.cache !== 'reload'
+  )
 
   if (isCachable) {
     const req = new fetch.Request(uri, {
@@ -283,7 +288,7 @@ function remoteFetch (uri, opts) {
     (retryHandler, attemptNum) => {
       const req = new fetch.Request(uri, reqOpts)
       return fetch(req)
-        .then(res => {
+        .then((res) => {
           if (opts.integrity) {
             res = remoteFetchHandleIntegrity(res, opts.integrity)
           }
@@ -343,9 +348,15 @@ function remoteFetch (uri, opts) {
             return retryHandler(res)
           }
 
-          if (!fetch.isRedirect(res.status) || opts.redirect === 'manual') {
+          if (!fetch.isRedirect(res.status)) {
             return res
           }
+          if (opts.redirect === 'manual') {
+            return res
+          }
+          // if (!fetch.isRedirect(res.status) || opts.redirect === 'manual') {
+          //   return res
+          // }
 
           // handle redirects - matches behavior of fetch: https://github.com/bitinn/node-fetch
           if (opts.redirect === 'error') {
@@ -364,11 +375,9 @@ function remoteFetch (uri, opts) {
           }
 
           const resolvedUrl = url.resolve(req.url, res.headers.get('location'))
-          let redirectURL = url.parse(resolvedUrl)
-
-          if (isURL.test(res.headers.get('location'))) {
-            redirectURL = url.parse(res.headers.get('location'))
-          }
+          const redirectURL = (isURL.test(res.headers.get('location')))
+            ? url.parse(res.headers.get('location'))
+            : url.parse(resolvedUrl)
 
           // Remove authorization if changing hostnames (but not if just
           // changing ports or protocols).  This matches the behavior of request:
@@ -379,8 +388,16 @@ function remoteFetch (uri, opts) {
 
           // for POST request with 301/302 response, or any request with 303 response,
           // use GET when following redirect
-          if (res.status === 303 ||
-            ((res.status === 301 || res.status === 302) && req.method === 'POST')) {
+          if (
+            res.status === 303 ||
+            (
+              req.method === 'POST' &&
+              (
+                res.status === 301 ||
+                res.status === 302
+              )
+            )
+          ) {
             opts.method = 'GET'
             opts.body = null
             req.headers.delete('content-length')
@@ -395,10 +412,14 @@ function remoteFetch (uri, opts) {
           return cachingFetch(resolvedUrl, opts)
         })
         .catch(err => {
-          const code = err.code === 'EPROMISERETRY' ? err.retried.code : err.code
+          const code = (err.code === 'EPROMISERETRY')
+            ? err.retried.code
+            : err.code
 
-          const isRetryError = RETRY_ERRORS.indexOf(code) === -1 &&
+          const isRetryError = (
+            RETRY_ERRORS.indexOf(code) === -1 &&
             RETRY_TYPES.indexOf(err.type) === -1
+          )
 
           if (req.method === 'POST' || isRetryError) {
             throw err
