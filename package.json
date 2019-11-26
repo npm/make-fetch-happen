@@ -5,7 +5,8 @@
   "main": "index.js",
   "files": [
     "*.js",
-    "lib"
+    "lib",
+    "utils"
   ],
   "scripts": {
     "prerelease": "npm t",
