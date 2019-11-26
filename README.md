@@ -1,7 +1,7 @@
-# make-fetch-happen [![npm version](https://img.shields.io/npm/v/make-fetch-happen.svg)](https://npm.im/make-fetch-happen) [![license](https://img.shields.io/npm/l/make-fetch-happen.svg)](https://npm.im/make-fetch-happen) [![Travis](https://img.shields.io/travis/zkat/make-fetch-happen.svg)](https://travis-ci.org/zkat/make-fetch-happen) [![AppVeyor](https://ci.appveyor.com/api/projects/status/github/zkat/make-fetch-happen?svg=true)](https://ci.appveyor.com/project/zkat/make-fetch-happen) [![Coverage Status](https://coveralls.io/repos/github/zkat/make-fetch-happen/badge.svg?branch=latest)](https://coveralls.io/github/zkat/make-fetch-happen?branch=latest)
+# make-fetch-happen
+[![npm version](https://img.shields.io/npm/v/make-fetch-happen.svg)](https://npm.im/make-fetch-happen) [![license](https://img.shields.io/npm/l/make-fetch-happen.svg)](https://npm.im/make-fetch-happen) [![Travis](https://img.shields.io/travis/npm/make-fetch-happen.svg)](https://travis-ci.org/npm/make-fetch-happen) [![Coverage Status](https://coveralls.io/repos/github/npm/make-fetch-happen/badge.svg?branch=latest)](https://coveralls.io/github/npm/make-fetch-happen?branch=latest)
 
-
-[`make-fetch-happen`](https://github.com/zkat/make-fetch-happen) is a Node.js
+[`make-fetch-happen`](https://github.com/npm/make-fetch-happen) is a Node.js
 library that wraps [`node-fetch-npm`](https://github.com/npm/node-fetch-npm) with additional
 features [`node-fetch`](https://github.com/bitinn/node-fetch) doesn't intend to include, including HTTP Cache support, request
 pooling, proxies, retries, [and more](#features)!
