@@ -125,11 +125,12 @@ module.exports = class Cache {
 
         return new MinipassPipeline(
           cacache.get.stream.byDigest(this._path, info.integrity, cacheOpts),
-          cacache.put.stream(this._path, cacheKey(req), cacheOpts)
-        ).promise().then(() => response)
+          cacache.put.stream(this._path, ckey, cacheOpts)
+        ).promise().then(() => {
+          return response
+        })
       })
     }
-
     const oldBody = response.body
     const newBody = new MinipassFlush({
       flush () {
@@ -149,7 +150,7 @@ module.exports = class Cache {
       collecter.on('collect', data => {
         cacache.put(
           cachePath,
-          cacheKey(req),
+          ckey,
           data,
           cacheOpts
         ).then(cacheWriteResolve, cacheWriteReject)
@@ -163,7 +164,7 @@ module.exports = class Cache {
       const tee = new Minipass()
       const cacheStream = cacache.put.stream(
         cachePath,
-        cacheKey(req),
+        ckey,
         cacheOpts
       )
       tee.pipe(cacheStream)
