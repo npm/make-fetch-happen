@@ -100,6 +100,7 @@ module.exports = class Cache {
 
   // Takes both a request and its response and adds it to the given cache.
   put (req, response, opts) {
+    console.log('TEST START')
     opts = opts || {}
     const size = response.headers.get('content-length')
     const fitInMemory = !!size && opts.memoize !== false && size < MAX_MEM_SIZE
@@ -114,25 +115,36 @@ module.exports = class Cache {
       size,
       memoize: fitInMemory && opts.memoize
     }
+    console.log('REQ.METHOD:', req.method)
+    console.log('RES.STATUS:', response.status)
+    console.log('SIZE:', size)
+    console.log('FIT_IN_MEMORY:', fitInMemory)
+    console.log('CACHE_KEY:', ckey)
     if (req.method === 'HEAD' || response.status === 304) {
       // Update metadata without writing
       return cacache.get.info(this._path, ckey).then(info => {
+        console.log('INFO:', info)
         // Providing these will bypass content write
         cacheOpts.integrity = info.integrity
         addCacheHeaders(
           response.headers, this._path, ckey, info.integrity, info.time
         )
 
+        console.log('CREATING PIPELINE')
         return new MinipassPipeline(
           cacache.get.stream.byDigest(this._path, info.integrity, cacheOpts),
-          cacache.put.stream(this._path, cacheKey(req), cacheOpts)
-        ).promise().then(() => response)
+          cacache.put.stream(this._path, ckey, cacheOpts)
+        ).promise().then(() => {
+          console.log('FALL IN HERE')
+          return response
+        })
       })
     }
-
+    console.log(`RES.BODY(${typeof response.body}):`, response.body)
     const oldBody = response.body
     const newBody = new MinipassFlush({
       flush () {
+        console.log('FLUSH!!')
         return cacheWritePromise
       }
     })
@@ -147,9 +159,10 @@ module.exports = class Cache {
     if (fitInMemory) {
       const collecter = new MinipassCollect.PassThrough()
       collecter.on('collect', data => {
+        console.log('DATA:', data.toString())
         cacache.put(
           cachePath,
-          cacheKey(req),
+          ckey,
           data,
           cacheOpts
         ).then(cacheWriteResolve, cacheWriteReject)
@@ -163,7 +176,7 @@ module.exports = class Cache {
       const tee = new Minipass()
       const cacheStream = cacache.put.stream(
         cachePath,
-        cacheKey(req),
+        ckey,
         cacheOpts
       )
       tee.pipe(cacheStream)
@@ -174,6 +187,7 @@ module.exports = class Cache {
         .on('error', er => newBody.emit('error', er))
     }
 
+    console.log('TEST END')
     return Promise.resolve(new fetch.Response(newBody, response))
   }
 

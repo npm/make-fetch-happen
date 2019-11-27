@@ -1,10 +1,9 @@
 'use strict'
 
-var nock = require('nock')
+const nock = require('nock')
 
-module.exports = tnock
-function tnock (t, host) {
-  var server = nock(host)
+module.exports = function tnock (t, host) {
+  const server = nock(host)
   t.tearDown(function () {
     server.done()
   })
