@@ -37,7 +37,7 @@ test('exports class', (t) => {
   t.end()
 })
 
-test('put method', { only: true }, (t) => {
+test('put method', (t) => {
   t.test('does not work if response body is a buffer', (t) => {
     const Cache = require('../cache')
     const dir = t.testdir()
@@ -54,7 +54,7 @@ test('put method', { only: true }, (t) => {
     t.end()
   })
 
-  t.test('shape of response', { only: false }, (t) => {
+  t.test('shape of response', (t) => {
     t.plan(5)
     const Cache = require('../cache')
     const dir = t.testdir()
@@ -93,7 +93,7 @@ test('put method', { only: true }, (t) => {
       })
   })
 
-  t.test('in memory: caches correctly', { only: false }, (t) => {
+  t.test('in memory: caches correctly', (t) => {
     t.plan(5)
     const dir = t.testdir()
     const req = new Request(`${HOST}/put-test`)
@@ -144,7 +144,7 @@ test('put method', { only: true }, (t) => {
       })
   })
 
-  t.test('stream (not in memory): caches correctly', { only: false }, (t) => {
+  t.test('stream (not in memory): caches correctly', (t) => {
     t.plan(5)
     const dir = t.testdir()
     const MockCacache = function cacache () {}
@@ -193,7 +193,7 @@ test('put method', { only: true }, (t) => {
       })
   })
 
-  t.test('propertly sets cacheKey', { only: false }, (t) => {
+  t.test('propertly sets cacheKey', (t) => {
     t.plan(3)
     const dir = t.testdir()
     const MockCacache = function cacache () {}
@@ -236,7 +236,7 @@ test('put method', { only: true }, (t) => {
       })
   })
 
-  t.test('request method HEAD or status 304', { only: true }, (t) => {
+  t.test('request method HEAD or status 304', { skip: true }, (t) => {
     t.plan(6)
     const dir = t.testdir()
     const MockCacache = function cacache () {}
@@ -248,14 +248,12 @@ test('put method', { only: true }, (t) => {
       cacheKey,
       cacheOpts
     ) {
-      console.log('PUT.STREAM', 'START')
       t.deepEqual(
         cacheOpts.integrity,
         INTEGRITY,
         'should have added integrity property to cache options'
       )
       const stream = new Minipass()
-      console.log('PUT.STREAM', 'END')
       return stream
     }
     MockCacache.prototype.get.info = () => Promise.resolve({
@@ -266,7 +264,6 @@ test('put method', { only: true }, (t) => {
       integrity,
       cacheOpts
     ) => {
-      console.log('GET.STREAM.BY_DIGEST', 'START')
       t.equal(integrity, INTEGRITY, 'should pass in integrity value')
       t.deepEqual(
         cacheOpts.integrity,
@@ -274,7 +271,6 @@ test('put method', { only: true }, (t) => {
         'should have added integrity property to cache options'
       )
       const mp = new Minipass()
-      console.log('GET.STREAM.BY_DIGEST', 'END')
       mp.end(CONTENT)
       return mp
     }
@@ -293,18 +289,18 @@ test('put method', { only: true }, (t) => {
     const initialResponse = new Response(body, resOpts)
     return cache.put(req, initialResponse)
       .then((actualResponse) => {
-        console.log('TEST THEN BLOCK')
         t.ok(actualResponse instanceof Response, 'type of response is Response')
         t.equal(actualResponse, initialResponse, 'same response object')
-        // return t.resolveMatch(
-        //   actualResponse.text(),
-        //   CONTENT.toString(),
-        //   'should have same body'
-        // )
+        return t.resolveMatch(
+          actualResponse.text(),
+          CONTENT.toString(),
+          'should have same body'
+        )
       })
   })
 
-  t.test('BASE TEST', { only: false }, (t) => {
+  // NOTE(to self): Copy/Paste this to create new tests
+  t.test('BASE TEST', { skip: true }, (t) => {
     t.plan(2)
     const dir = t.testdir()
     const MockCacache = function cacache () {}
@@ -337,10 +333,9 @@ test('put method', { only: true }, (t) => {
   t.end()
 })
 
-test('integration tests', { skip: true }, (t) => {
-// test('integration tests', (t) => {
+test('integration tests', (t) => {
   const fetch = require('..')
-  test('accepts a local path for caches', t => {
+  t.test('accepts a local path for caches', t => {
     tnock(t, HOST).get('/test').reply(200, CONTENT, HEADERS)
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
@@ -382,7 +377,7 @@ test('integration tests', { skip: true }, (t) => {
     })
   })
 
-  test('supports defaulted fetch cache', t => {
+  t.test('supports defaulted fetch cache', t => {
     tnock(t, HOST).get('/test').reply(200, CONTENT, HEADERS)
     const defaultFetch = fetch.defaults({
       cacheManager: CACHE
@@ -402,7 +397,7 @@ test('integration tests', { skip: true }, (t) => {
     })
   })
 
-  test('nothing cached if body stream never used', t => {
+  t.test('nothing cached if body stream never used', t => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, CONTENT, HEADERS)
     return fetch(`${HOST}/test`, {
@@ -422,7 +417,7 @@ test('integration tests', { skip: true }, (t) => {
     })
   })
 
-  test('exports cache deletion API', t => {
+  t.test('exports cache deletion API', t => {
     tnock(t, HOST).get('/test').twice().reply(200, CONTENT, HEADERS)
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
@@ -455,7 +450,7 @@ test('integration tests', { skip: true }, (t) => {
     })
   })
 
-  test('small responses cached', t => {
+  t.test('small responses cached', t => {
     tnock(t, HOST).get('/test').reply(200, CONTENT, {
       'Content-Length': CONTENT.length,
       'cache-control': HEADERS['cache-control']
@@ -477,7 +472,7 @@ test('integration tests', { skip: true }, (t) => {
     })
   })
 
-  test('supports request streaming', t => {
+  t.test('supports request streaming', t => {
     tnock(t, HOST).get('/test').reply(200, CONTENT, HEADERS)
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
@@ -505,7 +500,7 @@ test('integration tests', { skip: true }, (t) => {
     })
   })
 
-  test('only `200 OK` responses cached', t => {
+  t.test('only `200 OK` responses cached', t => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(201, CONTENT, {
       'Foo': 'first',
@@ -532,7 +527,7 @@ test('integration tests', { skip: true }, (t) => {
     })
   })
 
-  test('status code is 304 on revalidated cache hit', t => {
+  t.test('status code is 304 on revalidated cache hit', t => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, CONTENT, {
       'Cache-Control': 'max-age = 0',
@@ -560,7 +555,7 @@ test('integration tests', { skip: true }, (t) => {
     })
   })
 
-  test('status code is 200 on stale cache + cond request w/ new data', t => {
+  t.test('status code is 200 on stale cache + cond request w/ new data', t => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, CONTENT, {
       'Cache-Control': 'max-age = 0',
@@ -598,7 +593,7 @@ test('integration tests', { skip: true }, (t) => {
     })
   })
 
-  test('forces revalidation if cached response is `must-revalidate`', t => {
+  t.test('forces revalidation if cached response is `must-revalidate`', t => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, CONTENT, {
       'Cache-Control': 'must-revalidate',
@@ -626,7 +621,7 @@ test('integration tests', { skip: true }, (t) => {
     })
   })
 
-  test('falls back to stale cache on request failure (adds Warning, too)', t => {
+  t.test('falls back to stale cache on request failure (adds Warning, too)', t => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, CONTENT, {
       'Cache-Control': 'max-age=0',
@@ -661,7 +656,7 @@ test('integration tests', { skip: true }, (t) => {
     })
   })
 
-  test('does not return stale cache on failure if `must-revalidate`', t => {
+  t.test('does not return stale cache on failure if `must-revalidate`', t => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, CONTENT, {
       'Cache-Control': 'must-revalidate',
@@ -691,7 +686,7 @@ test('integration tests', { skip: true }, (t) => {
     })
   })
 
-  test('reqs never stale if Cache-control: immutable', t => {
+  t.test('reqs never stale if Cache-control: immutable', t => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, CONTENT, {
       'Expires': new Date(new Date() - 10000000).toUTCString(),
@@ -718,7 +713,7 @@ test('integration tests', { skip: true }, (t) => {
     })
   })
 
-  test('treats reqs as stale on Cache-Control: no-cache in a response', t => {
+  t.test('treats reqs as stale on Cache-Control: no-cache in a response', t => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, CONTENT, {
       'Expires': new Date(new Date() + 10000000).toUTCString(),
@@ -750,7 +745,7 @@ test('integration tests', { skip: true }, (t) => {
     })
   })
 
-  test('treats request as stale on Pragma: no-cache in a response', t => {
+  t.test('treats request as stale on Pragma: no-cache in a response', t => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, CONTENT, {
       'Expires': new Date(new Date() + 10000000).toUTCString(),
@@ -782,7 +777,7 @@ test('integration tests', { skip: true }, (t) => {
     })
   })
 
-  test('uses Expires header if no Pragma or Cache-Control', t => {
+  t.test('uses Expires header if no Pragma or Cache-Control', t => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, CONTENT, {
       'Expires': new Date(new Date() - 1000).toUTCString(),
@@ -813,7 +808,7 @@ test('integration tests', { skip: true }, (t) => {
     })
   })
 
-  test('heuristic freshness lifetime', t => {
+  t.test('heuristic freshness lifetime', t => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, CONTENT, {
       'Date': new Date(new Date() - 700000).toUTCString(),
@@ -858,7 +853,7 @@ test('integration tests', { skip: true }, (t) => {
     })
   })
 
-  test('heuristic age warning', t => {
+  t.test('heuristic age warning', t => {
     const srv = tnock(t, HOST)
     // just a very old thing
     srv.get('/heuristic').reply(200, CONTENT, {
@@ -883,7 +878,7 @@ test('integration tests', { skip: true }, (t) => {
     })
   })
 
-  test('refreshes cached request on HEAD request', t => {
+  t.test('refreshes cached request on HEAD request', t => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, CONTENT, {
       'Age': '3000',
@@ -932,7 +927,7 @@ test('integration tests', { skip: true }, (t) => {
     })
   })
 
-  test('original Warning header 1xx removed on cache hit', t => {
+  t.test('original Warning header 1xx removed on cache hit', t => {
     tnock(t, HOST).get('/test').reply(200, CONTENT, {
       'Warning': '199 localhost welp',
       'Cache-Control': 'max-age=10000000'
@@ -954,7 +949,7 @@ test('integration tests', { skip: true }, (t) => {
     })
   })
 
-  test('Warning header 2xx retained on cache hit', t => {
+  t.test('Warning header 2xx retained on cache hit', t => {
     tnock(t, HOST).get('/test').reply(200, CONTENT, {
       'cache-control': 'max-age=300',
       'Warning': '200 localhost welp'
@@ -978,7 +973,7 @@ test('integration tests', { skip: true }, (t) => {
     })
   })
 
-  test('invalidates cache on put/post/delete', t => {
+  t.test('invalidates cache on put/post/delete', t => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, CONTENT, {
       'Cache-Control': 'immutable',
@@ -1044,7 +1039,7 @@ test('integration tests', { skip: true }, (t) => {
     })
   })
 
-  test('request failures invalidate cache', t => {
+  t.test('request failures invalidate cache', t => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, CONTENT, {
       'Cache-Control': 'must-revalidate',
@@ -1088,7 +1083,7 @@ test('integration tests', { skip: true }, (t) => {
     })
   })
 
-  test('uses GET cache if request is HEAD (without returning body)', t => {
+  t.test('uses GET cache if request is HEAD (without returning body)', t => {
     tnock(t, HOST).get('/test').reply(200, CONTENT)
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
@@ -1108,7 +1103,7 @@ test('integration tests', { skip: true }, (t) => {
     })
   })
 
-  test('file handle not opened if body stream never used', t => {
+  t.test('file handle not opened if body stream never used', t => {
     tnock(t, HOST).get('/test').reply(200, CONTENT)
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
@@ -1124,7 +1119,7 @@ test('integration tests', { skip: true }, (t) => {
     })
   })
 
-  test('checks for staleness using Cache-Control: max-age', t => {
+  t.test('checks for staleness using Cache-Control: max-age', t => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, CONTENT, {
       'Cache-Control': 'max-age=0'
@@ -1148,7 +1143,7 @@ test('integration tests', { skip: true }, (t) => {
     })
   })
 
-  test('does not store response if it has Cache-Control: no-store header', t => {
+  t.test('does not store response if it has Cache-Control: no-store header', t => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, CONTENT, {
       'Cache-Control': 'no-store'
@@ -1169,7 +1164,7 @@ test('integration tests', { skip: true }, (t) => {
     })
   })
 
-  test('supports matching using Vary header', t => {
+  t.test('supports matching using Vary header', t => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, CONTENT, {
       'Vary': 'Accept',
@@ -1232,10 +1227,10 @@ test('integration tests', { skip: true }, (t) => {
     })
   })
 
-  test('supports range caching (partial requests)')
-  test('Support Cache object injection')
+  t.test('supports range caching (partial requests)')
+  t.test('Support Cache object injection')
 
-  test('mode: no-store', t => {
+  t.test('mode: no-store', t => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, 'foo')
     return fetch(`${HOST}/test`, {
@@ -1268,7 +1263,7 @@ test('integration tests', { skip: true }, (t) => {
     })
   })
 
-  test('mode: default -> no-store', t => {
+  t.test('mode: default -> no-store', t => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, 'foo')
     return fetch(`${HOST}/test`, {
@@ -1307,7 +1302,7 @@ test('integration tests', { skip: true }, (t) => {
     })
   })
 
-  test('mode: reload', t => {
+  t.test('mode: reload', t => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, 'foo', {
       'Cache-Control': 'cache-max=0',
@@ -1346,7 +1341,7 @@ test('integration tests', { skip: true }, (t) => {
     })
   })
 
-  test('mode: no-cache', t => {
+  t.test('mode: no-cache', t => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, 'foo', {
       'Cache-Control': 'cache-max=0',
@@ -1385,7 +1380,7 @@ test('integration tests', { skip: true }, (t) => {
     })
   })
 
-  test('mode: force-cache', t => {
+  t.test('mode: force-cache', t => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, CONTENT, {
       'Cache-Control': 'max-age=0',
@@ -1411,7 +1406,7 @@ test('integration tests', { skip: true }, (t) => {
     })
   })
 
-  test('mode: only-if-cached', t => {
+  t.test('mode: only-if-cached', t => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, CONTENT, {
       'Cache-Control': 'max-age=0',
