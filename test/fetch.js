@@ -20,7 +20,7 @@ function mockRequire (mocks = {}) {
     {
       '../agent': (uri, opts) => {
         if (opts.agent === false) return false
-        const parsedUri = url.parse(typeof uri === 'string' ? uri : uri.url)
+        const parsedUri = new url.URL(typeof uri === 'string' ? uri : uri.url)
         const isHttps = parsedUri.protocol === 'https:'
         return (isHttps)
           ? new (require('agentkeepalive').HttpsAgent)()

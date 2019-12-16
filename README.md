@@ -266,7 +266,7 @@ fetch('https://registry.npmjs.org/make-fetch-happen', {
 
 #### <a name="opts-proxy"></a> `> opts.proxy`
 
-A string or `url.parse`-d URI to proxy through. Different Proxy handlers will be
+A string or `new url.URL()`-d URI to proxy through. Different Proxy handlers will be
 used depending on the proxy's protocol.
 
 Additionally, `process.env.HTTP_PROXY`, `process.env.HTTPS_PROXY`, and

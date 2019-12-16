@@ -14,7 +14,7 @@ const getAgentTimeout = timeout =>
 const getMaxSockets = maxSockets => maxSockets || 15
 
 function getAgent (uri, opts) {
-  const parsedUri = url.parse(typeof uri === 'string' ? uri : uri.url)
+  const parsedUri = new url.URL(typeof uri === 'string' ? uri : uri.url)
   const isHttps = parsedUri.protocol === 'https:'
   const pxuri = getProxyUri(parsedUri.href, opts)
 
@@ -77,7 +77,7 @@ function getAgent (uri, opts) {
 }
 
 function checkNoProxy (uri, opts) {
-  const host = url.parse(uri).hostname.split('.').reverse()
+  const host = new url.URL(uri).hostname.split('.').reverse()
   let noproxy = (opts.noProxy || getProcessEnv('no_proxy'))
   if (typeof noproxy === 'string') {
     noproxy = noproxy.split(/\s*,\s*/g)
@@ -123,7 +123,7 @@ function getProcessEnv (env) {
 
 module.exports.getProxyUri = getProxyUri
 function getProxyUri (uri, opts) {
-  const protocol = url.parse(uri).protocol
+  const protocol = new url.URL(uri).protocol
 
   const proxy = opts.proxy ||
     (
@@ -136,10 +136,15 @@ function getProxyUri (uri, opts) {
     )
   if (!proxy) { return null }
 
-  const parsedProxy = (typeof proxy === 'string') ? url.parse(proxy) : proxy
+  const parsedProxy = (typeof proxy === 'string') ? new url.URL(proxy) : proxy
 
   return !checkNoProxy(uri, opts) && parsedProxy
 }
+
+const getAuth = u =>
+  u.username && u.password ? `${u.username}:${u.password}` : null
+
+const getPath = u => u.pathname + u.search + u.hash
 
 let HttpProxyAgent
 let HttpsProxyAgent
@@ -150,8 +155,8 @@ function getProxy (proxyUrl, opts, isHttps) {
     host: proxyUrl.hostname,
     port: proxyUrl.port,
     protocol: proxyUrl.protocol,
-    path: proxyUrl.path,
-    auth: proxyUrl.auth,
+    path: getPath(proxyUrl),
+    auth: getAuth(proxyUrl),
     ca: opts.ca,
     cert: opts.cert,
     key: opts.key,

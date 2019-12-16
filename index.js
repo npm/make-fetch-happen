@@ -373,15 +373,15 @@ function remoteFetch (uri, opts) {
             throw err
           }
 
-          const resolvedUrl = url.resolve(req.url, res.headers.get('location'))
+          const resolvedUrl = url.format(new url.URL(res.headers.get('location'), req.url))
           const redirectURL = (isURL.test(res.headers.get('location')))
-            ? url.parse(res.headers.get('location'))
-            : url.parse(resolvedUrl)
+            ? new url.URL(res.headers.get('location'))
+            : new url.URL(resolvedUrl)
 
           // Remove authorization if changing hostnames (but not if just
           // changing ports or protocols).  This matches the behavior of request:
           // https://github.com/request/request/blob/b12a6245/lib/redirect.js#L134-L138
-          if (url.parse(req.url).hostname !== redirectURL.hostname) {
+          if (new url.URL(req.url).hostname !== redirectURL.hostname) {
             req.headers.delete('authorization')
           }
 

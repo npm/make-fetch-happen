@@ -13,7 +13,7 @@ const MinipassPipeline = require('minipass-pipeline')
 const MAX_MEM_SIZE = 5 * 1024 * 1024 // 5MB
 
 function cacheKey (req) {
-  const parsed = url.parse(req.url)
+  const parsed = new url.URL(req.url)
   return `make-fetch-happen:request-cache:${
     url.format({
       protocol: parsed.protocol,
@@ -203,8 +203,8 @@ module.exports = class Cache {
 }
 
 function matchDetails (req, cached) {
-  const reqUrl = url.parse(req.url)
-  const cacheUrl = url.parse(cached.url)
+  const reqUrl = new url.URL(req.url)
+  const cacheUrl = new url.URL(cached.url)
   const vary = cached.resHeaders.get('Vary')
   // https://tools.ietf.org/html/rfc7234#section-4.1
   if (vary) {
