@@ -8,10 +8,23 @@ let HttpAgent
 
 module.exports = getAgent
 
+const getAgentTimeout = timeout =>
+  typeof timeout !== 'number' || !timeout ? 0 : timeout + 1
+
+const getMaxSockets = maxSockets => maxSockets || 15
+
 function getAgent (uri, opts) {
   const parsedUri = url.parse(typeof uri === 'string' ? uri : uri.url)
   const isHttps = parsedUri.protocol === 'https:'
-  const pxuri = getProxyUri(uri, opts)
+  const pxuri = getProxyUri(parsedUri.href, opts)
+
+  // If opts.timeout is zero, set the agentTimeout to zero as well. A timeout
+  // of zero disables the timeout behavior (OS limits still apply). Else, if
+  // opts.timeout is a non-zero value, set it to timeout + 1, to ensure that
+  // the node-fetch-npm timeout will always fire first, giving us more
+  // consistent errors.
+  const agentTimeout = getAgentTimeout(opts.timeout)
+  const agentMaxSockets = getMaxSockets(opts.maxSockets)
 
   const key = [
     `https:${isHttps}`,
@@ -22,7 +35,9 @@ function getAgent (uri, opts) {
     `strict-ssl:${isHttps ? !!opts.strictSSL : '>no-strict-ssl<'}`,
     `ca:${(isHttps && opts.ca) || '>no-ca<'}`,
     `cert:${(isHttps && opts.cert) || '>no-cert<'}`,
-    `key:${(isHttps && opts.key) || '>no-key<'}`
+    `key:${(isHttps && opts.key) || '>no-key<'}`,
+    `timeout:${agentTimeout}`,
+    `maxSockets:${agentMaxSockets}`
   ].join(':')
 
   if (opts.agent != null) { // `agent: false` has special behavior!
@@ -39,21 +54,13 @@ function getAgent (uri, opts) {
     return proxy
   }
 
-  if (isHttps && !HttpsAgent) {
-    HttpsAgent = require('agentkeepalive').HttpsAgent
-  } else if (!isHttps && !HttpAgent) {
+  if (!HttpsAgent) {
     HttpAgent = require('agentkeepalive')
+    HttpsAgent = HttpAgent.HttpsAgent
   }
 
-  // If opts.timeout is zero, set the agentTimeout to zero as well. A timeout
-  // of zero disables the timeout behavior (OS limits still apply). Else, if
-  // opts.timeout is a non-zero value, set it to timeout + 1, to ensure that
-  // the node-fetch-npm timeout will always fire first, giving us more
-  // consistent errors.
-  const agentTimeout = opts.timeout === 0 ? 0 : opts.timeout + 1
-
   const agent = isHttps ? new HttpsAgent({
-    maxSockets: opts.maxSockets || 15,
+    maxSockets: agentMaxSockets,
     ca: opts.ca,
     cert: opts.cert,
     key: opts.key,
@@ -61,7 +68,7 @@ function getAgent (uri, opts) {
     rejectUnauthorized: opts.strictSSL,
     timeout: agentTimeout
   }) : new HttpAgent({
-    maxSockets: opts.maxSockets || 15,
+    maxSockets: agentMaxSockets,
     localAddress: opts.localAddress,
     timeout: agentTimeout
   })
@@ -90,7 +97,9 @@ function checkNoProxy (uri, opts) {
 module.exports.getProcessEnv = getProcessEnv
 
 function getProcessEnv (env) {
-  if (!env) { return }
+  if (!env) {
+    return
+  }
 
   let value
 
@@ -112,6 +121,7 @@ function getProcessEnv (env) {
   return value
 }
 
+module.exports.getProxyUri = getProxyUri
 function getProxyUri (uri, opts) {
   const protocol = url.parse(uri).protocol
 
@@ -134,6 +144,7 @@ function getProxyUri (uri, opts) {
 let HttpProxyAgent
 let HttpsProxyAgent
 let SocksProxyAgent
+module.exports.getProxy = getProxy
 function getProxy (proxyUrl, opts, isHttps) {
   let popts = {
     host: proxyUrl.hostname,
@@ -144,9 +155,9 @@ function getProxy (proxyUrl, opts, isHttps) {
     ca: opts.ca,
     cert: opts.cert,
     key: opts.key,
-    timeout: opts.timeout === 0 ? 0 : opts.timeout + 1,
+    timeout: getAgentTimeout(opts.timeout),
     localAddress: opts.localAddress,
-    maxSockets: opts.maxSockets || 15,
+    maxSockets: getMaxSockets(opts.maxSockets),
     rejectUnauthorized: opts.strictSSL
   }
 
@@ -164,12 +175,18 @@ function getProxy (proxyUrl, opts, isHttps) {
 
       return new HttpsProxyAgent(popts)
     }
-  }
-  if (proxyUrl.protocol.startsWith('socks')) {
+  } else if (proxyUrl.protocol.startsWith('socks')) {
     if (!SocksProxyAgent) {
       SocksProxyAgent = require('socks-proxy-agent')
     }
 
     return new SocksProxyAgent(popts)
+  } else {
+    throw Object.assign(
+      new Error(`unsupported proxy protocol: '${proxyUrl.protocol}'`),
+      {
+        url: proxyUrl.href
+      }
+    )
   }
 }
