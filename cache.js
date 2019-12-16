@@ -38,7 +38,6 @@ module.exports = class Cache {
   // Returns a Promise that resolves to the response associated with the first
   // matching request in the Cache object.
   match (req, opts) {
-    opts = opts || {}
     const key = cacheKey(req)
     return cacache.get.info(this._path, key).then(info => {
       return info && cacache.get.hasContent(
