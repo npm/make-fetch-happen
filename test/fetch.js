@@ -81,7 +81,7 @@ test('supports http', t => {
     .get('/test')
     .reply(200, CONTENT)
 
-  return fetch(`http://foo.npm/test`)
+  return fetch('http://foo.npm/test')
     .then(res => {
       t.equal(res.url, 'http://foo.npm/test', 'http request url')
       return res.buffer()
@@ -98,7 +98,7 @@ test('supports https', t => {
     .get('/test')
     .reply(200, CONTENT)
 
-  return fetch(`https://foo.npm/test`)
+  return fetch('https://foo.npm/test')
     .then(res => {
       t.equal(res.url, 'https://foo.npm/test', 'https request url')
       return res.buffer()
@@ -253,7 +253,7 @@ test('supports redirect logic', t => {
     const srv = tnock(t, HOST)
     srv
       .get('/redirect')
-      .reply(301, '', { 'Location': `${HOST}/test` })
+      .reply(301, '', { Location: `${HOST}/test` })
       .get('/test')
       .reply(200, CONTENT)
 
@@ -272,7 +272,7 @@ test('supports redirect logic', t => {
     const srv = tnock(t, HOST)
     srv
       .get('/redirect')
-      .reply(301, '', { 'Location': `${HOST}/test` })
+      .reply(301, '', { Location: `${HOST}/test` })
 
     return fetch(`${HOST}/redirect`, { redirect: 'manual' })
       .then((res) => {
@@ -290,7 +290,7 @@ test('supports redirect logic', t => {
     const srv = tnock(t, HOST)
     srv
       .get('/redirect')
-      .reply(301, '', { 'Location': `${HOST}/test` })
+      .reply(301, '', { Location: `${HOST}/test` })
 
     return t.rejects(
       fetch(`${HOST}/redirect`, { redirect: 'error' }),
@@ -320,7 +320,7 @@ test('supports redirect logic', t => {
 
     scope
       .get('/redirect')
-      .reply(301, '', { 'Location': 'ftp://nope' })
+      .reply(301, '', { Location: 'ftp://nope' })
 
     return t.rejects(
       fetch(`${HOST}/redirect`)
@@ -339,7 +339,7 @@ test('supports protocol switching on redirect', t => {
 
     httpSrv
       .get('/redirect')
-      .reply(301, '', { 'Location': `${HOST}/test` })
+      .reply(301, '', { Location: `${HOST}/test` })
 
     httpsSrv
       .get('/test')
@@ -361,7 +361,7 @@ test('supports protocol switching on redirect', t => {
 
     httpSrv
       .get('/redirect')
-      .reply(301, '', { 'Location': `${HOST}/test` })
+      .reply(301, '', { Location: `${HOST}/test` })
 
     return fetch(`${HTTPHOST}/redirect`, { redirect: 'manual' })
       .then((res) => {
@@ -384,7 +384,7 @@ test('removes authorization header if changing hostnames', t => {
   httpSrv
     .matchHeader('authorization', 'test')
     .get('/redirect')
-    .reply(301, '', { 'Location': `${HOST}/test` })
+    .reply(301, '', { Location: `${HOST}/test` })
 
   httpsSrv
     .matchHeader('authorization', 'test')
@@ -395,7 +395,7 @@ test('removes authorization header if changing hostnames', t => {
     })
 
   return t.rejects(
-    fetch(`${HTTPHOST}/redirect`, { headers: { 'authorization': 'test' } }),
+    fetch(`${HTTPHOST}/redirect`, { headers: { authorization: 'test' } }),
     {
       code: 'FETCH_ERROR'
     }
@@ -413,7 +413,7 @@ test('supports passthrough of options on redirect', t => {
 
   httpSrv
     .get('/redirect')
-    .reply(301, '', { 'Location': `${HOST}/test` })
+    .reply(301, '', { Location: `${HOST}/test` })
 
   httpsSrv
     .get('/test')
@@ -445,7 +445,7 @@ test('supports redirects from POST requests', t => {
     const srv = tnock(t, HOST)
     srv
       .post('/redirect')
-      .reply(301, '', { 'Location': `${HOST}/test` })
+      .reply(301, '', { Location: `${HOST}/test` })
       .get('/test')
       .reply(200, CONTENT)
 
@@ -465,7 +465,7 @@ test('supports redirects from POST requests', t => {
     const srv = tnock(t, HOST)
     srv
       .post('/redirect')
-      .reply(302, '', { 'Location': `${HOST}/test` })
+      .reply(302, '', { Location: `${HOST}/test` })
       .get('/test')
       .reply(200, CONTENT)
 
@@ -490,7 +490,7 @@ test('throws error if follow is less than request count', t => {
 
   srv
     .get('/redirect')
-    .reply(301, '', { 'Location': `${HOST}/test` })
+    .reply(301, '', { Location: `${HOST}/test` })
 
   return t.rejects(
     fetch(`${HOST}/redirect`, { follow: 0 }),
@@ -512,7 +512,7 @@ test('supports streaming content', t => {
   return fetch(`${HOST}/test`)
     .then(res => {
       t.equal(res.status, 200, 'successful status code')
-      let buf = []
+      const buf = []
       let bufLen = 0
       res.body.on('data', d => {
         buf.push(d)
@@ -542,7 +542,7 @@ test('supports proxy configurations', { skip: true }, t => {
       })
     })
   }).listen(9854).on('error', err => { throw err })
-  fetch(`http://npm.im/make-fetch-happen`, {
+  fetch('http://npm.im/make-fetch-happen', {
     proxy: 'http://localhost:9854',
     retry: {
       retries: 0
@@ -560,7 +560,7 @@ test('supports custom agent config', t => {
   srv
     .get('/test')
     .reply(200, function () {
-      t.equal(this.req.headers['connection'][0], 'close', 'one-shot agent!')
+      t.equal(this.req.headers.connection[0], 'close', 'one-shot agent!')
       return CONTENT
     })
 

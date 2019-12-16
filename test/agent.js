@@ -7,7 +7,7 @@ const url = require('url')
 const MockHttp = mockHttpAgent('http')
 MockHttp.HttpsAgent = mockHttpAgent('https')
 const agent = requireInject.installGlobally('../agent.js', {
-  'agentkeepalive': MockHttp,
+  agentkeepalive: MockHttp,
   'https-proxy-agent': mockHttpAgent('https-proxy'),
   'http-proxy-agent': mockHttpAgent('http-proxy'),
   'socks-proxy-agent': mockHttpAgent('socks-proxy')
@@ -175,103 +175,103 @@ test('get proxy agent', t => {
   }
 
   t.strictSame(getProxy(url.parse('http://proxy.local:443/'), OPTS, true), {
-    'host': 'proxy.local',
-    'port': '443',
-    'protocol': 'http:',
-    'path': '/',
-    'auth': null,
-    'ca': 'ca',
-    'cert': 'cert',
-    'key': undefined,
-    'timeout': 2,
-    'localAddress': 'local address',
-    'maxSockets': 3,
-    'rejectUnauthorized': true,
-    '__type': 'https-proxy'
+    host: 'proxy.local',
+    port: '443',
+    protocol: 'http:',
+    path: '/',
+    auth: null,
+    ca: 'ca',
+    cert: 'cert',
+    key: undefined,
+    timeout: 2,
+    localAddress: 'local address',
+    maxSockets: 3,
+    rejectUnauthorized: true,
+    __type: 'https-proxy'
   }, 'http proxy url, for https request')
 
   t.strictSame(getProxy(url.parse('https://proxy.local:443/'), OPTS, true), {
-    'host': 'proxy.local',
-    'port': '443',
-    'protocol': 'https:',
-    'path': '/',
-    'auth': null,
-    'ca': 'ca',
-    'cert': 'cert',
-    'key': undefined,
-    'timeout': 2,
-    'localAddress': 'local address',
-    'maxSockets': 3,
-    'rejectUnauthorized': true,
-    '__type': 'https-proxy'
+    host: 'proxy.local',
+    port: '443',
+    protocol: 'https:',
+    path: '/',
+    auth: null,
+    ca: 'ca',
+    cert: 'cert',
+    key: undefined,
+    timeout: 2,
+    localAddress: 'local address',
+    maxSockets: 3,
+    rejectUnauthorized: true,
+    __type: 'https-proxy'
   }, 'https proxy url, for https request')
 
   t.strictSame(getProxy(url.parse('socks://proxy.local:443/'), OPTS, true), {
-    'host': 'proxy.local',
-    'port': '443',
-    'protocol': 'socks:',
-    'path': '/',
-    'auth': null,
-    'ca': 'ca',
-    'cert': 'cert',
-    'key': undefined,
-    'timeout': 2,
-    'localAddress': 'local address',
-    'maxSockets': 3,
-    'rejectUnauthorized': true,
-    '__type': 'socks-proxy'
+    host: 'proxy.local',
+    port: '443',
+    protocol: 'socks:',
+    path: '/',
+    auth: null,
+    ca: 'ca',
+    cert: 'cert',
+    key: undefined,
+    timeout: 2,
+    localAddress: 'local address',
+    maxSockets: 3,
+    rejectUnauthorized: true,
+    __type: 'socks-proxy'
   }, 'socks proxy url, for https request')
 
   t.strictSame(getProxy(url.parse('http://proxy.local:443/'), OPTS, false), {
-    'host': 'proxy.local',
-    'port': '443',
-    'protocol': 'http:',
-    'path': '/',
-    'auth': null,
-    'ca': 'ca',
-    'cert': 'cert',
-    'key': undefined,
-    'timeout': 2,
-    'localAddress': 'local address',
-    'maxSockets': 3,
-    'rejectUnauthorized': true,
-    '__type': 'http-proxy'
+    host: 'proxy.local',
+    port: '443',
+    protocol: 'http:',
+    path: '/',
+    auth: null,
+    ca: 'ca',
+    cert: 'cert',
+    key: undefined,
+    timeout: 2,
+    localAddress: 'local address',
+    maxSockets: 3,
+    rejectUnauthorized: true,
+    __type: 'http-proxy'
   }, 'http proxy url, for http request')
 
   t.strictSame(getProxy(url.parse('https://proxy.local:443/'), OPTS, false), {
-    'host': 'proxy.local',
-    'port': '443',
-    'protocol': 'https:',
-    'path': '/',
-    'auth': null,
-    'ca': 'ca',
-    'cert': 'cert',
-    'key': undefined,
-    'timeout': 2,
-    'localAddress': 'local address',
-    'maxSockets': 3,
-    'rejectUnauthorized': true,
-    '__type': 'http-proxy'
+    host: 'proxy.local',
+    port: '443',
+    protocol: 'https:',
+    path: '/',
+    auth: null,
+    ca: 'ca',
+    cert: 'cert',
+    key: undefined,
+    timeout: 2,
+    localAddress: 'local address',
+    maxSockets: 3,
+    rejectUnauthorized: true,
+    __type: 'http-proxy'
   }, 'https proxy url, for http request')
 
   t.strictSame(getProxy(url.parse('socks://proxy.local:443/'), OPTS, false), {
-    'host': 'proxy.local',
-    'port': '443',
-    'protocol': 'socks:',
-    'path': '/',
-    'auth': null,
-    'ca': 'ca',
-    'cert': 'cert',
-    'key': undefined,
-    'timeout': 2,
-    'localAddress': 'local address',
-    'maxSockets': 3,
-    'rejectUnauthorized': true,
-    '__type': 'socks-proxy'
+    host: 'proxy.local',
+    port: '443',
+    protocol: 'socks:',
+    path: '/',
+    auth: null,
+    ca: 'ca',
+    cert: 'cert',
+    key: undefined,
+    timeout: 2,
+    localAddress: 'local address',
+    maxSockets: 3,
+    rejectUnauthorized: true,
+    __type: 'socks-proxy'
   }, 'socks proxy url, for http request')
 
   t.throws(() => getProxy(url.parse('gopher://proxy.local'), OPTS, false), {
-    message: `unsupported proxy protocol: 'gopher:'`,
+    message: 'unsupported proxy protocol: \'gopher:\'',
     url: 'gopher://proxy.local'
   })
 

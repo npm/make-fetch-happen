@@ -21,7 +21,7 @@ function mockRequire (mocks = {}) {
   const mergedMocks = Object.assign(
     {},
     {
-      'cacache': {}
+      cacache: {}
     },
     mocks
   )
@@ -618,7 +618,7 @@ test('integration tests', (t) => {
   t.test('only `200 OK` responses cached', t => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(201, CONTENT, {
-      'Foo': 'first',
+      Foo: 'first',
       'cache-control': HEADERS['cache-control']
     })
     return fetch(`${HOST}/test`, {
@@ -627,7 +627,7 @@ test('integration tests', (t) => {
     }).then(res => res.buffer()).then(body => {
       t.deepEqual(body, CONTENT, 'got remote content')
       srv.get('/test').reply(200, CONTENT, {
-        'Foo': 'second',
+        Foo: 'second',
         'cache-control': HEADERS['cache-control']
       })
       return fetch(`${HOST}/test`, {
@@ -646,8 +646,8 @@ test('integration tests', (t) => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, CONTENT, {
       'Cache-Control': 'max-age = 0',
-      'ETag': 'thisisanetag',
-      'Date': new Date(new Date() - 100000).toUTCString()
+      ETag: 'thisisanetag',
+      Date: new Date(new Date() - 100000).toUTCString()
     })
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
@@ -657,7 +657,7 @@ test('integration tests', (t) => {
     }).then(body => {
       t.deepEqual(body, CONTENT, 'got remote content')
       srv.get('/test').reply(304, '', {
-        'etag': 'W/thisisanetag'
+        etag: 'W/thisisanetag'
       })
       return fetch(`${HOST}/test`, {
         cacheManager: CACHE
@@ -674,8 +674,8 @@ test('integration tests', (t) => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, CONTENT, {
       'Cache-Control': 'max-age = 0',
-      'ETag': 'thisisanetag',
-      'Date': new Date(new Date() - 100000).toUTCString()
+      ETag: 'thisisanetag',
+      Date: new Date(new Date() - 100000).toUTCString()
     })
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
@@ -686,8 +686,8 @@ test('integration tests', (t) => {
       t.deepEqual(body, CONTENT, 'got remote content')
       srv.get('/test').reply(200, 'meh', {
         'Cache-Control': 'max-age=300',
-        'ETag': 'thisisanetag',
-        'Date': new Date().toUTCString()
+        ETag: 'thisisanetag',
+        Date: new Date().toUTCString()
       })
       return fetch(`${HOST}/test`, {
         cacheManager: CACHE
@@ -712,8 +712,8 @@ test('integration tests', (t) => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, CONTENT, {
       'Cache-Control': 'must-revalidate',
-      'ETag': 'thisisanetag',
-      'Date': new Date().toUTCString()
+      ETag: 'thisisanetag',
+      Date: new Date().toUTCString()
     })
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
@@ -740,8 +740,8 @@ test('integration tests', (t) => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, CONTENT, {
       'Cache-Control': 'max-age=0',
-      'ETag': 'thisisanetag',
-      'Date': new Date().toUTCString()
+      ETag: 'thisisanetag',
+      Date: new Date().toUTCString()
     })
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
@@ -775,8 +775,8 @@ test('integration tests', (t) => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, CONTENT, {
       'Cache-Control': 'must-revalidate',
-      'ETag': 'thisisanetag',
-      'Date': new Date().toUTCString()
+      ETag: 'thisisanetag',
+      Date: new Date().toUTCString()
     })
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
@@ -804,9 +804,9 @@ test('integration tests', (t) => {
   t.test('reqs never stale if Cache-control: immutable', t => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, CONTENT, {
-      'Expires': new Date(new Date() - 10000000).toUTCString(),
+      Expires: new Date(new Date() - 10000000).toUTCString(),
       'Last-Modified': new Date(new Date() - 10000000).toUTCString(),
-      'Date': new Date().toUTCString(),
+      Date: new Date().toUTCString(),
       'Cache-Control': 'immutable'
     })
     return fetch(`${HOST}/test`, {
@@ -831,9 +831,9 @@ test('integration tests', (t) => {
   t.test('treats reqs as stale on Cache-Control: no-cache in a response', t => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, CONTENT, {
-      'Expires': new Date(new Date() + 10000000).toUTCString(),
-      'Date': new Date().toUTCString(),
-      'ETag': 'deadbeef',
+      Expires: new Date(new Date() + 10000000).toUTCString(),
+      Date: new Date().toUTCString(),
+      ETag: 'deadbeef',
       'Cache-Control': 'no-cache',
       'Last-Modified': new Date(new Date() - 10000000).toUTCString()
     })
@@ -863,10 +863,10 @@ test('integration tests', (t) => {
   t.test('treats request as stale on Pragma: no-cache in a response', t => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, CONTENT, {
-      'Expires': new Date(new Date() + 10000000).toUTCString(),
-      'Date': new Date().toUTCString(),
-      'ETag': 'deadbeef',
-      'Pragma': 'no-cache',
+      Expires: new Date(new Date() + 10000000).toUTCString(),
+      Date: new Date().toUTCString(),
+      ETag: 'deadbeef',
+      Pragma: 'no-cache',
       'Last-Modified': new Date(new Date() - 10000000).toUTCString()
     })
     return fetch(`${HOST}/test`, {
@@ -895,9 +895,9 @@ test('integration tests', (t) => {
   t.test('uses Expires header if no Pragma or Cache-Control', t => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, CONTENT, {
-      'Expires': new Date(new Date() - 1000).toUTCString(),
-      'Date': new Date().toUTCString(),
-      'ETag': 'deadbeef',
+      Expires: new Date(new Date() - 1000).toUTCString(),
+      Date: new Date().toUTCString(),
+      ETag: 'deadbeef',
       'Last-Modified': new Date(new Date() - 10000000).toUTCString()
     })
     return fetch(`${HOST}/test`, {
@@ -926,8 +926,8 @@ test('integration tests', (t) => {
   t.test('heuristic freshness lifetime', t => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, CONTENT, {
-      'Date': new Date(new Date() - 700000).toUTCString(),
-      'Foo': 'some-value',
+      Date: new Date(new Date() - 700000).toUTCString(),
+      Foo: 'some-value',
       'Cache-Control': 'must-revalidate'
     })
     return fetch(`${HOST}/test`, {
@@ -939,8 +939,8 @@ test('integration tests', (t) => {
     }).then(body => {
       t.deepEqual(body, CONTENT, 'got remote content')
       srv.head('/test').reply(304, '', {
-        'Date': new Date().toUTCString(),
-        'Foo': 'some-other-value',
+        Date: new Date().toUTCString(),
+        Foo: 'some-other-value',
         'Cache-Control': 'immutable'
       })
       return fetch(`${HOST}/test`, {
@@ -996,8 +996,8 @@ test('integration tests', (t) => {
   t.test('refreshes cached request on HEAD request', t => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, CONTENT, {
-      'Age': '3000',
-      'Date': new Date(new Date() - 800000).toUTCString(),
+      Age: '3000',
+      Date: new Date(new Date() - 800000).toUTCString(),
       'Last-Modified': new Date(new Date() - 800000).toUTCString()
     })
     return fetch(`${HOST}/test`, {
@@ -1008,7 +1008,7 @@ test('integration tests', (t) => {
     }).then(body => {
       t.deepEqual(body, CONTENT, 'got remote content')
       srv.get('/test').reply(304, 'why a body', {
-        'Age': '3000'
+        Age: '3000'
       })
       return fetch(`${HOST}/test`, {
         cacheManager: CACHE,
@@ -1044,7 +1044,7 @@ test('integration tests', (t) => {
 
   t.test('original Warning header 1xx removed on cache hit', t => {
     tnock(t, HOST).get('/test').reply(200, CONTENT, {
-      'Warning': '199 localhost welp',
+      Warning: '199 localhost welp',
       'Cache-Control': 'max-age=10000000'
     })
     return fetch(`${HOST}/test`, {
@@ -1067,7 +1067,7 @@ test('integration tests', (t) => {
   t.test('Warning header 2xx retained on cache hit', t => {
     tnock(t, HOST).get('/test').reply(200, CONTENT, {
       'cache-control': 'max-age=300',
-      'Warning': '200 localhost welp'
+      Warning: '200 localhost welp'
     })
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
@@ -1092,8 +1092,8 @@ test('integration tests', (t) => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, CONTENT, {
       'Cache-Control': 'immutable',
-      'Foo': 'old',
-      'Date': new Date().toUTCString()
+      Foo: 'old',
+      Date: new Date().toUTCString()
     })
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
@@ -1115,8 +1115,8 @@ test('integration tests', (t) => {
     }).then(body => {
       srv.get('/test').reply(200, 'another', {
         'Cache-Control': 'immutable',
-        'Foo': 'another',
-        'Date': new Date().toUTCString()
+        Foo: 'another',
+        Date: new Date().toUTCString()
       })
       return fetch(`${HOST}/test`, {
         cacheManager: CACHE,
@@ -1140,8 +1140,8 @@ test('integration tests', (t) => {
     }).then(body => {
       srv.get('/test').reply(200, 'new', {
         'Cache-Control': 'immutable',
-        'Foo': 'new',
-        'Date': new Date().toUTCString()
+        Foo: 'new',
+        Date: new Date().toUTCString()
       })
       return fetch(`${HOST}/test`, {
         cacheManager: CACHE,
@@ -1158,8 +1158,8 @@ test('integration tests', (t) => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, CONTENT, {
       'Cache-Control': 'must-revalidate',
-      'ETag': 'thisisanetag',
-      'Date': new Date().toUTCString()
+      ETag: 'thisisanetag',
+      Date: new Date().toUTCString()
     })
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
@@ -1177,8 +1177,8 @@ test('integration tests', (t) => {
       t.equal(res.status, 500, 'got a 500 because must-revalidate')
       srv.get('/test').reply(200, CONTENT, {
         'Cache-Control': 'must-revalidate',
-        'ETag': 'thisisanetag',
-        'Date': new Date().toUTCString()
+        ETag: 'thisisanetag',
+        Date: new Date().toUTCString()
       })
       return fetch(`${HOST}/test`, {
         cacheManager: CACHE
@@ -1197,8 +1197,8 @@ test('integration tests', (t) => {
       t.equal(res.status, 500, 'got a 500 because must-revalidate on PUT')
       srv.get('/test').reply(200, CONTENT, {
         'Cache-Control': 'must-revalidate',
-        'ETag': 'thisisanetag',
-        'Date': new Date().toUTCString()
+        ETag: 'thisisanetag',
+        Date: new Date().toUTCString()
       })
       return fetch(`${HOST}/test`, {
         cacheManager: CACHE
@@ -1306,21 +1306,21 @@ test('integration tests', (t) => {
   t.test('supports matching using Vary header', t => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, CONTENT, {
-      'Vary': 'Accept',
+      Vary: 'Accept',
       'Cache-Control': 'immutable',
       'Content-Type': 'fullfat'
     })
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
       headers: {
-        'accept': 'fullfat'
+        accept: 'fullfat'
       }
     }).then(res => res.buffer()).then(body => {
       t.deepEqual(body, CONTENT, 'got remote content')
       return fetch(`${HOST}/test`, {
         cacheManager: CACHE,
         headers: {
-          'Accept': 'fullfat'
+          Accept: 'fullfat'
         }
       })
     }).then(res => {
@@ -1334,12 +1334,12 @@ test('integration tests', (t) => {
       srv.get('/test').reply(200, CONTENT, {
         'Cache-Control': 'cache-max=0',
         'Content-Type': 'corgi',
-        'Vary': '*'
+        Vary: '*'
       })
       return fetch(`${HOST}/test`, {
         cacheManager: CACHE,
         headers: {
-          'Accept': 'corgi'
+          Accept: 'corgi'
         }
       })
     }).then(res => {
@@ -1354,7 +1354,7 @@ test('integration tests', (t) => {
       return fetch(`${HOST}/test`, {
         cacheManager: CACHE,
         headers: {
-          'Accept': 'corgi'
+          Accept: 'corgi'
         }
       })
     }).then(res => {
@@ -1378,7 +1378,7 @@ test('integration tests', (t) => {
     }).then(res => res.buffer()).then(() => {
       t.comment('cache warmed up')
       srv.get('/test').reply(200, CONTENT, {
-        'Foo': 'second req'
+        Foo: 'second req'
       })
       return fetch(`${HOST}/test`, {
         cacheManager: CACHE,
@@ -1411,7 +1411,7 @@ test('integration tests', (t) => {
     }).then(res => res.buffer()).then(() => {
       t.comment('cache warmed up')
       srv.get('/test').reply(200, CONTENT, {
-        'Foo': 'second req'
+        Foo: 'second req'
       })
       return fetch(`${HOST}/test`, {
         cacheManager: CACHE,
@@ -1445,7 +1445,7 @@ test('integration tests', (t) => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, 'foo', {
       'Cache-Control': 'cache-max=0',
-      'ETag': 'foobarbaz'
+      ETag: 'foobarbaz'
     })
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
@@ -1457,7 +1457,7 @@ test('integration tests', (t) => {
         return [
           200,
           CONTENT,
-          { 'Foo': 'second req' }
+          { Foo: 'second req' }
         ]
       })
       return fetch(`${HOST}/test`, {
@@ -1484,7 +1484,7 @@ test('integration tests', (t) => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, 'foo', {
       'Cache-Control': 'cache-max=0',
-      'ETag': 'foobarbaz'
+      ETag: 'foobarbaz'
     })
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
@@ -1496,7 +1496,7 @@ test('integration tests', (t) => {
         return [
           200,
           CONTENT,
-          { 'Foo': 'second req' }
+          { Foo: 'second req' }
         ]
       })
       return fetch(`${HOST}/test`, {
@@ -1523,7 +1523,7 @@ test('integration tests', (t) => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, CONTENT, {
       'Cache-Control': 'max-age=0',
-      'Date': new Date().toUTCString(),
+      Date: new Date().toUTCString(),
       'Last-Modified': new Date(new Date() - 1000000).toUTCString()
     })
     return fetch(`${HOST}/test`, {
@@ -1549,7 +1549,7 @@ test('integration tests', (t) => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, CONTENT, {
       'Cache-Control': 'max-age=0',
-      'Date': new Date().toUTCString(),
+      Date: new Date().toUTCString(),
       'Last-Modified': new Date(new Date() - 1000000).toUTCString()
     })
     return fetch(`${HOST}/test`, {

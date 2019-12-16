@@ -37,7 +37,7 @@ test('setWarning', (t) => {
     const date = JSON.stringify(new Date().toUTCString())
     const replace = true
 
-    const headers = new Fetch.Headers({ 'Warning': 'world' })
+    const headers = new Fetch.Headers({ Warning: 'world' })
     const req = new Fetch.Request(url, { headers })
 
     const origHeaderSet = req.headers.set

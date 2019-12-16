@@ -40,8 +40,8 @@ test('picks the "best" algorithm', t => {
   const integrity = ssri.fromData(CONTENT, {
     algorithms: ['md5', 'sha384', 'sha1', 'sha256']
   })
-  integrity['md5'][0].digest = 'badc0ffee'
-  integrity['sha1'][0].digest = 'badc0ffee'
+  integrity.md5[0].digest = 'badc0ffee'
+  integrity.sha1[0].digest = 'badc0ffee'
   const safetch = fetch.defaults({ integrity })
   const srv = tnock(t, HOST)
   srv.get('/good').times(3).reply(200, CONTENT)
@@ -57,7 +57,7 @@ test('picks the "best" algorithm', t => {
     })
   }).then(() => {
     // invalidate sha384. sha256 is still valid, in theory
-    integrity['sha384'][0].digest = 'pwnt'
+    integrity.sha384[0].digest = 'pwnt'
     return safetch(`${HOST}/good`).then(res => {
       return res.buffer()
     }).then(buf => {
@@ -67,7 +67,7 @@ test('picks the "best" algorithm', t => {
     })
   }).then(() => {
     // remove bad sha384 altogether. sha256 remains valid
-    delete integrity['sha384']
+    delete integrity.sha384
     return safetch(`${HOST}/good`).then(res => res.buffer())
   }).then(buf => {
     t.deepEqual(buf, CONTENT, 'data passed integrity check with sha256')

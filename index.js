@@ -266,7 +266,7 @@ function remoteFetchHandleIntegrity (res, integrity) {
 function remoteFetch (uri, opts) {
   const agent = getAgent(uri, opts)
   const headers = Object.assign({
-    'connection': agent ? 'keep-alive' : 'close',
+    connection: agent ? 'keep-alive' : 'close',
     'user-agent': USER_AGENT
   }, opts.headers || {})
 

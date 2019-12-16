@@ -2,7 +2,7 @@
 const LRU = require('lru-cache')
 const url = require('url')
 
-let AGENT_CACHE = new LRU({ max: 50 })
+const AGENT_CACHE = new LRU({ max: 50 })
 let HttpsAgent
 let HttpAgent
 
@@ -104,7 +104,7 @@ function getProcessEnv (env) {
   let value
 
   if (Array.isArray(env)) {
-    for (let e of env) {
+    for (const e of env) {
       value = process.env[e] ||
         process.env[e.toUpperCase()] ||
         process.env[e.toLowerCase()]
@@ -146,7 +146,7 @@ let HttpsProxyAgent
 let SocksProxyAgent
 module.exports.getProxy = getProxy
 function getProxy (proxyUrl, opts, isHttps) {
-  let popts = {
+  const popts = {
     host: proxyUrl.hostname,
     port: proxyUrl.port,
     protocol: proxyUrl.protocol,
