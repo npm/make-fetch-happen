@@ -142,7 +142,9 @@ function getProxyUri (uri, opts) {
 }
 
 const getAuth = u =>
-  u.username && u.password ? `${u.username}:${u.password}` : null
+  u.username && u.password ? `${u.username}:${u.password}`
+    : u.username ? u.username
+      : null
 
 const getPath = u => u.pathname + u.search + u.hash
 

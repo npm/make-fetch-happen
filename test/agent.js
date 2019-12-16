@@ -125,6 +125,29 @@ test('all expected options passed down to proxy agent', t => {
   t.done()
 })
 
+test('all expected options passed down to proxy agent, username only', t => {
+  const opts = Object.assign({
+    proxy: 'https://user-no-pass@my.proxy:1234/foo'
+    // bust the cache
+  }, { ...OPTS, timeout: OPTS.timeout + 1 })
+  t.deepEqual(agent('https://foo.com/bar', opts), {
+    __type: 'https-proxy',
+    host: 'my.proxy',
+    port: '1234',
+    protocol: 'https:',
+    path: '/foo',
+    auth: 'user-no-pass',
+    ca: 'ca',
+    cert: 'cert',
+    key: 'key',
+    maxSockets: 5,
+    localAddress: 'localAddress',
+    rejectUnauthorized: 'strictSSL',
+    timeout: 7
+  }, 'only expected options passed to https proxy')
+  t.done()
+})
+
 test('get proxy uri', t => {
   const { getProxyUri } = agent
   const { httpProxy, httpsProxy, noProxy } = process.env
