@@ -7,6 +7,7 @@ const retry = require('promise-retry')
 let ssri
 
 const Minipass = require('minipass')
+const MinipassPipeline = require('minipass-pipeline')
 const getAgent = require('./agent')
 const setWarning = require('./warning')
 
@@ -155,8 +156,9 @@ function isStale (req, res) {
   const policy = makePolicy(req, res)
 
   const responseTime = res.headers.get('x-local-cache-time') ||
-    res.headers.get('date') ||
-    0
+    /* istanbul ignore next - would be weird to get a 'stale'
+     * response that didn't come from cache with a cache time header */
+    (res.headers.get('date') || 0)
 
   policy._responseTime = new Date(responseTime)
 
@@ -258,10 +260,7 @@ function remoteFetchHandleIntegrity (res, integrity) {
   const newBod = ssri.integrityStream({
     integrity
   })
-  oldBod.pipe(newBod)
-  oldBod.on('error', er => newBod.emit('error'))
-
-  return new fetch.Response(newBod, res)
+  return new fetch.Response(new MinipassPipeline(oldBod, newBod), res)
 }
 
 function remoteFetch (uri, opts) {

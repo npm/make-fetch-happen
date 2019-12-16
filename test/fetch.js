@@ -556,7 +556,7 @@ test('supports proxy configurations', { skip: true }, t => {
 
 test('supports custom agent config', t => {
   const fetch = mockRequire({})
-  const srv = tnock(t, HOST)
+  const srv = tnock(t, HOST, { date: new Date().toISOString() })
   srv
     .get('/test')
     .reply(200, function () {

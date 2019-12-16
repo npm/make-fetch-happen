@@ -72,7 +72,9 @@ module.exports = class Cache {
               const c = cacache.get.stream.byDigest(cachePath, info.integrity, {
                 memoize: opts.memoize
               })
-              c.on('error', err => body.emit('error', err))
+              c.on('error', /* istanbul ignore next */ err => {
+                body.emit('error', err)
+              })
               c.pipe(body)
             }
             : () => {
@@ -81,7 +83,7 @@ module.exports = class Cache {
                 memoize: opts.memoize
               })
                 .then(data => body.end(data))
-                .catch(err => {
+                .catch(/* istanbul ignore next */ err => {
                   body.emit('error', err)
                 })
             }
@@ -131,11 +133,16 @@ module.exports = class Cache {
       })
     }
     const oldBody = response.body
-    const newBody = new MinipassFlush({
+    // the flush is the last thing in the pipeline.  Build the pipeline
+    // back-to-front so we don't consume the data before we use it!
+    // We unshift in either a tee-stream to the cache put stream,
+    // or a collecter that dumps it to cache in one go, then the
+    // old body to bring in the data.
+    const newBody = new MinipassPipeline(new MinipassFlush({
       flush () {
         return cacheWritePromise
       }
-    })
+    }))
 
     let cacheWriteResolve, cacheWriteReject
     const cacheWritePromise = new Promise((resolve, reject) => {
@@ -154,11 +161,7 @@ module.exports = class Cache {
           cacheOpts
         ).then(cacheWriteResolve, cacheWriteReject)
       })
-      oldBody
-        .on('error', er => collecter.emit('error', er))
-        .pipe(collecter)
-        .on('error', er => newBody.emit('error', er))
-        .pipe(newBody)
+      newBody.unshift(collecter)
     } else {
       const tee = new Minipass()
       const cacheStream = cacache.put.stream(
@@ -167,13 +170,11 @@ module.exports = class Cache {
         cacheOpts
       )
       tee.pipe(cacheStream)
-      tee.pipe(newBody)
       cacheStream.promise().then(cacheWriteResolve, cacheWriteReject)
-      oldBody.on('error', er => tee.emit('error', er))
-        .pipe(tee)
-        .on('error', er => newBody.emit('error', er))
+      newBody.unshift(tee)
     }
 
+    newBody.unshift(oldBody)
     return Promise.resolve(new fetch.Response(newBody, response))
   }
 

@@ -13,7 +13,8 @@ const CONTENT = Buffer.from('hello, world!')
 const INTEGRITY = ssri.fromData(CONTENT).toString()
 const HOST = 'https://local.registry.npm'
 const HEADERS = {
-  'cache-control': 'max-age=300'
+  'cache-control': 'max-age=300',
+  date: new Date().toISOString()
 }
 
 function mockRequire (mocks = {}) {
@@ -377,6 +378,50 @@ test('integration tests', (t) => {
     })
   })
 
+  t.test('accepts a local path for caches, memoize=false', t => {
+    tnock(t, HOST).get('/test').reply(200, CONTENT, HEADERS)
+    return fetch(`${HOST}/test`, {
+      cacheManager: CACHE,
+      retry: { retries: 0 },
+      memoize: false
+    }).then(res => {
+      t.notOk(
+        res.headers.get('x-local-cache'),
+        'no cache headers if response is from network'
+      )
+      return res.buffer()
+    }).then(body => {
+      t.deepEqual(body, CONTENT, 'got remote content')
+      return fetch(`${HOST}/test`, {
+        cacheManager: CACHE,
+        retry: { retries: 0 },
+        memoize: false
+      })
+    }).then(res => {
+      t.equal(res.status, 200, 'non-stale cached res has 200 status')
+      const hs = res.headers
+      t.equal(
+        decodeURIComponent(hs.get('x-local-cache')),
+        CACHE,
+        'path added for cached requests'
+      )
+      t.match(
+        decodeURIComponent(hs.get('x-local-cache-key')),
+        new RegExp(`${HOST}/test`),
+        'cache key contains URI'
+      )
+      t.equal(
+        decodeURIComponent(hs.get('x-local-cache-hash')),
+        INTEGRITY,
+        'content hash in header'
+      )
+      t.ok(hs.get('x-local-cache-time'), 'content write time in header')
+      return res.buffer()
+    }).then(body => {
+      t.deepEqual(body, CONTENT, 'got cached content')
+    })
+  })
+
   t.test('supports defaulted fetch cache', t => {
     tnock(t, HOST).get('/test').reply(200, CONTENT, HEADERS)
     const defaultFetch = fetch.defaults({
@@ -389,6 +434,43 @@ test('integration tests', (t) => {
       return defaultFetch(`${HOST}/test`, {
         retry: { retries: 0 }
       })
+    }).then(res => {
+      t.equal(res.status, 200, 'non-stale cached res has 200 status')
+      return res.buffer()
+    }).then(body => {
+      t.deepEqual(body, CONTENT, 'got cached content')
+    })
+  })
+
+  t.test('supports defaulted fetch cache with default uri', t => {
+    tnock(t, HOST).get('/test').reply(200, CONTENT, HEADERS)
+    const defaultFetch = fetch.defaults(`${HOST}/test`)
+    return defaultFetch(null, {
+      cacheManager: CACHE,
+      retry: { retries: 0 }
+    }).then(res => res.buffer()).then(body => {
+      t.deepEqual(body, CONTENT, 'got remote content')
+      return defaultFetch(null, {
+        cacheManager: CACHE,
+        retry: { retries: 0 }
+      })
+    }).then(res => {
+      t.equal(res.status, 200, 'non-stale cached res has 200 status')
+      return res.buffer()
+    }).then(body => {
+      t.deepEqual(body, CONTENT, 'got cached content')
+    })
+  })
+
+  t.test('supports defaulted fetch cache with uri and options', t => {
+    tnock(t, HOST).get('/test').reply(200, CONTENT, HEADERS)
+    const defaultFetch = fetch.defaults(`${HOST}/test`, {
+      cacheManager: CACHE,
+      retry: { retries: 0 }
+    })
+    return defaultFetch().then(res => res.buffer()).then(body => {
+      t.deepEqual(body, CONTENT, 'got remote content')
+      return defaultFetch()
     }).then(res => {
       t.equal(res.status, 200, 'non-stale cached res has 200 status')
       return res.buffer()
@@ -448,6 +530,39 @@ test('integration tests', (t) => {
     }).then(body => {
       t.deepEqual(body, CONTENT, 'got remote content')
     })
+  })
+
+  t.test('cache delete when memoized', t => {
+    t.test('memoize object with reset()', t => {
+      let resetCalled = false
+      const memoize = { reset () { resetCalled = true } }
+      const p = fetch.delete(`${HOST}/test`, {
+        cacheManager: CACHE,
+        memoize
+      })
+      t.equal(resetCalled, true, 'called memoize.reset()')
+      return p
+    })
+    t.test('memoize object with clear()', t => {
+      let clearCalled = false
+      const memoize = { clear () { clearCalled = true } }
+      const p = fetch.delete(`${HOST}/test`, {
+        cacheManager: CACHE,
+        memoize
+      })
+      t.equal(clearCalled, true, 'called memoize.clear()')
+      return p
+    })
+    t.test('just an object, null all the keys', t => {
+      const memoize = { a: 'a', b: 'b', c: 'c' }
+      const p = fetch.delete(`${HOST}/test`, {
+        cacheManager: CACHE,
+        memoize
+      })
+      t.strictSame(memoize, { a: null, b: null, c: null }, 'nulled memoize obj')
+      return p
+    })
+    t.end()
   })
 
   t.test('small responses cached', t => {
@@ -1080,6 +1195,30 @@ test('integration tests', (t) => {
       })
     }).then(res => {
       t.equal(res.status, 500, 'got a 500 because must-revalidate on PUT')
+      srv.get('/test').reply(200, CONTENT, {
+        'Cache-Control': 'must-revalidate',
+        'ETag': 'thisisanetag',
+        'Date': new Date().toUTCString()
+      })
+      return fetch(`${HOST}/test`, {
+        cacheManager: CACHE
+      })
+    }).then(res => {
+      t.equal(res.status, 200, 'original was invalidated -- fresh round-trip')
+      return res.buffer()
+    }).then(() => {
+      srv.put('/test').reply(500)
+      let calledOnRetry = 0
+      const onRetry = () => calledOnRetry++
+      return fetch(`${HOST}/test`, {
+        onRetry,
+        method: 'put',
+        cacheManager: CACHE,
+        retry: { retries: 0 }
+      }).then(res => {
+        t.equal(res.status, 500, 'got a 500 because must-revalidate on PUT')
+        t.equal(calledOnRetry, 1, 'if onRetry function provided, will be called')
+      })
     })
   })
 
