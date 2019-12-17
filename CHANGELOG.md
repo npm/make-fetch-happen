@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [7.1.0](https://github.com/npm/make-fetch-happen/compare/v7.0.0...v7.1.0) (2019-12-17)
+
+
+### Features
+
+* use globalAgent when in lambda ([bd9409d](https://github.com/npm/make-fetch-happen/commit/bd9409da246a979b665ebd23967ec01dd928ce47)), closes [#4](https://github.com/npm/make-fetch-happen/issues/4)
+
 ## [7.0.0](https://github.com/npm/make-fetch-happen/compare/v6.1.0...v7.0.0) (2019-12-17)
 
 
