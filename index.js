@@ -373,10 +373,11 @@ function remoteFetch (uri, opts) {
             throw err
           }
 
-          const resolvedUrl = url.format(new url.URL(res.headers.get('location'), req.url))
+          const resolvedUrlParsed = new url.URL(res.headers.get('location'), req.url)
+          const resolvedUrl = url.format(resolvedUrlParsed)
           const redirectURL = (isURL.test(res.headers.get('location')))
             ? new url.URL(res.headers.get('location'))
-            : new url.URL(resolvedUrl)
+            : resolvedUrlParsed
 
           // Remove authorization if changing hostnames (but not if just
           // changing ports or protocols).  This matches the behavior of request:
