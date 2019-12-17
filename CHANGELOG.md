@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [7.0.0](https://github.com/npm/make-fetch-happen/compare/v6.1.0...v7.0.0) (2019-12-17)
+
+
+### ⚠ BREAKING CHANGES
+
+* drops support for node v8, since it's EOL as of 2020-01-01
+
+### Features
+
+* **github:** added github actions with coveralls integration ([1913c1b](https://github.com/npm/make-fetch-happen/commit/1913c1b51aaac6044b4dab65b3d19ec943a35f39))
+* updated fetch module; linting mostly; based on testing ([063f28e](https://github.com/npm/make-fetch-happen/commit/063f28ea1ac23f7e9d9d79e15949ca82b634ce97))
+* **utils:** fixed configure-options based on testing ([9dd4f6f](https://github.com/npm/make-fetch-happen/commit/9dd4f6f108442dc247de44e1ddc0341edcb84c9b))
+* fixed test dep requires; added mockRequire function to mock tests properly ([95de7a1](https://github.com/npm/make-fetch-happen/commit/95de7a171110907e30f41f489e4be983cd8184a5))
+* refactored functions into utilities ([74620dd](https://github.com/npm/make-fetch-happen/commit/74620dd7c2262ac46d9b4f6ac2dc9ff45a4f19ee))
+* updated dev deps; update tap; updated standard ([dce6eec](https://github.com/npm/make-fetch-happen/commit/dce6eece130fb20164a62eeabc6090811d8f14a4))
+* updated fetch tests; linting, logic, added tests ([d50aeaf](https://github.com/npm/make-fetch-happen/commit/d50aeafebeb5d8f7118d7f6660208f40ac487804))
+
+
+### Bug Fixes
+
+* format cache key with new URL object shape ([21cb6cc](https://github.com/npm/make-fetch-happen/commit/21cb6cc968aabff8b5c5c02e3666fb093fd6578c))
+* polish out an unnecessary URL object creation ([67a01d4](https://github.com/npm/make-fetch-happen/commit/67a01d46b2cacbadc22f49604ee524526cee3912)), closes [#14](https://github.com/npm/make-fetch-happen/issues/14)
+* support user without password in proxy auth ([e24bbf9](https://github.com/npm/make-fetch-happen/commit/e24bbf935bc8a2c49070cdb2518e5ee290143191))
+* updated 'files' property in package file ([945e40c](https://github.com/npm/make-fetch-happen/commit/945e40c7fbb59333e0c632c490683e4babc68dc1))
+* Use WhatWG URL objects over deprecated legacy url API ([28aca97](https://github.com/npm/make-fetch-happen/commit/28aca97dfb63ca003ebf62d1b961771cfbb2481d))
+
+
+* drop node 8 ([9fa7944](https://github.com/npm/make-fetch-happen/commit/9fa7944cbc603f3a194dfb440f519a7d5265653e))
+
 ## [6.1.0](https://github.com/npm/make-fetch-happen/compare/v6.0.1...v6.1.0) (2019-11-14)
 
 
