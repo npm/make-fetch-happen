@@ -17,8 +17,8 @@ function cacheKey (req) {
   return `make-fetch-happen:request-cache:${
     url.format({
       protocol: parsed.protocol,
-      slashes: parsed.slashes,
-      host: parsed.host,
+      slashes: true,
+      port: parsed.port,
       hostname: parsed.hostname,
       pathname: parsed.pathname
     })
