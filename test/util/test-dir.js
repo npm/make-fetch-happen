@@ -37,11 +37,10 @@ function reset (testDir) {
   return new Promise((resolve, reject) => {
     rimraf(testDir, function (err) {
       if (err) { return reject(err) }
-      mkdirp(testDir, function (err) {
-        if (err) { return reject(err) }
+      mkdirp(testDir).then(() => {
         process.chdir(testDir)
         resolve()
-      })
+      }, reject)
     })
   })
 }
