@@ -51,15 +51,15 @@
   },
   "devDependencies": {
     "mkdirp": "^1.0.3",
-    "nock": "^11.7.0",
+    "nock": "^11.9.1",
     "npmlog": "^4.1.2",
     "require-inject": "^1.4.2",
     "rimraf": "^2.7.1",
     "safe-buffer": "^5.2.0",
     "standard": "^14.3.1",
-    "standard-version": "^7.0.1",
+    "standard-version": "^7.1.0",
     "tacks": "^1.2.6",
-    "tap": "^14.10.2"
+    "tap": "^14.10.6"
   },
   "engines": {
     "node": ">= 10"
