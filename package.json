@@ -35,7 +35,7 @@
   "dependencies": {
     "agentkeepalive": "^4.1.0",
     "cacache": "^15.0.0",
-    "http-cache-semantics": "^4.0.3",
+    "http-cache-semantics": "^4.0.4",
     "http-proxy-agent": "^3.0.0",
     "https-proxy-agent": "^4.0.0",
     "is-lambda": "^1.0.1",
