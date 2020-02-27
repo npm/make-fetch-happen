@@ -1,6 +1,6 @@
 'use strict'
 
-const { Response } = require('minipass-fetch')
+const { Response, Headers } = require('minipass-fetch')
 const requireInject = require('require-inject')
 const { Buffer } = require('safe-buffer')
 const Minipass = require('minipass')
@@ -241,6 +241,25 @@ test('custom headers', t => {
       }
     })
   return fetch(`${HOST}/test`, { headers: { test: 'ayy' } })
+    .then(res => {
+      t.equal(res.headers.get('foo'), 'bar', 'got response header')
+    })
+})
+
+test('custom headers (class)', t => {
+  const fetch = mockRequire({})
+  const srv = tnock(t, HOST)
+
+  srv
+    .get('/test')
+    .reply(200, CONTENT, {
+      foo: (req) => {
+        t.equal(req.headers.test[0], 'ayy', 'got request header')
+        return 'bar'
+      }
+    })
+
+  return fetch(`${HOST}/test`, { headers: new Headers({ test: 'ayy' }) })
     .then(res => {
       t.equal(res.headers.get('foo'), 'bar', 'got response header')
     })
