@@ -32,7 +32,11 @@ const RETRY_TYPES = [
 ]
 
 // https://fetch.spec.whatwg.org/#http-network-or-cache-fetch
-module.exports = cachingFetch
+module.exports = exports = cachingFetch
+exports.Headers = fetch.Headers
+exports.Request = fetch.Request
+exports.Response = fetch.Response
+exports.FetchError = fetch.FetchError
 cachingFetch.defaults = function (_uri, _opts) {
   const fetch = this
   if (typeof _uri === 'object') {
