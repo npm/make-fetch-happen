@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [8.0.3](https://github.com/npm/make-fetch-happen/compare/v8.0.2...v8.0.3) (2020-03-03)
+
+
+### Bug Fixes
+
+* remoteFetch takes instance of fetch.Headers ([6e0de7b](https://github.com/npm/make-fetch-happen/commit/6e0de7b10b8597eaff69fea06a266914766cf5ab)), closes [#22](https://github.com/npm/make-fetch-happen/issues/22)
+
 ### [8.0.1](https://github.com/npm/make-fetch-happen/compare/v8.0.0...v8.0.1) (2020-02-18)
 
 ## [8.0.0](https://github.com/npm/make-fetch-happen/compare/v7.1.1...v8.0.0) (2020-02-18)
