@@ -384,7 +384,6 @@ function remoteFetch (uri, opts) {
             ? new url.URL(res.headers.get('location'))
             : resolvedUrlParsed
 
-
           // Comment below is used under the following license:
           // Copyright (c) 2010-2012 Mikeal Rogers
           // Licensed under the Apache License, Version 2.0 (the "License");
