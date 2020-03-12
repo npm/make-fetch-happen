@@ -9,12 +9,12 @@
     "utils"
   ],
   "scripts": {
-    "prerelease": "npm t",
-    "release": "standard-version -s",
+    "preversion": "npm t",
+    "postversion": "npm publish",
     "prepublishOnly": "git push --follow-tags",
-    "postrelease": "npm publish",
-    "posttest": "standard",
-    "test": "tap test/*.js"
+    "test": "tap test/*.js",
+    "posttest": "npm run lint",
+    "lint": "standard"
   },
   "repository": "https://github.com/npm/make-fetch-happen",
   "keywords": [
