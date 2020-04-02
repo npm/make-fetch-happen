@@ -6,6 +6,7 @@ const pkg = require('./package.json')
 const retry = require('promise-retry')
 let ssri
 
+const { Headers } = require('minipass-fetch')
 const Minipass = require('minipass')
 const MinipassPipeline = require('minipass-pipeline')
 const getAgent = require('./agent')
@@ -41,7 +42,18 @@ cachingFetch.defaults = function (_uri, _opts) {
   }
 
   function defaultedFetch (uri, opts) {
-    const finalOpts = Object.assign({}, _opts || {}, opts || {})
+    const defaultOpts = _opts || {}
+    const invokeOpts = opts || {}
+    const finalOpts = Object.assign({}, defaultOpts, invokeOpts)
+
+    finalOpts.headers = new Headers()
+    for (const defaultHeader of new Headers(defaultOpts.headers).entries()) {
+      finalOpts.headers.set(defaultHeader[0], defaultHeader[1])
+    }
+    for (const invokeHeader of new Headers(invokeOpts.headers).entries()) {
+      finalOpts.headers.set(invokeHeader[0], invokeHeader[1])
+    }
+
     return fetch(uri || _uri, finalOpts)
   }
 

@@ -265,6 +265,26 @@ test('custom headers (class)', t => {
     })
 })
 
+test('custom headers layering with defaults', t => {
+  const fetch = mockRequire({}).defaults({ headers: { foo: '1', baz: '3' } })
+  const srv = tnock(t, HOST)
+
+  srv
+    .get('/test')
+    .reply(200, CONTENT, {
+      foo: (req) => {
+        t.equal(req.headers.foo[0], '1', 'got request header from defaults')
+        t.equal(req.headers.bar[0], '2', 'got request header from invocation')
+        t.equal(req.headers.baz[0], '0', 'got request header invocation overriding defaults')
+        return 'bar'
+      }
+    })
+  return fetch(`${HOST}/test`, { headers: { bar: '2', baz: '0' } })
+    .then(res => {
+      t.equal(res.headers.get('foo'), 'bar', 'got response header')
+    })
+})
+
 test('supports redirect logic', t => {
   const fetch = mockRequire({})
 
