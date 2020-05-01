@@ -2,8 +2,8 @@
 [![npm version](https://img.shields.io/npm/v/make-fetch-happen.svg)](https://npm.im/make-fetch-happen) [![license](https://img.shields.io/npm/l/make-fetch-happen.svg)](https://npm.im/make-fetch-happen) [![Travis](https://img.shields.io/travis/npm/make-fetch-happen.svg)](https://travis-ci.org/npm/make-fetch-happen) [![Coverage Status](https://coveralls.io/repos/github/npm/make-fetch-happen/badge.svg?branch=latest)](https://coveralls.io/github/npm/make-fetch-happen?branch=latest)
 
 [`make-fetch-happen`](https://github.com/npm/make-fetch-happen) is a Node.js
-library that wraps [`node-fetch-npm`](https://github.com/npm/node-fetch-npm) with additional
-features [`node-fetch`](https://github.com/bitinn/node-fetch) doesn't intend to include, including HTTP Cache support, request
+library that wraps [`minipass-fetch`](https://github.com/npm/minipass-fetch) with additional
+features [`minipass-fetch`](https://github.com/npm/minipass-fetch) doesn't intend to include, including HTTP Cache support, request
 pooling, proxies, retries, [and more](#features)!
 
 ## Install
@@ -18,7 +18,7 @@ pooling, proxies, retries, [and more](#features)!
 * [API](#api)
   * [`fetch`](#fetch)
   * [`fetch.defaults`](#fetch-defaults)
-  * [`node-fetch` options](#node-fetch-options)
+  * [`minipass-fetch` options](#minipass-fetch-options)
   * [`make-fetch-happen` options](#extra-options)
     * [`opts.cacheManager`](#opts-cache-manager)
     * [`opts.cache`](#opts-cache)
@@ -55,7 +55,7 @@ fetch('https://registry.npmjs.org/make-fetch-happen').then(res => {
 
 ### Features
 
-* Builds around [`node-fetch`](https://npm.im/node-fetch) for the core [`fetch` API](https://fetch.spec.whatwg.org) implementation
+* Builds around [`minipass-fetch`](https://npm.im/minipass-fetch) for the core [`fetch` API](https://fetch.spec.whatwg.org) implementation
 * Request pooling out of the box
 * Quite fast, really
 * Automatic HTTP-semantics-aware request retries
@@ -85,7 +85,7 @@ Happy hacking!
 
 This function implements most of the [`fetch` API](https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/fetch): given a `uri` string or a `Request` instance, it will fire off an http request and return a Promise containing the relevant response.
 
-If `opts` is provided, the [`node-fetch`-specific options](#node-fetch-options) will be passed to that library. There are also [additional options](#extra-options) specific to make-fetch-happen that add various features, such as HTTP caching, integrity verification, proxy support, and more.
+If `opts` is provided, the [`minipass-fetch`-specific options](#minipass-fetch-options) will be passed to that library. There are also [additional options](#extra-options) specific to make-fetch-happen that add various features, such as HTTP caching, integrity verification, proxy support, and more.
 
 ##### Example
 
@@ -109,9 +109,9 @@ const fetch = require('make-fetch-happen').defaults({
 fetch('https://registry.npmjs.org/make-fetch-happen') // will always use the cache
 ```
 
-#### <a name="node-fetch-options"></a> `> node-fetch options`
+#### <a name="minipass-fetch-options"></a> `> minipass-fetch options`
 
-The following options for `node-fetch` are used as-is:
+The following options for `minipass-fetch` are used as-is:
 
 * method
 * body
@@ -130,11 +130,11 @@ These other options are modified or augmented by make-fetch-happen:
   * If `opts.agent` is an object, it will be used as the request-pooling agent argument for this request.
   * If `opts.agent` is `false`, it will be passed as-is to the underlying request library. This causes a new Agent to be spawned for every request.
 
-For more details, see [the documentation for `node-fetch` itself](https://github.com/bitinn/node-fetch#options).
+For more details, see [the documentation for `minipass-fetch` itself](https://github.com/npm/minipass-fetch#options).
 
 #### <a name="extra-options"></a> `> make-fetch-happen options`
 
-make-fetch-happen augments the `node-fetch` API with additional features available through extra options. The following extra options are available:
+make-fetch-happen augments the `minipass-fetch` API with additional features available through extra options. The following extra options are available:
 
 * [`opts.cacheManager`](#opts-cache-manager) - Cache target to read/write
 * [`opts.cache`](#opts-cache) - `fetch` cache mode. Controls cache *behavior*.
