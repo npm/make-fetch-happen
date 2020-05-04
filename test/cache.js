@@ -167,20 +167,22 @@ test('put method', (t) => {
         memoize: false
       }, 'should have correct cache options')
       const cacheStream = new Minipass()
-      cacheStream.concat().then((data) => {
+      // cache stream actually takes a sec to get started
+      setTimeout(() => cacheStream.concat().then((data) => {
         t.equal(
           data.toString(),
           CONTENT.toString(),
           'cached body is from response'
         )
-      })
+      }))
       return cacheStream
     }
     const Cache = mockRequire({ cacache: new MockCacache() })
     const cache = new Cache(dir, {})
     const req = new Request(`${HOST}/put-test`)
     const body = new Minipass()
-    body.end(CONTENT)
+    body.write(CONTENT.slice(0, 10))
+    body.end(CONTENT.slice(10))
     const resOpts = { url: req.url, status: 200, headers: {} }
     const initialResponse = new Response(body, resOpts)
     return cache.put(req, initialResponse)
