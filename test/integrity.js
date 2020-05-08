@@ -36,6 +36,28 @@ test('basic integrity verification', t => {
   })
 })
 
+test('skip integrity verification on error', t => {
+  const srv = tnock(t, HOST)
+  const notFoundError = '{"error": "Not found"}'
+  const internalError = '{"error": "Internal server error"}'
+
+  srv.get('/notfound').reply(404, Buffer.from(notFoundError))
+  srv.get('/internalerror').reply(500, Buffer.from(internalError))
+  const safetch = fetch.defaults({
+    integrity: INTEGRITY,
+  })
+  return safetch(`${HOST}/notfound`).then(res => {
+    return res.buffer()
+  }).then(buf => {
+    t.deepEqual(buf, Buffer.from(notFoundError), 'good error message passed through')
+    return safetch(`${HOST}/internalerror`).then(res => {
+      return res.buffer()
+    }).then(buf => {
+      t.deepEqual(buf, Buffer.from(internalError), 'good error message passed through')
+    })
+  })
+})
+
 test('picks the "best" algorithm', t => {
   const integrity = ssri.fromData(CONTENT, {
     algorithms: ['md5', 'sha384', 'sha1', 'sha256'],
