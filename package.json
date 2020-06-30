@@ -32,6 +32,7 @@
     "twitter": "maybekatz"
   },
   "license": "ISC",
+  "types": "./index.d.ts",
   "dependencies": {
     "agentkeepalive": "^4.1.0",
     "cacache": "^15.0.0",
@@ -50,6 +51,9 @@
     "ssri": "^8.0.0"
   },
   "devDependencies": {
+    "@types/node-fetch": "^2.5.7",
+    "@types/retry": "^0.12.0",
+    "@types/ssri": "^7.1.0",
     "mkdirp": "^1.0.3",
     "nock": "^11.9.1",
     "npmlog": "^4.1.2",
