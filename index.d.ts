@@ -1,6 +1,12 @@
 import { ClientRequestArgs, AgentOptions } from "http";
 import { SecureContextOptions, CommonConnectionOptions } from "tls";
-import { RequestInit } from "node-fetch";
+import {
+  RequestInit,
+  Headers,
+  Request,
+  Response,
+  FetchError,
+} from "node-fetch";
 import { TimeoutsOptions } from "retry";
 import { Integrity } from "ssri";
 
@@ -42,3 +48,12 @@ interface CachingFetch {
 }
 
 export default CachingFetch;
+
+export {
+  CachingFetch,
+  CachingFetchOpts,
+  Headers,
+  Request,
+  Response,
+  FetchError,
+};
