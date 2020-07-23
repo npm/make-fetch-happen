@@ -293,7 +293,8 @@ function remoteFetch (uri, opts) {
       const req = new fetch.Request(uri, reqOpts)
       return fetch(req)
         .then((res) => {
-          if (opts.integrity) {
+          // skip integrity check when meet http redirect
+          if (opts.integrity && !fetch.isRedirect(res.status)) {
             res = remoteFetchHandleIntegrity(res, opts.integrity)
           }
 
