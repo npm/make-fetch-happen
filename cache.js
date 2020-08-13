@@ -35,6 +35,7 @@ function cacheKey (req) {
       port: parsed.port,
       hostname: parsed.hostname,
       pathname: parsed.pathname,
+      search: parsed.search,
     })
   }`
 }
