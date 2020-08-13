@@ -206,7 +206,7 @@ test('put method', (t) => {
       data,
       cacheOpts
     ) {
-      const expectedCacheKey = `make-fetch-happen:request-cache:${HOST}/put-test`
+      const expectedCacheKey = `make-fetch-happen:request-cache:${HOST}/put-test?a=1`
       t.equal(
         cacheKey,
         expectedCacheKey,
@@ -217,7 +217,7 @@ test('put method', (t) => {
     MockCacache.prototype.put.stream = function putStream () {}
     const Cache = mockRequire({ cacache: new MockCacache() })
     const cache = new Cache(dir, {})
-    const req = new Request(`${HOST}/put-test`)
+    const req = new Request(`${HOST}/put-test?a=1`)
     const body = new Minipass()
     body.end(CONTENT)
     const resOpts = {

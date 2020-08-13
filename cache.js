@@ -20,7 +20,8 @@ function cacheKey (req) {
       slashes: true,
       port: parsed.port,
       hostname: parsed.hostname,
-      pathname: parsed.pathname
+      pathname: parsed.pathname,
+      search: parsed.search
     })
   }`
 }
