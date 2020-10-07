@@ -141,3 +141,17 @@ test('basic integrity verification with gzip content', t => {
     t.deepEqual(buf, CONTENT_GZ, 'good content passed scrutiny 👍🏼')
   })
 })
+
+test('skip integrity check for error reponses', t => {
+  const srv = tnock(t, HOST)
+  srv.get('/wowforbidden').reply(403, Buffer.from('Forbidden'))
+  const safetch = fetch.defaults({
+    integrity: INTEGRITY
+  })
+  return safetch(`${HOST}/wowforbidden`).then(res => {
+    t.equal(res.status, 403)
+    return res.buffer() // attempt to consume body
+  }).catch(err => {
+    t.fail(`Unexpected error: ${err}`)
+  })
+})
