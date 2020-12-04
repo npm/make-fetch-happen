@@ -8,7 +8,7 @@ const { test } = require('tap')
 
 test('should return instance of CachePolicy', (t) => {
   const makePolicy = requireInject('../utils/make-policy', {
-    '../utils/iterable-to-object': () => ({})
+    '../utils/iterable-to-object': () => ({}),
   })
   const res = new Response('', {})
   const req = new Request('', {})
@@ -27,12 +27,12 @@ test('should pass objects to CachePolicy', (t) => {
       const expectedReqObject = {
         url: 'https://nope.com/',
         method: 'GET',
-        headers: {}
+        headers: {},
       }
       t.deepEqual(args[0], expectedReqObject, 'should have expected req shape')
       const expectedResObject = {
         status: 200,
-        headers: {}
+        headers: {},
       }
       t.deepEqual(args[1], expectedResObject, 'should have expected res shape')
     }
@@ -43,7 +43,7 @@ test('should pass objects to CachePolicy', (t) => {
 
   const makePolicy = requireInject('../utils/make-policy', {
     'http-cache-semantics': MockClass,
-    '../utils/iterable-to-object': () => ({})
+    '../utils/iterable-to-object': () => ({}),
   })
   makePolicy(req, res)
   t.end()

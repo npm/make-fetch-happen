@@ -19,7 +19,8 @@ function mockRequire (mocks = {}) {
     {},
     {
       '../agent': (uri, opts) => {
-        if (opts.agent === false) return false
+        if (opts.agent === false)
+          return false
         const parsedUri = new url.URL(typeof uri === 'string' ? uri : uri.url)
         const isHttps = parsedUri.protocol === 'https:'
         return (isHttps)
@@ -42,7 +43,7 @@ function mockRequire (mocks = {}) {
         const cacheManager = {
           delete: () => Promise.resolve(),
           match: () => Promise.resolve(new Response()),
-          put: () => Promise.resolve(new Response())
+          put: () => Promise.resolve(new Response()),
         }
         return (!opts.cacheManager)
           ? Object.assign({}, opts, { method, retry })
@@ -50,7 +51,7 @@ function mockRequire (mocks = {}) {
       },
       '../utils/initialize-cache': () => {},
       '../utils/iterable-to-object': () => {},
-      '../utils/make-policy': () => {}
+      '../utils/make-policy': () => {},
     },
     mocks
   )
@@ -153,12 +154,12 @@ test('calls opts.onRetry', t => {
 
     return fetch(`${HOST}/test-onretry`, {
       retry: {
-        retries: 1
+        retries: 1,
       },
       onRetry: (res) => {
         calledOnRetry = true
         retryNotification++
-      }
+      },
     }).then((res) => {
       t.equal(calledOnRetry, true, 'should have called onRetry')
       t.equal(retryNotification, 1, 'should have called method once')
@@ -174,14 +175,14 @@ test('calls opts.onRetry', t => {
       .get('/catch-retry')
       .replyWithError({
         message: 'retry please',
-        code: 'ECONNRESET'
+        code: 'ECONNRESET',
       })
       .get('/catch-retry')
       .reply(200, CONTENT)
 
     return fetch(`${HOST}/catch-retry`, {
       retry: {
-        retries: 1
+        retries: 1,
       },
       onRetry: (err) => {
         t.deepEqual(
@@ -191,7 +192,7 @@ test('calls opts.onRetry', t => {
         )
         t.equal(err.code, 'ECONNRESET', 'correct error code')
         calledOnRetry = true
-      }
+      },
     }).then((res) => {
       t.equal(calledOnRetry, true, 'should have called onRetry')
       return res.buffer()
@@ -207,16 +208,16 @@ test('calls opts.onRetry', t => {
       .get('/catch-retry')
       .replyWithError({
         message: 'retry please',
-        code: 'ECONNRESET'
+        code: 'ECONNRESET',
       })
       .get('/catch-retry')
       .reply(200, CONTENT)
 
     return fetch(`${HOST}/catch-retry`, {
       retry: {
-        retries: 1
+        retries: 1,
       },
-      onRetry: null
+      onRetry: null,
     }).then((res) => {
       t.equal(res.status, 200, 'successful status code')
       return res.buffer()
@@ -238,7 +239,7 @@ test('custom headers', t => {
       foo: (req) => {
         t.equal(req.headers.test[0], 'ayy', 'got request header')
         return 'bar'
-      }
+      },
     })
   return fetch(`${HOST}/test`, { headers: { test: 'ayy' } })
     .then(res => {
@@ -256,7 +257,7 @@ test('custom headers (class)', t => {
       foo: (req) => {
         t.equal(req.headers.test[0], 'ayy', 'got request header')
         return 'bar'
-      }
+      },
     })
 
   return fetch(`${HOST}/test`, { headers: new Headers({ test: 'ayy' }) })
@@ -315,7 +316,7 @@ test('supports redirect logic', t => {
       fetch(`${HOST}/redirect`, { redirect: 'error' }),
       {
         message: 'redirect mode is set to error: https://make-fetch-happen.npm/redirect',
-        code: 'ENOREDIRECT'
+        code: 'ENOREDIRECT',
       }
     )
   })
@@ -329,7 +330,7 @@ test('supports redirect logic', t => {
       fetch(`${HOST}/redirect`),
       {
         message: 'redirect location header missing at: https://make-fetch-happen.npm/redirect',
-        code: 'EINVALIDREDIRECT'
+        code: 'EINVALIDREDIRECT',
       }
     )
   })
@@ -416,7 +417,7 @@ test('removes authorization header if changing hostnames', t => {
   return t.rejects(
     fetch(`${HTTPHOST}/redirect`, { headers: { authorization: 'test' } }),
     {
-      code: 'FETCH_ERROR'
+      code: 'FETCH_ERROR',
     }
   )
     .then(() => {
@@ -442,7 +443,7 @@ test('supports passthrough of options on redirect', t => {
         t.ok(req.headers['x-test'].length)
         t.equal(req.headers['x-test'][0], 'test', 'headers from redriect')
         return 'truthy'
-      }
+      },
     })
 
   return fetch(`${HTTPHOST}/redirect`, { headers: { 'x-test': 'test' } })
@@ -470,7 +471,7 @@ test('supports redirects from POST requests', t => {
 
     return fetch(`${HOST}/redirect`, {
       method: 'POST',
-      body: 'test'
+      body: 'test',
     }).then(res => {
       t.equal(res.status, 200, 'successful status code')
       t.equal(res.redirected, true, 'request was redirected')
@@ -490,7 +491,7 @@ test('supports redirects from POST requests', t => {
 
     return fetch(`${HOST}/redirect`, {
       method: 'POST',
-      body: 'test'
+      body: 'test',
     }).then(res => {
       t.equal(res.status, 200, 'successful status code')
       t.equal(res.redirected, true, 'request was redirected')
@@ -515,7 +516,7 @@ test('throws error if follow is less than request count', t => {
     fetch(`${HOST}/redirect`, { follow: 0 }),
     {
       message: 'maximum redirect reached at: https://make-fetch-happen.npm/redirect',
-      code: 'EMAXREDIRECT'
+      code: 'EMAXREDIRECT',
     }
   )
 })
@@ -560,12 +561,14 @@ test('supports proxy configurations', { skip: true }, t => {
         })
       })
     })
-  }).listen(9854).on('error', err => { throw err })
+  }).listen(9854).on('error', err => {
+    throw err
+  })
   fetch('http://npm.im/make-fetch-happen', {
     proxy: 'http://localhost:9854',
     retry: {
-      retries: 0
-    }
+      retries: 0,
+    },
   }).then(res => {
     return res.buffer()
   }).then(buf => {
@@ -690,7 +693,7 @@ test('supports opts.timeout for controlling request timeout time', t => {
     fetch(`${HOST}/test`, { timeout: 1, retry: { retries: 0 } }),
     {
       code: 'FETCH_ERROR',
-      type: 'request-timeout'
+      type: 'request-timeout',
     }
   )
 })
@@ -715,8 +718,8 @@ test('retries non-POST requests on timeouts', t => {
       timeout: 10,
       retry: {
         retries: 4,
-        minTimeout: 5
-      }
+        minTimeout: 5,
+      },
     })
       .then((res) => {
         t.equal(res.headers.get('x-fetch-attempts'), '5', 'fetched five times')
@@ -739,10 +742,10 @@ test('retries non-POST requests on timeouts', t => {
     return t.rejects(
       fetch(`${HOST}/test`, {
         timeout: 10,
-        retry: { retries: 1, minTimeout: 1 }
+        retry: { retries: 1, minTimeout: 1 },
       }),
       {
-        type: 'request-timeout'
+        type: 'request-timeout',
       }
     )
   })
@@ -766,8 +769,8 @@ test('retries non-POST requests on 500 errors', t => {
     return fetch(`${HOST}/test`, {
       retry: {
         retries: 4,
-        minTimeout: 5
-      }
+        minTimeout: 5,
+      },
     })
       .then((res) => {
         t.equal(res.headers.get('x-fetch-attempts'), '5', 'five request attempts')
@@ -789,8 +792,8 @@ test('retries non-POST requests on 500 errors', t => {
     return fetch(`${HOST}/test`, {
       retry: {
         retries: 1,
-        minTimeout: 1
-      }
+        minTimeout: 1,
+      },
     })
       .then((res) => {
         t.equal(res.status, 500, 'got bad request back on failure')
@@ -809,8 +812,8 @@ test('retries non-POST requests on 500 errors', t => {
       method: 'POST',
       retry: {
         retries: 3,
-        minTimeout: 1
-      }
+        minTimeout: 1,
+      },
     })
       .then((res) => {
         t.equal(res.status, 500, 'bad post gives a 500 without retries')
@@ -834,7 +837,7 @@ test('retries non-POST requests on 500 errors', t => {
     return fetch(`${HOST}/test`, {
       method: 'put',
       body: stream,
-      retry: { retries: 5, minTimeout: 1 }
+      retry: { retries: 5, minTimeout: 1 },
     })
       .then((res) => {
         t.equal(res.status, 500, 'bad put does not retry because body is stream')
@@ -860,8 +863,8 @@ test('retries non-POST requests on 500 errors', t => {
       body: Buffer.from('great success!'),
       retry: {
         retries: 4,
-        minTimeout: 5
-      }
+        minTimeout: 5,
+      },
     })
       .then((res) => {
         t.equal(res.status, 201, 'successful response')
@@ -942,7 +945,7 @@ test('delete cache', (t) => {
   t.test('with cacheManager', (t) => {
     return fetch.delete(`${HOST}/test`, {
       cache: 'default',
-      cacheManager: '/path/to/cache'
+      cacheManager: '/path/to/cache',
     })
   })
 

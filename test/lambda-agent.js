@@ -13,7 +13,7 @@ MockHttp.HttpsAgent = mockHttpAgent('https')
 const agent = requireInject.installGlobally('../agent.js', {
   'is-lambda': true,
   agentkeepalive: MockHttp,
-  'https-proxy-agent': mockHttpAgent('https-proxy')
+  'https-proxy-agent': mockHttpAgent('https-proxy'),
 })
 
 function mockHttpAgent (type) {
@@ -30,7 +30,7 @@ const OPTS = {
   key: 'key',
   localAddress: 'localAddress',
   strictSSL: 'strictSSL',
-  timeout: 5
+  timeout: 5,
 }
 
 test('extracts process env variables', t => {
@@ -58,7 +58,7 @@ test('global https agent when lambda', t => {
 
 test('all expected options passed down to proxy agent', t => {
   const opts = Object.assign({
-    proxy: 'https://user:pass@my.proxy:1234/foo'
+    proxy: 'https://user:pass@my.proxy:1234/foo',
   }, OPTS)
   t.deepEqual(agent('https://foo.com/bar', opts), {
     __type: 'https-proxy',
@@ -73,7 +73,7 @@ test('all expected options passed down to proxy agent', t => {
     maxSockets: 5,
     localAddress: 'localAddress',
     rejectUnauthorized: 'strictSSL',
-    timeout: 6
+    timeout: 6,
   }, 'only expected options passed to https proxy')
   t.done()
 })

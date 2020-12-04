@@ -23,7 +23,7 @@ test('should parse headers of a Response object; test object body', (t) => {
   const result = iterableToObject(iterable.headers)
   const expectedObject = {
     'content-type': 'text/plain;charset=UTF-8',
-    a: 'a'
+    a: 'a',
   }
   t.equal(typeof result, 'object', 'should generate an object')
   t.deepEqual(result, expectedObject, 'should create object from headers')
@@ -35,7 +35,7 @@ test('should parse headers of a Response object; test json body', (t) => {
   const result = iterableToObject(iterable.headers)
   const expectedObject = {
     'content-type': 'text/plain;charset=UTF-8',
-    a: 'a'
+    a: 'a',
   }
   t.equal(typeof result, 'object', 'should generate an object')
   t.deepEqual(result, expectedObject, 'should create object from headers')

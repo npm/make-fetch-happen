@@ -10,7 +10,7 @@ const agent = requireInject.installGlobally('../agent.js', {
   agentkeepalive: MockHttp,
   'https-proxy-agent': mockHttpAgent('https-proxy'),
   'http-proxy-agent': mockHttpAgent('http-proxy'),
-  'socks-proxy-agent': mockHttpAgent('socks-proxy')
+  'socks-proxy-agent': mockHttpAgent('socks-proxy'),
 })
 
 function mockHttpAgent (type) {
@@ -41,7 +41,7 @@ const OPTS = {
   key: 'key',
   localAddress: 'localAddress',
   strictSSL: 'strictSSL',
-  timeout: 5
+  timeout: 5,
 }
 
 test('agent: false returns false', t => {
@@ -54,7 +54,7 @@ test('all expected options passed down to HttpAgent', t => {
     __type: 'http',
     maxSockets: 5,
     localAddress: 'localAddress',
-    timeout: 6
+    timeout: 6,
   }, 'only expected options passed to HttpAgent')
   t.done()
 })
@@ -64,7 +64,7 @@ test('timeout 0 keeps timeout 0', t => {
     __type: 'http',
     maxSockets: 5,
     localAddress: 'localAddress',
-    timeout: 0
+    timeout: 0,
   }, 'only expected options passed to HttpAgent')
   t.done()
 })
@@ -74,7 +74,7 @@ test('no max sockets gets 15 max sockets', t => {
     __type: 'http',
     maxSockets: 15,
     localAddress: 'localAddress',
-    timeout: 6
+    timeout: 6,
   }, 'only expected options passed to HttpAgent')
   t.done()
 })
@@ -84,7 +84,7 @@ test('no timeout gets timeout 0', t => {
     __type: 'http',
     maxSockets: 5,
     localAddress: 'localAddress',
-    timeout: 0
+    timeout: 0,
   }, 'only expected options passed to HttpAgent')
   t.done()
 })
@@ -98,14 +98,14 @@ test('all expected options passed down to HttpsAgent', t => {
     maxSockets: 5,
     localAddress: 'localAddress',
     rejectUnauthorized: 'strictSSL',
-    timeout: 6
+    timeout: 6,
   }, 'only expected options passed to HttpsAgent')
   t.done()
 })
 
 test('all expected options passed down to proxy agent', t => {
   const opts = Object.assign({
-    proxy: 'https://user:pass@my.proxy:1234/foo'
+    proxy: 'https://user:pass@my.proxy:1234/foo',
   }, OPTS)
   t.deepEqual(agent('https://foo.com/bar', opts), {
     __type: 'https-proxy',
@@ -120,14 +120,14 @@ test('all expected options passed down to proxy agent', t => {
     maxSockets: 5,
     localAddress: 'localAddress',
     rejectUnauthorized: 'strictSSL',
-    timeout: 6
+    timeout: 6,
   }, 'only expected options passed to https proxy')
   t.done()
 })
 
 test('all expected options passed down to proxy agent, username only', t => {
   const opts = Object.assign({
-    proxy: 'https://user-no-pass@my.proxy:1234/foo'
+    proxy: 'https://user-no-pass@my.proxy:1234/foo',
     // bust the cache
   }, { ...OPTS, timeout: OPTS.timeout + 1 })
   t.deepEqual(agent('https://foo.com/bar', opts), {
@@ -143,7 +143,7 @@ test('all expected options passed down to proxy agent, username only', t => {
     maxSockets: 5,
     localAddress: 'localAddress',
     rejectUnauthorized: 'strictSSL',
-    timeout: 7
+    timeout: 7,
   }, 'only expected options passed to https proxy')
   t.done()
 })
@@ -170,12 +170,12 @@ test('get proxy uri', t => {
     new url.URL(hsp), 'https proxy for http')
 
   t.equal(getProxyUri('http://x.y.foo.com/bar', {
-    noProxy: ['a.b.c.foo.com', '........', '.y.foo.com']
+    noProxy: ['a.b.c.foo.com', '........', '.y.foo.com'],
   }), false, 'no proxy for uri on noProxy option')
 
   process.env.no_proxy = '.y.foo.com, a.b.c.foo.com'
   t.equal(getProxyUri('http://x.y.foo.com/bar', {
-    noProxy: '..., x.y.com, .y.foo.com'
+    noProxy: '..., x.y.com, .y.foo.com',
   }), false, 'no proxy for uri in no_proxy environ')
 
   delete process.env.https_proxy
@@ -194,7 +194,7 @@ test('get proxy agent', t => {
     timeout: 1,
     localAddress: 'local address',
     maxSockets: 3,
-    strictSSL: true
+    strictSSL: true,
   }
 
   t.strictSame(getProxy(new url.URL('http://proxy.local:443/'), OPTS, true), {
@@ -210,7 +210,7 @@ test('get proxy agent', t => {
     localAddress: 'local address',
     maxSockets: 3,
     rejectUnauthorized: true,
-    __type: 'https-proxy'
+    __type: 'https-proxy',
   }, 'http proxy url, for https request')
 
   t.strictSame(getProxy(new url.URL('https://proxy.local:443/'), OPTS, true), {
@@ -226,7 +226,7 @@ test('get proxy agent', t => {
     localAddress: 'local address',
     maxSockets: 3,
     rejectUnauthorized: true,
-    __type: 'https-proxy'
+    __type: 'https-proxy',
   }, 'https proxy url, for https request')
 
   t.strictSame(getProxy(new url.URL('socks://proxy.local:443/'), OPTS, true), {
@@ -242,7 +242,7 @@ test('get proxy agent', t => {
     localAddress: 'local address',
     maxSockets: 3,
     rejectUnauthorized: true,
-    __type: 'socks-proxy'
+    __type: 'socks-proxy',
   }, 'socks proxy url, for https request')
 
   t.strictSame(getProxy(new url.URL('http://proxy.local:443/'), OPTS, false), {
@@ -258,7 +258,7 @@ test('get proxy agent', t => {
     localAddress: 'local address',
     maxSockets: 3,
     rejectUnauthorized: true,
-    __type: 'http-proxy'
+    __type: 'http-proxy',
   }, 'http proxy url, for http request')
 
   t.strictSame(getProxy(new url.URL('https://proxy.local:443/'), OPTS, false), {
@@ -274,7 +274,7 @@ test('get proxy agent', t => {
     localAddress: 'local address',
     maxSockets: 3,
     rejectUnauthorized: true,
-    __type: 'http-proxy'
+    __type: 'http-proxy',
   }, 'https proxy url, for http request')
 
   t.strictSame(getProxy(new url.URL('socks://proxy.local:443/'), OPTS, false), {
@@ -290,12 +290,12 @@ test('get proxy agent', t => {
     localAddress: 'local address',
     maxSockets: 3,
     rejectUnauthorized: true,
-    __type: 'socks-proxy'
+    __type: 'socks-proxy',
   }, 'socks proxy url, for http request')
 
   t.throws(() => getProxy(new url.URL('gopher://proxy.local'), OPTS, false), {
     message: 'unsupported proxy protocol: \'gopher:\'',
-    url: 'gopher://proxy.local'
+    url: 'gopher://proxy.local',
   })
 
   t.end()

@@ -23,7 +23,7 @@ const pruneHeaders = {
   'cf-ray': undefined,
   'cf-cache-status': undefined,
   'cf-request-id': undefined,
-  'x-fetch-attempts': undefined
+  'x-fetch-attempts': undefined,
 }
 
 function cacheKey (req) {
@@ -34,7 +34,7 @@ function cacheKey (req) {
       slashes: true,
       port: parsed.port,
       hostname: parsed.hostname,
-      pathname: parsed.pathname
+      pathname: parsed.pathname,
     })
   }`
 }
@@ -68,7 +68,7 @@ module.exports = class Cache {
         reqHeaders: new fetch.Headers(info.metadata.reqHeaders),
         resHeaders: new fetch.Headers(info.metadata.resHeaders),
         cacheIntegrity: info.integrity,
-        integrity: opts && opts.integrity
+        integrity: opts && opts.integrity,
       })) {
         const resHeaders = new fetch.Headers(info.metadata.resHeaders)
         addCacheHeaders(resHeaders, this._path, key, info.integrity, info.time)
@@ -76,7 +76,7 @@ module.exports = class Cache {
           return new fetch.Response(null, {
             url: req.url,
             headers: resHeaders,
-            status: 200
+            status: 200,
           })
         }
         const cachePath = this._path
@@ -89,7 +89,7 @@ module.exports = class Cache {
           opts.memoize !== false && fitInMemory
             ? () => {
               const c = cacache.get.stream.byDigest(cachePath, info.integrity, {
-                memoize: opts.memoize
+                memoize: opts.memoize,
               })
               c.on('error', /* istanbul ignore next */ err => {
                 body.emit('error', err)
@@ -99,7 +99,7 @@ module.exports = class Cache {
             : () => {
               removeOnResume()
               cacache.get.byDigest(cachePath, info.integrity, {
-                memoize: opts.memoize
+                memoize: opts.memoize,
               })
                 .then(data => body.end(data))
                 .catch(/* istanbul ignore next */ err => {
@@ -112,7 +112,7 @@ module.exports = class Cache {
           url: req.url,
           headers: resHeaders,
           status: 200,
-          size: info.size
+          size: info.size,
         }))
       }
     })
@@ -130,15 +130,15 @@ module.exports = class Cache {
         url: req.url,
         reqHeaders: {
           ...req.headers.raw(),
-          ...pruneHeaders
+          ...pruneHeaders,
         },
         resHeaders: {
           ...response.headers.raw(),
-          ...pruneHeaders
-        }
+          ...pruneHeaders,
+        },
       },
       size,
-      memoize: fitInMemory && opts.memoize
+      memoize: fitInMemory && opts.memoize,
     }
     if (req.method === 'HEAD' || response.status === 304) {
       // Update metadata without writing
@@ -166,7 +166,7 @@ module.exports = class Cache {
     const newBody = new MinipassPipeline(new MinipassFlush({
       flush () {
         return cacheWritePromise
-      }
+      },
     }))
 
     let cacheWriteResolve, cacheWriteReject
@@ -209,11 +209,11 @@ module.exports = class Cache {
   'delete' (req, opts) {
     opts = opts || {}
     if (typeof opts.memoize === 'object') {
-      if (opts.memoize.reset) {
+      if (opts.memoize.reset)
         opts.memoize.reset()
-      } else if (opts.memoize.clear) {
+      else if (opts.memoize.clear)
         opts.memoize.clear()
-      } else {
+      else {
         Object.keys(opts.memoize).forEach(k => {
           opts.memoize[k] = null
         })
@@ -233,20 +233,19 @@ function matchDetails (req, cached) {
   const vary = cached.resHeaders.get('Vary')
   // https://tools.ietf.org/html/rfc7234#section-4.1
   if (vary) {
-    if (vary.match(/\*/)) {
+    if (vary.match(/\*/))
       return false
-    } else {
+    else {
       const fieldsMatch = vary.split(/\s*,\s*/).every(field => {
         return cached.reqHeaders.get(field) === req.headers.get(field)
       })
-      if (!fieldsMatch) {
+      if (!fieldsMatch)
         return false
-      }
     }
   }
-  if (cached.integrity) {
+  if (cached.integrity)
     return ssri.parse(cached.integrity).match(cached.cacheIntegrity)
-  }
+
   reqUrl.hash = null
   cacheUrl.hash = null
   return url.format(reqUrl) === url.format(cacheUrl)

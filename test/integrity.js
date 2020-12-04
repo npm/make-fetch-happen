@@ -20,7 +20,7 @@ test('basic integrity verification', t => {
   srv.get('/wowsosafe').reply(200, CONTENT)
   srv.get('/wowsobad').reply(200, Buffer.from('pwnd'))
   const safetch = fetch.defaults({
-    integrity: INTEGRITY
+    integrity: INTEGRITY,
   })
   return safetch(`${HOST}/wowsosafe`).then(res => {
     return res.buffer()
@@ -38,7 +38,7 @@ test('basic integrity verification', t => {
 
 test('picks the "best" algorithm', t => {
   const integrity = ssri.fromData(CONTENT, {
-    algorithms: ['md5', 'sha384', 'sha1', 'sha256']
+    algorithms: ['md5', 'sha384', 'sha1', 'sha256'],
   })
   integrity.md5[0].digest = 'badc0ffee'
   integrity.sha1[0].digest = 'badc0ffee'
@@ -77,9 +77,9 @@ test('picks the "best" algorithm', t => {
 test('supports multiple hashes per algorithm', t => {
   const ALTCONTENT = Buffer.from('alt-content is like content but not really')
   const integrity = ssri.fromData(CONTENT, {
-    algorithms: ['md5', 'sha384', 'sha1', 'sha256']
+    algorithms: ['md5', 'sha384', 'sha1', 'sha256'],
   }).concat(ssri.fromData(ALTCONTENT, {
-    algorithms: ['sha384']
+    algorithms: ['sha384'],
   }))
   const safetch = fetch.defaults({ integrity })
   const srv = tnock(t, HOST)
@@ -105,7 +105,7 @@ test('checks integrity on cache fetch too', t => {
   const safetch = fetch.defaults({
     cacheManager: CACHE,
     integrity: INTEGRITY,
-    cache: 'must-revalidate'
+    cache: 'must-revalidate',
   })
   return safetch(`${HOST}/test`).then(res => res.buffer()).then(buf => {
     t.deepEqual(buf, CONTENT, 'good content passed scrutiny 👍🏼')
@@ -120,7 +120,7 @@ test('checks integrity on cache fetch too', t => {
     return safetch(`${HOST}/test`, {
       // try to use local cached version
       cache: 'force-cache',
-      integrity: { algorithm: 'sha512', digest: 'doesnotmatch' }
+      integrity: { algorithm: 'sha512', digest: 'doesnotmatch' },
     }).then(res => res.buffer()).then(buf => {
       throw new Error(`bad data: ${buf.toString('utf8')}`)
     }).catch(err => {
@@ -133,7 +133,7 @@ test('basic integrity verification with gzip content', t => {
   const srv = tnock(t, HOST)
   srv.get('/wowsosafe').reply(200, CONTENT_GZ, { 'Content-Type': 'application/x-tgz', 'Content-Encoding': 'x-gzip' })
   const safetch = fetch.defaults({
-    integrity: INTEGRITY_GZ
+    integrity: INTEGRITY_GZ,
   })
   return safetch(`${HOST}/wowsosafe`).then(res => {
     return res.buffer()
@@ -146,7 +146,7 @@ test('skip integrity check for error reponses', t => {
   const srv = tnock(t, HOST)
   srv.get('/wowforbidden').reply(403, Buffer.from('Forbidden'))
   const safetch = fetch.defaults({
-    integrity: INTEGRITY
+    integrity: INTEGRITY,
   })
   return safetch(`${HOST}/wowforbidden`).then(res => {
     t.equal(res.status, 403)

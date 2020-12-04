@@ -9,7 +9,7 @@ test('initialize cache', (t) => {
   test('supplied with no values', (t) => {
     const initializeCache = requireInject('../utils/initialize-cache', {
       '../utils/is-header-conditional': () => {},
-      '../cache': () => {}
+      '../cache': () => {},
     })
     const opts = {}
     initializeCache(opts)
@@ -21,7 +21,7 @@ test('initialize cache', (t) => {
   test('keep passed in `cache` value', (t) => {
     const initializeCache = requireInject('../utils/initialize-cache', {
       '../utils/is-header-conditional': () => {},
-      '../cache': () => {}
+      '../cache': () => {},
     })
     const opts = { cache: 'something' }
     initializeCache(opts)
@@ -44,7 +44,7 @@ test('initialize cache', (t) => {
     }
     const initializeCache = requireInject('../utils/initialize-cache', {
       '../utils/is-header-conditional': () => {},
-      '../cache': MockCache
+      '../cache': MockCache,
     })
 
     initializeCache(opts)
@@ -65,7 +65,7 @@ test('initialize cache', (t) => {
       '../utils/is-header-conditional': () => {},
       '../cache': () => {
         called = true
-      }
+      },
     })
 
     initializeCache(opts)
@@ -80,7 +80,7 @@ test('initialize cache', (t) => {
     const opts = { cache: 'default' }
     const initializeCache = requireInject('../utils/initialize-cache', {
       '../utils/is-header-conditional': () => true,
-      '../cache': class MockCache {}
+      '../cache': class MockCache {},
     })
 
     initializeCache(opts)
@@ -93,7 +93,7 @@ test('initialize cache', (t) => {
     const opts = { cache: 'default' }
     const initializeCache = requireInject('../utils/initialize-cache', {
       '../utils/is-header-conditional': () => false,
-      '../cache': class MockCache {}
+      '../cache': class MockCache {},
     })
 
     initializeCache(opts)

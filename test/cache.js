@@ -14,14 +14,14 @@ const INTEGRITY = ssri.fromData(CONTENT).toString()
 const HOST = 'https://local.registry.npm'
 const HEADERS = {
   'cache-control': 'max-age=300',
-  date: new Date().toISOString()
+  date: new Date().toISOString(),
 }
 
 function mockRequire (mocks = {}) {
   const mergedMocks = Object.assign(
     {},
     {
-      cacache: {}
+      cacache: {},
     },
     mocks
   )
@@ -45,7 +45,7 @@ test('put method', (t) => {
     const cache = new Cache(dir, {})
     const req = new Request(`${HOST}/put-test`)
     const res = new Response(CONTENT, {
-      headers: { 'content-size': CONTENT.length }
+      headers: { 'content-size': CONTENT.length },
     })
     t.throws(
       () => cache.put(req, res),
@@ -68,8 +68,8 @@ test('put method', (t) => {
       status: 201,
       headers: {
         'content-length': CONTENT.length,
-        'some-header-key': 'some-header-value'
-      }
+        'some-header-key': 'some-header-value',
+      },
     }
     const initialResponse = new Response(body, resOpts)
     return cache.put(req, initialResponse)
@@ -104,8 +104,8 @@ test('put method', (t) => {
       url: req.url,
       status: 200,
       headers: {
-        'content-length': CONTENT.length
-      }
+        'content-length': CONTENT.length,
+      },
     }
     const initialResponse = new Response(body, resOpts)
     const MockCacache = function cacache () {}
@@ -123,15 +123,15 @@ test('put method', (t) => {
           url: `${HOST}/put-test`,
           reqHeaders: {
             ...req.headers.raw(),
-            ...Cache.pruneHeaders
+            ...Cache.pruneHeaders,
           },
           resHeaders: {
             ...initialResponse.headers.raw(),
-            ...Cache.pruneHeaders
-          }
+            ...Cache.pruneHeaders,
+          },
         },
         size: CONTENT.length,
-        memoize: undefined
+        memoize: undefined,
       }, 'should have correct cache options')
       return Promise.resolve()
     }
@@ -168,15 +168,15 @@ test('put method', (t) => {
           url: `${HOST}/put-test`,
           reqHeaders: {
             ...req.headers.raw(),
-            ...Cache.pruneHeaders
+            ...Cache.pruneHeaders,
           },
           resHeaders: {
             ...initialResponse.headers.raw(),
-            ...Cache.pruneHeaders
-          }
+            ...Cache.pruneHeaders,
+          },
         },
         size: null,
-        memoize: false
+        memoize: false,
       }, 'should have correct cache options')
       const cacheStream = new Minipass()
       // cache stream actually takes a sec to get started
@@ -236,8 +236,8 @@ test('put method', (t) => {
       url: req.url,
       status: 200,
       headers: {
-        'content-length': CONTENT.length
-      }
+        'content-length': CONTENT.length,
+      },
     }
     const initialResponse = new Response(body, resOpts)
     return cache.put(req, initialResponse)
@@ -272,7 +272,7 @@ test('put method', (t) => {
       return stream
     }
     MockCacache.prototype.get.info = () => Promise.resolve({
-      integrity: INTEGRITY
+      integrity: INTEGRITY,
     })
     MockCacache.prototype.get.stream.byDigest = (
       cachePath,
@@ -298,8 +298,8 @@ test('put method', (t) => {
       url: req.url,
       status: 200,
       headers: {
-        'content-length': CONTENT.length
-      }
+        'content-length': CONTENT.length,
+      },
     }
     const initialResponse = new Response(body, resOpts)
     return cache.put(req, initialResponse)
@@ -330,8 +330,8 @@ test('put method', (t) => {
       url: req.url,
       status: 200,
       headers: {
-        'content-length': CONTENT.length
-      }
+        'content-length': CONTENT.length,
+      },
     }
     const initialResponse = new Response(body, resOpts)
     return cache.put(req, initialResponse)
@@ -354,7 +354,7 @@ test('integration tests', (t) => {
     tnock(t, HOST).get('/test').reply(200, CONTENT, HEADERS)
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: { retries: 0 }
+      retry: { retries: 0 },
     }).then(res => {
       t.notOk(
         res.headers.get('x-local-cache'),
@@ -365,7 +365,7 @@ test('integration tests', (t) => {
       t.deepEqual(body, CONTENT, 'got remote content')
       return fetch(`${HOST}/test`, {
         cacheManager: CACHE,
-        retry: { retries: 0 }
+        retry: { retries: 0 },
       })
     }).then(res => {
       t.equal(res.status, 200, 'non-stale cached res has 200 status')
@@ -397,7 +397,7 @@ test('integration tests', (t) => {
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
       retry: { retries: 0 },
-      memoize: false
+      memoize: false,
     }).then(res => {
       t.notOk(
         res.headers.get('x-local-cache'),
@@ -409,7 +409,7 @@ test('integration tests', (t) => {
       return fetch(`${HOST}/test`, {
         cacheManager: CACHE,
         retry: { retries: 0 },
-        memoize: false
+        memoize: false,
       })
     }).then(res => {
       t.equal(res.status, 200, 'non-stale cached res has 200 status')
@@ -439,14 +439,14 @@ test('integration tests', (t) => {
   t.test('supports defaulted fetch cache', t => {
     tnock(t, HOST).get('/test').reply(200, CONTENT, HEADERS)
     const defaultFetch = fetch.defaults({
-      cacheManager: CACHE
+      cacheManager: CACHE,
     })
     return defaultFetch(`${HOST}/test`, {
-      retry: { retries: 0 }
+      retry: { retries: 0 },
     }).then(res => res.buffer()).then(body => {
       t.deepEqual(body, CONTENT, 'got remote content')
       return defaultFetch(`${HOST}/test`, {
-        retry: { retries: 0 }
+        retry: { retries: 0 },
       })
     }).then(res => {
       t.equal(res.status, 200, 'non-stale cached res has 200 status')
@@ -461,12 +461,12 @@ test('integration tests', (t) => {
     const defaultFetch = fetch.defaults(`${HOST}/test`)
     return defaultFetch(null, {
       cacheManager: CACHE,
-      retry: { retries: 0 }
+      retry: { retries: 0 },
     }).then(res => res.buffer()).then(body => {
       t.deepEqual(body, CONTENT, 'got remote content')
       return defaultFetch(null, {
         cacheManager: CACHE,
-        retry: { retries: 0 }
+        retry: { retries: 0 },
       })
     }).then(res => {
       t.equal(res.status, 200, 'non-stale cached res has 200 status')
@@ -480,7 +480,7 @@ test('integration tests', (t) => {
     tnock(t, HOST).get('/test').reply(200, CONTENT, HEADERS)
     const defaultFetch = fetch.defaults(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: { retries: 0 }
+      retry: { retries: 0 },
     })
     return defaultFetch().then(res => res.buffer()).then(body => {
       t.deepEqual(body, CONTENT, 'got remote content')
@@ -498,12 +498,12 @@ test('integration tests', (t) => {
     srv.get('/test').reply(200, CONTENT, HEADERS)
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: { retries: 0 }
+      retry: { retries: 0 },
     }).then(res => {
       srv.get('/test').reply(200, 'newcontent', HEADERS)
       return fetch(`${HOST}/test`, {
         cacheManager: CACHE,
-        retry: { retries: 0 }
+        retry: { retries: 0 },
       })
     }).then(res => {
       t.equal(res.status, 200, 'non-stale cached res has 200 status')
@@ -517,7 +517,7 @@ test('integration tests', (t) => {
     tnock(t, HOST).get('/test').twice().reply(200, CONTENT, HEADERS)
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: { retries: 0 }
+      retry: { retries: 0 },
     }).then(res => {
       t.notOk(
         res.headers.get('x-local-cache'),
@@ -527,12 +527,12 @@ test('integration tests', (t) => {
     }).then(body => {
       t.deepEqual(body, CONTENT, 'got remote content')
       return fetch.delete(`${HOST}/test`, {
-        cacheManager: CACHE
+        cacheManager: CACHE,
       })
     }).then(() => {
       return fetch(`${HOST}/test`, {
         cacheManager: CACHE,
-        retry: { retries: 0 }
+        retry: { retries: 0 },
       })
     }).then(res => {
       t.equal(res.status, 200, 'request succeeded')
@@ -549,20 +549,24 @@ test('integration tests', (t) => {
   t.test('cache delete when memoized', t => {
     t.test('memoize object with reset()', t => {
       let resetCalled = false
-      const memoize = { reset () { resetCalled = true } }
+      const memoize = { reset () {
+        resetCalled = true
+      } }
       const p = fetch.delete(`${HOST}/test`, {
         cacheManager: CACHE,
-        memoize
+        memoize,
       })
       t.equal(resetCalled, true, 'called memoize.reset()')
       return p
     })
     t.test('memoize object with clear()', t => {
       let clearCalled = false
-      const memoize = { clear () { clearCalled = true } }
+      const memoize = { clear () {
+        clearCalled = true
+      } }
       const p = fetch.delete(`${HOST}/test`, {
         cacheManager: CACHE,
-        memoize
+        memoize,
       })
       t.equal(clearCalled, true, 'called memoize.clear()')
       return p
@@ -571,7 +575,7 @@ test('integration tests', (t) => {
       const memoize = { a: 'a', b: 'b', c: 'c' }
       const p = fetch.delete(`${HOST}/test`, {
         cacheManager: CACHE,
-        memoize
+        memoize,
       })
       t.strictSame(memoize, { a: null, b: null, c: null }, 'nulled memoize obj')
       return p
@@ -582,16 +586,16 @@ test('integration tests', (t) => {
   t.test('small responses cached', t => {
     tnock(t, HOST).get('/test').reply(200, CONTENT, {
       'Content-Length': CONTENT.length,
-      'cache-control': HEADERS['cache-control']
+      'cache-control': HEADERS['cache-control'],
     })
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: { retries: 0 }
+      retry: { retries: 0 },
     }).then(res => res.buffer()).then(body => {
       t.deepEqual(body, CONTENT, 'got remote content')
       return fetch(`${HOST}/test`, {
         cacheManager: CACHE,
-        retry: { retries: 0 }
+        retry: { retries: 0 },
       })
     }).then(res => {
       t.equal(res.status, 200, 'non-stale cached res has 200 status')
@@ -605,7 +609,7 @@ test('integration tests', (t) => {
     tnock(t, HOST).get('/test').reply(200, CONTENT, HEADERS)
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: { retries: 0 }
+      retry: { retries: 0 },
     }).then(res => {
       return res.body.concat().then(data => {
         t.deepEqual(
@@ -616,7 +620,7 @@ test('integration tests', (t) => {
       })
     }).then(() => {
       return fetch(`${HOST}/test`, {
-        cacheManager: CACHE
+        cacheManager: CACHE,
       })
     }).then(res => {
       return res.body.concat().then(data => {
@@ -633,19 +637,19 @@ test('integration tests', (t) => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(201, CONTENT, {
       Foo: 'first',
-      'cache-control': HEADERS['cache-control']
+      'cache-control': HEADERS['cache-control'],
     })
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: { retries: 0 }
+      retry: { retries: 0 },
     }).then(res => res.buffer()).then(body => {
       t.deepEqual(body, CONTENT, 'got remote content')
       srv.get('/test').reply(200, CONTENT, {
         Foo: 'second',
-        'cache-control': HEADERS['cache-control']
+        'cache-control': HEADERS['cache-control'],
       })
       return fetch(`${HOST}/test`, {
-        cacheManager: CACHE
+        cacheManager: CACHE,
       })
     }).then(res => {
       t.equal(res.headers.get('foo'), 'second', 'got second request')
@@ -661,20 +665,20 @@ test('integration tests', (t) => {
     srv.get('/test').reply(200, CONTENT, {
       'Cache-Control': 'max-age = 0',
       ETag: 'thisisanetag',
-      Date: new Date(new Date() - 100000).toUTCString()
+      Date: new Date(new Date() - 100000).toUTCString(),
     })
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: { retries: 0 }
+      retry: { retries: 0 },
     }).then(res => {
       return res.buffer()
     }).then(body => {
       t.deepEqual(body, CONTENT, 'got remote content')
       srv.get('/test').reply(304, '', {
-        etag: 'W/thisisanetag'
+        etag: 'W/thisisanetag',
       })
       return fetch(`${HOST}/test`, {
-        cacheManager: CACHE
+        cacheManager: CACHE,
       })
     }).then(res => {
       t.equal(res.status, 304, 'stale cached req returns 304')
@@ -689,11 +693,11 @@ test('integration tests', (t) => {
     srv.get('/test').reply(200, CONTENT, {
       'Cache-Control': 'max-age = 0',
       ETag: 'thisisanetag',
-      Date: new Date(new Date() - 100000).toUTCString()
+      Date: new Date(new Date() - 100000).toUTCString(),
     })
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: { retries: 0 }
+      retry: { retries: 0 },
     }).then(res => {
       return res.buffer()
     }).then(body => {
@@ -701,10 +705,10 @@ test('integration tests', (t) => {
       srv.get('/test').reply(200, 'meh', {
         'Cache-Control': 'max-age=300',
         ETag: 'thisisanetag',
-        Date: new Date().toUTCString()
+        Date: new Date().toUTCString(),
       })
       return fetch(`${HOST}/test`, {
-        cacheManager: CACHE
+        cacheManager: CACHE,
       })
     }).then(res => {
       t.equal(res.status, 200, 'refreshed cache req returns 200')
@@ -712,7 +716,7 @@ test('integration tests', (t) => {
     }).then(body => {
       t.deepEqual(body, Buffer.from('meh'), 'got new content')
       return fetch(`${HOST}/test`, {
-        cacheManager: CACHE
+        cacheManager: CACHE,
       })
     }).then(res => {
       t.equal(res.status, 200, 'non-stale cached res has 200 status')
@@ -727,11 +731,11 @@ test('integration tests', (t) => {
     srv.get('/test').reply(200, CONTENT, {
       'Cache-Control': 'must-revalidate',
       ETag: 'thisisanetag',
-      Date: new Date().toUTCString()
+      Date: new Date().toUTCString(),
     })
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: { retries: 0 }
+      retry: { retries: 0 },
     }).then(res => {
       return res.buffer()
     }).then(body => {
@@ -740,7 +744,7 @@ test('integration tests', (t) => {
         t.equal(this.req.headers['if-none-match'][0], 'thisisanetag', 'got etag')
       })
       return fetch(`${HOST}/test`, {
-        cacheManager: CACHE
+        cacheManager: CACHE,
       })
     }).then(res => {
       t.equal(res.status, 304, 'revalidated cached req returns 304')
@@ -755,11 +759,11 @@ test('integration tests', (t) => {
     srv.get('/test').reply(200, CONTENT, {
       'Cache-Control': 'max-age=0',
       ETag: 'thisisanetag',
-      Date: new Date().toUTCString()
+      Date: new Date().toUTCString(),
     })
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: { retries: 0 }
+      retry: { retries: 0 },
     }).then(res => {
       return res.buffer()
     }).then(body => {
@@ -769,14 +773,14 @@ test('integration tests', (t) => {
       })
       return fetch(`${HOST}/test`, {
         cacheManager: CACHE,
-        retry: { retries: 0 }
+        retry: { retries: 0 },
       })
     }).then(res => {
       t.equal(res.status, 200, 'fell back to cached version on error')
       t.match(res.headers.get('Warning'), /111 local\.registry\.npm/, 'added warning')
       return fetch(`${HOST}/test`, {
         cacheManager: CACHE,
-        retry: { retries: 0 }
+        retry: { retries: 0 },
       })
     }).then(res => {
       return res.buffer()
@@ -790,11 +794,11 @@ test('integration tests', (t) => {
     srv.get('/test').reply(200, CONTENT, {
       'Cache-Control': 'must-revalidate',
       ETag: 'thisisanetag',
-      Date: new Date().toUTCString()
+      Date: new Date().toUTCString(),
     })
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: { retries: 0 }
+      retry: { retries: 0 },
     }).then(res => {
       return res.buffer()
     }).then(body => {
@@ -804,13 +808,13 @@ test('integration tests', (t) => {
       })
       return fetch(`${HOST}/test`, {
         cacheManager: CACHE,
-        retry: { retries: 0 }
+        retry: { retries: 0 },
       })
     }).then(res => {
       t.equal(res.status, 500, '500-range error returned as-is')
       return t.rejects(fetch(`${HOST}/test`, {
         cacheManager: CACHE,
-        retry: { retries: 0 }
+        retry: { retries: 0 },
       }), { type: 'system' }, 'programmatic error returned as-is')
     })
   })
@@ -821,18 +825,18 @@ test('integration tests', (t) => {
       Expires: new Date(new Date() - 10000000).toUTCString(),
       'Last-Modified': new Date(new Date() - 10000000).toUTCString(),
       Date: new Date().toUTCString(),
-      'Cache-Control': 'immutable'
+      'Cache-Control': 'immutable',
     })
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: { retries: 0 }
+      retry: { retries: 0 },
     }).then(res => {
       return res.buffer()
     }).then(body => {
       t.deepEqual(body, CONTENT, 'got remote content')
       return fetch(`${HOST}/test`, {
         cacheManager: CACHE,
-        retry: { retries: 0 }
+        retry: { retries: 0 },
       })
     }).then(res => {
       t.equal(res.status, 200, 'used entry from cache even though expired')
@@ -849,11 +853,11 @@ test('integration tests', (t) => {
       Date: new Date().toUTCString(),
       ETag: 'deadbeef',
       'Cache-Control': 'no-cache',
-      'Last-Modified': new Date(new Date() - 10000000).toUTCString()
+      'Last-Modified': new Date(new Date() - 10000000).toUTCString(),
     })
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: { retries: 0 }
+      retry: { retries: 0 },
     }).then(res => {
       return res.buffer()
     }).then(body => {
@@ -864,7 +868,7 @@ test('integration tests', (t) => {
       })
       return fetch(`${HOST}/test`, {
         cacheManager: CACHE,
-        retry: { retries: 0 }
+        retry: { retries: 0 },
       })
     }).then(res => {
       t.equal(res.status, 304, 'revalidated cached req returns 304')
@@ -881,11 +885,11 @@ test('integration tests', (t) => {
       Date: new Date().toUTCString(),
       ETag: 'deadbeef',
       Pragma: 'no-cache',
-      'Last-Modified': new Date(new Date() - 10000000).toUTCString()
+      'Last-Modified': new Date(new Date() - 10000000).toUTCString(),
     })
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: { retries: 0 }
+      retry: { retries: 0 },
     }).then(res => {
       return res.buffer()
     }).then(body => {
@@ -896,7 +900,7 @@ test('integration tests', (t) => {
       })
       return fetch(`${HOST}/test`, {
         cacheManager: CACHE,
-        retry: { retries: 0 }
+        retry: { retries: 0 },
       })
     }).then(res => {
       t.equal(res.status, 304, 'revalidated cached req returns 304')
@@ -912,11 +916,11 @@ test('integration tests', (t) => {
       Expires: new Date(new Date() - 1000).toUTCString(),
       Date: new Date().toUTCString(),
       ETag: 'deadbeef',
-      'Last-Modified': new Date(new Date() - 10000000).toUTCString()
+      'Last-Modified': new Date(new Date() - 10000000).toUTCString(),
     })
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: { retries: 0 }
+      retry: { retries: 0 },
     }).then(res => {
       return res.buffer()
     }).then(body => {
@@ -927,7 +931,7 @@ test('integration tests', (t) => {
       })
       return fetch(`${HOST}/test`, {
         cacheManager: CACHE,
-        retry: { retries: 0 }
+        retry: { retries: 0 },
       })
     }).then(res => {
       t.equal(res.status, 304, 'revalidated cached req returns 304')
@@ -942,11 +946,11 @@ test('integration tests', (t) => {
     srv.get('/test').reply(200, CONTENT, {
       Date: new Date(new Date() - 700000).toUTCString(),
       Foo: 'some-value',
-      'Cache-Control': 'must-revalidate'
+      'Cache-Control': 'must-revalidate',
     })
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: { retries: 0 }
+      retry: { retries: 0 },
     }).then(res => {
       t.equal(res.headers.get('Foo'), 'some-value', 'got original Foo header')
       return res.buffer()
@@ -955,12 +959,12 @@ test('integration tests', (t) => {
       srv.head('/test').reply(304, '', {
         Date: new Date().toUTCString(),
         Foo: 'some-other-value',
-        'Cache-Control': 'immutable'
+        'Cache-Control': 'immutable',
       })
       return fetch(`${HOST}/test`, {
         method: 'HEAD',
         cacheManager: CACHE,
-        retry: { retries: 0 }
+        retry: { retries: 0 },
       })
     }).then(res => {
       t.equal(res.status, 304, 'revalidated cached req returns 304')
@@ -971,7 +975,7 @@ test('integration tests', (t) => {
       t.deepEqual(body, Buffer.from(''), 'HEAD request has empty body')
       return fetch(`${HOST}/test`, {
         cacheManager: CACHE,
-        retry: { retries: 0 }
+        retry: { retries: 0 },
       })
     }).then(res => {
       t.equal(res.status, 200, 'local cache not stale after update')
@@ -988,17 +992,17 @@ test('integration tests', (t) => {
     srv.get('/heuristic').reply(200, CONTENT, {
       age: 3600 * 72,
       'last-modified': 'Tue, 15 Nov 1994 12:45:26 GMT',
-      date: 'Tue, 15 Nov 1994 12:45:26 GMT'
+      date: 'Tue, 15 Nov 1994 12:45:26 GMT',
     })
     return fetch(`${HOST}/heuristic`, {
       cacheManager: CACHE,
-      retry: { retries: 0 }
+      retry: { retries: 0 },
     }).then(res => res.buffer().then(body => {
       t.equal(res.headers.get('warning'), null, 'no warnings')
       t.deepEqual(body, CONTENT, 'got remote content')
       return fetch(`${HOST}/heuristic`, {
         cacheManager: CACHE,
-        retry: { retries: 0 }
+        retry: { retries: 0 },
       })
     })).then(res => {
       t.equal(res.status, 200, 'got 200 response')
@@ -1012,21 +1016,21 @@ test('integration tests', (t) => {
     srv.get('/test').reply(200, CONTENT, {
       Age: '3000',
       Date: new Date(new Date() - 800000).toUTCString(),
-      'Last-Modified': new Date(new Date() - 800000).toUTCString()
+      'Last-Modified': new Date(new Date() - 800000).toUTCString(),
     })
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: { retries: 0 }
+      retry: { retries: 0 },
     }).then(res => {
       return res.buffer()
     }).then(body => {
       t.deepEqual(body, CONTENT, 'got remote content')
       srv.get('/test').reply(304, 'why a body', {
-        Age: '3000'
+        Age: '3000',
       })
       return fetch(`${HOST}/test`, {
         cacheManager: CACHE,
-        retry: { retries: 0 }
+        retry: { retries: 0 },
       })
     }).then(res => {
       t.equal(res.status, 304, 'revalidated cached req returns 304')
@@ -1040,7 +1044,7 @@ test('integration tests', (t) => {
       t.deepEqual(body, CONTENT, 'got original cached content')
       return fetch(`${HOST}/test`, {
         cacheManager: CACHE,
-        retry: { retries: 0 }
+        retry: { retries: 0 },
       })
     }).then(res => {
       t.equal(res.status, 200, 'local cache not stale after update')
@@ -1059,15 +1063,15 @@ test('integration tests', (t) => {
   t.test('original Warning header 1xx removed on cache hit', t => {
     tnock(t, HOST).get('/test').reply(200, CONTENT, {
       Warning: '199 localhost welp',
-      'Cache-Control': 'max-age=10000000'
+      'Cache-Control': 'max-age=10000000',
     })
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: { retries: 0 }
+      retry: { retries: 0 },
     }).then(res => res.buffer()).then(body => {
       t.deepEqual(body, CONTENT, 'got remote content')
       return fetch(`${HOST}/test`, {
-        cacheManager: CACHE
+        cacheManager: CACHE,
       })
     }).then(res => {
       t.equal(res.status, 200, 'non-stale cached res has 200 status')
@@ -1081,15 +1085,15 @@ test('integration tests', (t) => {
   t.test('Warning header 2xx retained on cache hit', t => {
     tnock(t, HOST).get('/test').reply(200, CONTENT, {
       'cache-control': 'max-age=300',
-      Warning: '200 localhost welp'
+      Warning: '200 localhost welp',
     })
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: { retries: 0 }
+      retry: { retries: 0 },
     }).then(res => res.buffer()).then(body => {
       t.deepEqual(body, CONTENT, 'got remote content')
       return fetch(`${HOST}/test`, {
-        cacheManager: CACHE
+        cacheManager: CACHE,
       })
     }).then(res => {
       t.equal(res.status, 200, 'non-stale cached res has 200 status')
@@ -1107,11 +1111,11 @@ test('integration tests', (t) => {
     srv.get('/test').reply(200, CONTENT, {
       'Cache-Control': 'immutable',
       Foo: 'old',
-      Date: new Date().toUTCString()
+      Date: new Date().toUTCString(),
     })
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: { retries: 0 }
+      retry: { retries: 0 },
     }).then(res => {
       t.equal(res.headers.get('Foo'), 'old', 'got old Foo header')
       return res.buffer()
@@ -1121,7 +1125,7 @@ test('integration tests', (t) => {
       return fetch(`${HOST}/test`, {
         method: 'post',
         cacheManager: CACHE,
-        retry: { retries: 0 }
+        retry: { retries: 0 },
       })
     }).then(res => {
       t.equal(res.status, 201, 'status code from POST')
@@ -1130,11 +1134,11 @@ test('integration tests', (t) => {
       srv.get('/test').reply(200, 'another', {
         'Cache-Control': 'immutable',
         Foo: 'another',
-        Date: new Date().toUTCString()
+        Date: new Date().toUTCString(),
       })
       return fetch(`${HOST}/test`, {
         cacheManager: CACHE,
-        retry: { retries: 0 }
+        retry: { retries: 0 },
       })
     }).then(res => {
       t.equal(res.status, 200, 'got a proper 200 code')
@@ -1146,7 +1150,7 @@ test('integration tests', (t) => {
       return fetch(`${HOST}/test`, {
         method: 'put',
         cacheManager: CACHE,
-        retry: { retries: 0 }
+        retry: { retries: 0 },
       })
     }).then(res => {
       t.equal(res.status, 201, 'status code from POST')
@@ -1155,11 +1159,11 @@ test('integration tests', (t) => {
       srv.get('/test').reply(200, 'new', {
         'Cache-Control': 'immutable',
         Foo: 'new',
-        Date: new Date().toUTCString()
+        Date: new Date().toUTCString(),
       })
       return fetch(`${HOST}/test`, {
         cacheManager: CACHE,
-        retry: { retries: 0 }
+        retry: { retries: 0 },
       })
     }).then(res => {
       t.equal(res.status, 200, 'got a proper 200 code')
@@ -1173,11 +1177,11 @@ test('integration tests', (t) => {
     srv.get('/test').reply(200, CONTENT, {
       'Cache-Control': 'must-revalidate',
       ETag: 'thisisanetag',
-      Date: new Date().toUTCString()
+      Date: new Date().toUTCString(),
     })
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: { retries: 0 }
+      retry: { retries: 0 },
     }).then(res => {
       return res.buffer()
     }).then(body => {
@@ -1185,17 +1189,17 @@ test('integration tests', (t) => {
       srv.get('/test').reply(500)
       return fetch(`${HOST}/test`, {
         cacheManager: CACHE,
-        retry: { retries: 0 }
+        retry: { retries: 0 },
       })
     }).then(res => {
       t.equal(res.status, 500, 'got a 500 because must-revalidate')
       srv.get('/test').reply(200, CONTENT, {
         'Cache-Control': 'must-revalidate',
         ETag: 'thisisanetag',
-        Date: new Date().toUTCString()
+        Date: new Date().toUTCString(),
       })
       return fetch(`${HOST}/test`, {
-        cacheManager: CACHE
+        cacheManager: CACHE,
       })
     }).then(res => {
       t.equal(res.status, 200, 'original was invalidated -- fresh round-trip')
@@ -1205,17 +1209,17 @@ test('integration tests', (t) => {
       return fetch(`${HOST}/test`, {
         method: 'put',
         cacheManager: CACHE,
-        retry: { retries: 0 }
+        retry: { retries: 0 },
       })
     }).then(res => {
       t.equal(res.status, 500, 'got a 500 because must-revalidate on PUT')
       srv.get('/test').reply(200, CONTENT, {
         'Cache-Control': 'must-revalidate',
         ETag: 'thisisanetag',
-        Date: new Date().toUTCString()
+        Date: new Date().toUTCString(),
       })
       return fetch(`${HOST}/test`, {
-        cacheManager: CACHE
+        cacheManager: CACHE,
       })
     }).then(res => {
       t.equal(res.status, 200, 'original was invalidated -- fresh round-trip')
@@ -1228,7 +1232,7 @@ test('integration tests', (t) => {
         onRetry,
         method: 'put',
         cacheManager: CACHE,
-        retry: { retries: 0 }
+        retry: { retries: 0 },
       }).then(res => {
         t.equal(res.status, 500, 'got a 500 because must-revalidate on PUT')
         t.equal(calledOnRetry, 1, 'if onRetry function provided, will be called')
@@ -1240,13 +1244,13 @@ test('integration tests', (t) => {
     tnock(t, HOST).get('/test').reply(200, CONTENT)
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: { retries: 0 }
+      retry: { retries: 0 },
     }).then(res => res.buffer()).then(body => {
       t.deepEqual(body, CONTENT, 'got remote content')
       return fetch(`${HOST}/test`, {
         method: 'head',
         cacheManager: CACHE,
-        retry: { retries: 0 }
+        retry: { retries: 0 },
       })
     }).then(res => {
       t.equal(res.status, 200, 'HEAD hit cached path!')
@@ -1260,11 +1264,11 @@ test('integration tests', (t) => {
     tnock(t, HOST).get('/test').reply(200, CONTENT)
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: { retries: 0 }
+      retry: { retries: 0 },
     }).then(res => res.buffer()).then(body => {
       t.deepEqual(body, CONTENT, 'got remote content')
       return fetch(`${HOST}/test`, {
-        cacheManager: CACHE
+        cacheManager: CACHE,
       })
     }).then(res => {
       t.equal(res.status, 200, 'Got a 200 response!')
@@ -1275,21 +1279,21 @@ test('integration tests', (t) => {
   t.test('checks for staleness using Cache-Control: max-age', t => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, CONTENT, {
-      'Cache-Control': 'max-age=0'
+      'Cache-Control': 'max-age=0',
     })
     return fetch(`${HOST}/test`, {
-      cacheManager: CACHE
+      cacheManager: CACHE,
     }).then(res => res.buffer()).then(() => {
       srv.get('/test').reply(304, 'feh', {
-        'Cache-Control': 'max-age=1'
+        'Cache-Control': 'max-age=1',
       })
       return fetch(`${HOST}/test`, {
-        cacheManager: CACHE
+        cacheManager: CACHE,
       })
     }).then(res => {
       t.equal(res.status, 304, 'request revalidated')
       return fetch(`${HOST}/test`, {
-        cacheManager: CACHE
+        cacheManager: CACHE,
       })
     }).then(res => {
       t.equal(res.status, 200, 'request no longer stale')
@@ -1299,15 +1303,15 @@ test('integration tests', (t) => {
   t.test('does not store response if it has Cache-Control: no-store header', t => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, CONTENT, {
-      'Cache-Control': 'no-store'
+      'Cache-Control': 'no-store',
     })
     return fetch(`${HOST}/test`, {
-      cacheManager: CACHE
+      cacheManager: CACHE,
     }).then(res => res.buffer()).then(buf => {
       t.deepEqual(buf, CONTENT, 'got content from original req')
       srv.get('/test').reply(200, 'feh')
       return fetch(`${HOST}/test`, {
-        cacheManager: CACHE
+        cacheManager: CACHE,
       })
     }).then(res => {
       t.equal(res.status, 200, 'request made again -- no cache used')
@@ -1322,20 +1326,20 @@ test('integration tests', (t) => {
     srv.get('/test').reply(200, CONTENT, {
       Vary: 'Accept',
       'Cache-Control': 'immutable',
-      'Content-Type': 'fullfat'
+      'Content-Type': 'fullfat',
     })
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
       headers: {
-        accept: 'fullfat'
-      }
+        accept: 'fullfat',
+      },
     }).then(res => res.buffer()).then(body => {
       t.deepEqual(body, CONTENT, 'got remote content')
       return fetch(`${HOST}/test`, {
         cacheManager: CACHE,
         headers: {
-          Accept: 'fullfat'
-        }
+          Accept: 'fullfat',
+        },
       })
     }).then(res => {
       t.equal(res.status, 200, 'cached response used!')
@@ -1348,13 +1352,13 @@ test('integration tests', (t) => {
       srv.get('/test').reply(200, CONTENT, {
         'Cache-Control': 'cache-max=0',
         'Content-Type': 'corgi',
-        Vary: '*'
+        Vary: '*',
       })
       return fetch(`${HOST}/test`, {
         cacheManager: CACHE,
         headers: {
-          Accept: 'corgi'
-        }
+          Accept: 'corgi',
+        },
       })
     }).then(res => {
       t.equal(res.status, 200, 'got 200 OK')
@@ -1363,13 +1367,13 @@ test('integration tests', (t) => {
     }).then(() => {
       srv.get('/test').reply(200, CONTENT, {
         'Cache-Control': 'cache-max=0',
-        'Content-Type': 'whatever'
+        'Content-Type': 'whatever',
       })
       return fetch(`${HOST}/test`, {
         cacheManager: CACHE,
         headers: {
-          Accept: 'corgi'
-        }
+          Accept: 'corgi',
+        },
       })
     }).then(res => {
       t.equal(
@@ -1388,16 +1392,16 @@ test('integration tests', (t) => {
     srv.get('/test').reply(200, 'foo')
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: { retries: 0 }
+      retry: { retries: 0 },
     }).then(res => res.buffer()).then(() => {
       t.comment('cache warmed up')
       srv.get('/test').reply(200, CONTENT, {
-        Foo: 'second req'
+        Foo: 'second req',
       })
       return fetch(`${HOST}/test`, {
         cacheManager: CACHE,
         cache: 'no-store',
-        retry: { retries: 0 }
+        retry: { retries: 0 },
       })
     }).then(res => {
       t.equal(res.status, 200, 'got 200 status')
@@ -1407,7 +1411,7 @@ test('integration tests', (t) => {
       t.deepEqual(body, CONTENT, 'got second request content')
       return fetch(`${HOST}/test`, {
         cacheManager: CACHE,
-        retry: { retries: 0 }
+        retry: { retries: 0 },
       })
     }).then(res => res.buffer()).then(buf => {
       t.deepEqual(
@@ -1421,18 +1425,18 @@ test('integration tests', (t) => {
     srv.get('/test').reply(200, 'foo')
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: { retries: 0 }
+      retry: { retries: 0 },
     }).then(res => res.buffer()).then(() => {
       t.comment('cache warmed up')
       srv.get('/test').reply(200, CONTENT, {
-        Foo: 'second req'
+        Foo: 'second req',
       })
       return fetch(`${HOST}/test`, {
         cacheManager: CACHE,
         retry: { retries: 0 },
         headers: {
-          'if-none-match': 'foo'
-        }
+          'if-none-match': 'foo',
+        },
       })
     }).then(res => {
       t.equal(res.status, 200, 'got 200 status')
@@ -1446,7 +1450,7 @@ test('integration tests', (t) => {
       t.deepEqual(body, CONTENT, 'got second request content')
       return fetch(`${HOST}/test`, {
         cacheManager: CACHE,
-        retry: { retries: 0 }
+        retry: { retries: 0 },
       })
     }).then(res => res.buffer()).then(buf => {
       t.deepEqual(
@@ -1459,11 +1463,11 @@ test('integration tests', (t) => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, 'foo', {
       'Cache-Control': 'cache-max=0',
-      ETag: 'foobarbaz'
+      ETag: 'foobarbaz',
     })
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: { retries: 0 }
+      retry: { retries: 0 },
     }).then(res => res.buffer()).then(() => {
       t.comment('cache warmed up')
       srv.get('/test').reply(function () {
@@ -1471,13 +1475,13 @@ test('integration tests', (t) => {
         return [
           200,
           CONTENT,
-          { Foo: 'second req' }
+          { Foo: 'second req' },
         ]
       })
       return fetch(`${HOST}/test`, {
         cacheManager: CACHE,
         cache: 'reload',
-        retry: { retries: 0 }
+        retry: { retries: 0 },
       })
     }).then(res => {
       t.equal(res.status, 200, 'got 200 status')
@@ -1487,7 +1491,7 @@ test('integration tests', (t) => {
       t.deepEqual(body, CONTENT, 'got second request content')
       return fetch(`${HOST}/test`, {
         cacheManager: CACHE,
-        retry: { retries: 0 }
+        retry: { retries: 0 },
       })
     }).then(res => res.buffer()).then(buf => {
       t.deepEqual(buf, CONTENT, 'reload request refreshed cache')
@@ -1498,11 +1502,11 @@ test('integration tests', (t) => {
     const srv = tnock(t, HOST)
     srv.get('/test').reply(200, 'foo', {
       'Cache-Control': 'cache-max=0',
-      ETag: 'foobarbaz'
+      ETag: 'foobarbaz',
     })
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: { retries: 0 }
+      retry: { retries: 0 },
     }).then(res => res.buffer()).then(() => {
       t.comment('cache warmed up')
       srv.get('/test').reply(function () {
@@ -1510,13 +1514,13 @@ test('integration tests', (t) => {
         return [
           200,
           CONTENT,
-          { Foo: 'second req' }
+          { Foo: 'second req' },
         ]
       })
       return fetch(`${HOST}/test`, {
         cacheManager: CACHE,
         cache: 'no-cache',
-        retry: { retries: 0 }
+        retry: { retries: 0 },
       })
     }).then(res => {
       t.equal(res.status, 200, 'got 200 status')
@@ -1526,7 +1530,7 @@ test('integration tests', (t) => {
       t.deepEqual(body, CONTENT, 'got second request content')
       return fetch(`${HOST}/test`, {
         cacheManager: CACHE,
-        retry: { retries: 0 }
+        retry: { retries: 0 },
       })
     }).then(res => res.buffer()).then(buf => {
       t.deepEqual(buf, CONTENT, 'reload request refreshed cache')
@@ -1538,18 +1542,18 @@ test('integration tests', (t) => {
     srv.get('/test').reply(200, CONTENT, {
       'Cache-Control': 'max-age=0',
       Date: new Date().toUTCString(),
-      'Last-Modified': new Date(new Date() - 1000000).toUTCString()
+      'Last-Modified': new Date(new Date() - 1000000).toUTCString(),
     })
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
       cache: 'force-cache',
-      retry: { retries: 0 }
+      retry: { retries: 0 },
     }).then(res => res.buffer()).then(() => {
       t.comment('cache warmed up')
       return fetch(`${HOST}/test`, {
         cacheManager: CACHE,
         cache: 'force-cache',
-        retry: { retries: 0 }
+        retry: { retries: 0 },
       })
     }).then(res => {
       t.equal(res.status, 200, 'got 200 status')
@@ -1564,17 +1568,17 @@ test('integration tests', (t) => {
     srv.get('/test').reply(200, CONTENT, {
       'Cache-Control': 'max-age=0',
       Date: new Date().toUTCString(),
-      'Last-Modified': new Date(new Date() - 1000000).toUTCString()
+      'Last-Modified': new Date(new Date() - 1000000).toUTCString(),
     })
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
-      retry: { retries: 0 }
+      retry: { retries: 0 },
     }).then(res => res.buffer()).then(() => {
       t.comment('cache warmed up')
       return fetch(`${HOST}/test`, {
         cacheManager: CACHE,
         cache: 'only-if-cached',
-        retry: { retries: 0 }
+        retry: { retries: 0 },
       })
     }).then(res => {
       t.equal(res.status, 200, 'got 200 status')
@@ -1584,7 +1588,7 @@ test('integration tests', (t) => {
       return fetch(`${HOST}/other`, {
         cacheManager: CACHE,
         cache: 'only-if-cached',
-        retry: { retries: 0 }
+        retry: { retries: 0 },
       }).then(() => {
         throw new Error('not supposed to succeed!')
       }).catch(err => {
