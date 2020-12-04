@@ -12,6 +12,20 @@ const MinipassPipeline = require('minipass-pipeline')
 
 const MAX_MEM_SIZE = 5 * 1024 * 1024 // 5MB
 
+// some headers should never be stored in the cache, either because
+// they're a security footgun to leave lying around, or because we
+// just don't need them taking up space.
+// set to undefined so they're omitted from the JSON.stringify
+const pruneHeaders = {
+  authorization: undefined,
+  'npm-session': undefined,
+  'set-cookie': undefined,
+  'cf-ray': undefined,
+  'cf-cache-status': undefined,
+  'cf-request-id': undefined,
+  'x-fetch-attempts': undefined
+}
+
 function cacheKey (req) {
   const parsed = new url.URL(req.url)
   return `make-fetch-happen:request-cache:${
@@ -33,6 +47,11 @@ module.exports = class Cache {
   constructor (path, opts) {
     this._path = path
     this.Promise = (opts && opts.Promise) || Promise
+  }
+
+  static get pruneHeaders () {
+    // exposed for testing, not modifiable
+    return { ...pruneHeaders }
   }
 
   // Returns a Promise that resolves to the response associated with the first
@@ -109,8 +128,14 @@ module.exports = class Cache {
       algorithms: opts.algorithms,
       metadata: {
         url: req.url,
-        reqHeaders: req.headers.raw(),
-        resHeaders: response.headers.raw()
+        reqHeaders: {
+          ...req.headers.raw(),
+          ...pruneHeaders
+        },
+        resHeaders: {
+          ...response.headers.raw(),
+          ...pruneHeaders
+        }
       },
       size,
       memoize: fitInMemory && opts.memoize

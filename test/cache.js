@@ -121,8 +121,14 @@ test('put method', (t) => {
         algorithms: undefined,
         metadata: {
           url: `${HOST}/put-test`,
-          reqHeaders: req.headers.raw(),
-          resHeaders: initialResponse.headers.raw()
+          reqHeaders: {
+            ...req.headers.raw(),
+            ...Cache.pruneHeaders
+          },
+          resHeaders: {
+            ...initialResponse.headers.raw(),
+            ...Cache.pruneHeaders
+          }
         },
         size: CONTENT.length,
         memoize: undefined
@@ -160,8 +166,14 @@ test('put method', (t) => {
         algorithms: undefined,
         metadata: {
           url: `${HOST}/put-test`,
-          reqHeaders: req.headers.raw(),
-          resHeaders: initialResponse.headers.raw()
+          reqHeaders: {
+            ...req.headers.raw(),
+            ...Cache.pruneHeaders
+          },
+          resHeaders: {
+            ...initialResponse.headers.raw(),
+            ...Cache.pruneHeaders
+          }
         },
         size: null,
         memoize: false
