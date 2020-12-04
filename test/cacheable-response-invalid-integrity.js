@@ -37,11 +37,11 @@ t.test('cacheable request with invalid integrity', t => {
     cacheManager: cache,
     integrity,
     body: null,
-    method: 'GET'
+    method: 'GET',
   }).then((res) => {
     t.pass('got response, drain to check integrity and cache', res.headers)
     return res.json()
   }), {
-    code: 'EINTEGRITY'
+    code: 'EINTEGRITY',
   }) // TODO: add a .then() to verify cache was cleaned up
 })

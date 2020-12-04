@@ -18,13 +18,13 @@ const HOST = 'https://registry.npmjs.org'
 const URL = `${HOST}/cacache`
 const BODY = {
   name: 'cacache',
-  version: '1.2.3'
+  version: '1.2.3',
 }
 const GZBody = zlib.gzipSync(Buffer.from(JSON.stringify(BODY)))
 
 nock(HOST).get('/cacache').times(Infinity).delay(20).reply(200, GZBody, {
   'content-encoding': 'gzip',
-  'cache-control': 'immutable'
+  'cache-control': 'immutable',
 })
 
 function benchRequest () {
@@ -39,13 +39,12 @@ function _reqLoop (n) {
     request({
       uri: URL,
       headers: {
-        gzip: true
-      }
+        gzip: true,
+      },
     }, cb)
   }).then(() => {
-    if (n > 0) {
+    if (n > 0)
       return _reqLoop(n - 1)
-    }
   })
 }
 
@@ -58,9 +57,8 @@ function benchFetch () {
 
 function _fetchLoop (n) {
   return fetch(URL).then(res => res.json()).then(() => {
-    if (n > 0) {
+    if (n > 0)
       return _fetchLoop(n - 1)
-    }
   })
 }
 
@@ -73,9 +71,8 @@ function benchNiceFetch () {
 
 function _niceFetchLoop (n) {
   return niceFetch(URL).then(res => res.json()).then(() => {
-    if (n > 0) {
+    if (n > 0)
       return _fetchLoop(n - 1)
-    }
   })
 }
 
@@ -89,11 +86,10 @@ function benchCachedFetch () {
 function _cachedFetchLoop (n) {
   cacache.clearMemoized()
   return niceFetch(URL, {
-    cacheManager: CACHE
+    cacheManager: CACHE,
   }).then(res => res.json()).then(res => {
-    if (n > 0) {
+    if (n > 0)
       return _cachedFetchLoop(n - 1)
-    }
   })
 }
 
@@ -106,11 +102,10 @@ function benchMemoFetch () {
 
 function _memoFetchLoop (n) {
   return niceFetch(URL, {
-    cacheManager: CACHE
+    cacheManager: CACHE,
   }).then(res => res.json()).then(res => {
-    if (n > 0) {
+    if (n > 0)
       return _memoFetchLoop(n - 1)
-    }
   })
 }
 

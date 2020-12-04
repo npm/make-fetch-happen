@@ -6,7 +6,7 @@ const { test } = require('tap')
 test('configure options', (t) => {
   let mockCache = () => {}
   const configureOptions = requireInject('../utils/configure-options', {
-    '../utils/initialize-cache': mockCache
+    '../utils/initialize-cache': mockCache,
   })
 
   test('supplied with no value', (t) => {
@@ -82,14 +82,14 @@ test('configure options', (t) => {
       const innerExpectedObject = {
         method: 'GET',
         cacheManager: true,
-        retry: { retries: 0 }
+        retry: { retries: 0 },
       }
       t.deepEqual(incomingOpts, innerExpectedObject, 'should have called')
     }
     const expectedObject = {
       method: 'GET',
       cacheManager: true,
-      retry: { retries: 0 }
+      retry: { retries: 0 },
     }
     t.deepEqual(opts, expectedObject)
     t.end()

@@ -63,7 +63,7 @@ test('checks for presense of keys', (t) => {
     const headers = {
       'if-range': 'value',
       'some-key': 'value',
-      'if-match': 'value'
+      'if-match': 'value',
     }
     const result = isHeaderConditional(headers)
     t.equal(result, true, 'should return true')
