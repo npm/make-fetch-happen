@@ -989,10 +989,13 @@ test('integration tests', (t) => {
   t.test('heuristic age warning', t => {
     const srv = tnock(t, HOST)
     // just a very old thing
+    // this used to have an old server date to verify that we don't
+    // trust server dates that are too far out of date, but
+    // http-cache-semantics@4.1.0 made trustServerDate always on,
+    // regardless of how far out of whack the server Date header is.
     srv.get('/heuristic').reply(200, CONTENT, {
       age: 3600 * 72,
       'last-modified': 'Tue, 15 Nov 1994 12:45:26 GMT',
-      date: 'Tue, 15 Nov 1994 12:45:26 GMT',
     })
     return fetch(`${HOST}/heuristic`, {
       cacheManager: CACHE,

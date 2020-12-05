@@ -42,7 +42,7 @@
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-promise": "^4.2.1",
     "eslint-plugin-standard": "^5.0.0",
-    "http-cache-semantics": "^4.0.4",
+    "http-cache-semantics": "^4.1.0",
     "http-proxy-agent": "^4.0.1",
     "https-proxy-agent": "^5.0.0",
     "is-lambda": "^1.0.1",
