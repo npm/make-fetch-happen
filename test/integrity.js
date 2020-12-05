@@ -146,7 +146,7 @@ test('skip integrity check for error reponses', t => {
   const srv = tnock(t, HOST)
   srv.get('/wowforbidden').reply(403, Buffer.from('Forbidden'))
   const safetch = fetch.defaults({
-    integrity: INTEGRITY
+    integrity: INTEGRITY,
   })
   return safetch(`${HOST}/wowforbidden`).then(res => {
     t.equal(res.status, 403)

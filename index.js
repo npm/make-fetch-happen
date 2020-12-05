@@ -253,9 +253,9 @@ function conditionalFetch (req, cachedRes, opts) {
 }
 
 function remoteFetchHandleIntegrity (res, integrity) {
-  if (res.status !== 200) {
+  if (res.status !== 200)
     return res // Error responses aren't subject to integrity checks.
-  }
+
   const oldBod = res.body
   const newBod = ssri.integrityStream({
     integrity,
