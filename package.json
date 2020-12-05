@@ -64,7 +64,6 @@
     "rimraf": "^2.7.1",
     "safe-buffer": "^5.2.1",
     "standard-version": "^7.1.0",
-    "tacks": "^1.2.6",
     "tap": "^14.11.0"
   },
   "engines": {
