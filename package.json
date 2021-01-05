@@ -1,6 +1,6 @@
 {
   "name": "make-fetch-happen",
-  "version": "2.6.0",
+  "version": "2.6.1",
   "description": "Opinionated, caching, retrying fetch client",
   "main": "index.js",
   "files": [
@@ -37,7 +37,7 @@
     "cacache": "^10.0.0",
     "http-cache-semantics": "^3.8.0",
     "http-proxy-agent": "^2.0.0",
-    "https-proxy-agent": "^2.1.0",
+    "https-proxy-agent": "^2.2.0",
     "lru-cache": "^4.1.1",
     "mississippi": "^1.2.0",
     "node-fetch-npm": "^2.0.2",
