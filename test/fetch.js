@@ -952,5 +952,45 @@ test('delete cache', (t) => {
   t.end()
 })
 
+test('pass opts to fetch.Request as well as agent', t => {
+  const agent = { this_is_the_agent: true }
+  const ca = 'ca'
+  const timeout = 'timeout'
+  const cert = 'cert'
+  const key = 'key'
+  const rejectUnauthorized = 'rejectUnauthorized'
+
+  let req = null
+  const fetch = requireInject('../index.js', {
+    'minipass-fetch': Object.assign(async request => {
+      t.equal(request, req, 'got the request object')
+      t.end()
+      return {
+        headers: new Map(),
+        status: 200,
+        method: 'GET',
+      }
+    }, require('minipass-fetch'), {
+      Request: class Request {
+        constructor (uri, reqOpts) {
+          req = this
+          t.equal(uri, 'uri')
+          t.match(reqOpts, { agent, ca, timeout, cert, key, rejectUnauthorized })
+        }
+      },
+    }),
+    '../agent.js': (uri, opts) => agent,
+  })
+
+  fetch('uri', {
+    agent,
+    ca,
+    timeout,
+    cert,
+    key,
+    strictSSL: rejectUnauthorized,
+  })
+})
+
 // test('retries non-POST requests on ECONNRESET')
 // test('supports automatic agent pooling on unique configs')
