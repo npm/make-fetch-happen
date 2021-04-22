@@ -282,6 +282,70 @@ test('get proxy agent', async t => {
     __type: 'socks-proxy',
   }, 'socks proxy url, for http request')
 
+  t.strictSame(getProxy(new url.URL('http://user:pass@proxy.local:443/'), OPTS, false), {
+    host: 'proxy.local',
+    port: '443',
+    protocol: 'http:',
+    path: '/',
+    auth: 'user:pass',
+    ca: 'ca',
+    cert: 'cert',
+    key: undefined,
+    timeout: 2,
+    localAddress: 'local address',
+    maxSockets: 3,
+    rejectUnauthorized: true,
+    __type: 'http-proxy',
+  }, 'http proxy url, for http request')
+
+  t.strictSame(getProxy(new url.URL('http://user@proxy.local:443/'), OPTS, false), {
+    host: 'proxy.local',
+    port: '443',
+    protocol: 'http:',
+    path: '/',
+    auth: 'user',
+    ca: 'ca',
+    cert: 'cert',
+    key: undefined,
+    timeout: 2,
+    localAddress: 'local address',
+    maxSockets: 3,
+    rejectUnauthorized: true,
+    __type: 'http-proxy',
+  }, 'http proxy url, for http request')
+
+  t.strictSame(getProxy(new url.URL('http://user%231:pass@proxy.local:443/'), OPTS, false), {
+    host: 'proxy.local',
+    port: '443',
+    protocol: 'http:',
+    path: '/',
+    auth: 'user#1:pass',
+    ca: 'ca',
+    cert: 'cert',
+    key: undefined,
+    timeout: 2,
+    localAddress: 'local address',
+    maxSockets: 3,
+    rejectUnauthorized: true,
+    __type: 'http-proxy',
+  }, 'http proxy url, for http request')
+
+  t.strictSame(getProxy(new url.URL('http://user%231:pass%231@proxy.local:443/'), OPTS, false), {
+    host: 'proxy.local',
+    port: '443',
+    protocol: 'http:',
+    path: '/',
+    auth: 'user#1:pass#1',
+    ca: 'ca',
+    cert: 'cert',
+    key: undefined,
+    timeout: 2,
+    localAddress: 'local address',
+    maxSockets: 3,
+    rejectUnauthorized: true,
+    __type: 'http-proxy',
+  }, 'http proxy url, for http request')
+
   t.throws(() => getProxy(new url.URL('gopher://proxy.local'), OPTS, false), {
     message: 'unsupported proxy protocol: \'gopher:\'',
     url: 'gopher://proxy.local',
