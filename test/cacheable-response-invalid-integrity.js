@@ -1,47 +1,42 @@
-const port = 15443 + (+process.env.TAP_CHILD_ID || 0)
+const nock = require('nock')
+const t = require('tap')
+const util = require('util')
+const readdir = util.promisify(require('fs').readdir)
 
 const fetch = require('../')
+nock.disableNetConnect()
 
-const { resolve, basename } = require('path')
-const me = resolve(__dirname, basename(__filename, '.js'))
-const mkdirp = require('mkdirp')
-mkdirp.sync(me)
-const t = require('tap')
-const rimraf = require('rimraf')
-t.teardown(() => rimraf.sync(me))
+t.beforeEach(() => nock.cleanAll())
+t.test('cacheable request with invalid integrity', async t => {
+  // an empty directory for the cache
+  const cache = t.testdir()
+  const req = nock('http://localhost')
+    .get('/foo')
+    .reply(() => {
+      const data = Buffer.from('{"some":"data"}')
+      return [
+        200,
+        data,
+        {
+          'cache-control': 'max-age=432000',
+          'accept-ranges': 'bytes',
+          etag: '"a2177e7d2ad8d263e6c38e6fe8dd6f79"',
+          'last-modified': 'Sat, 26 May 2018 16:03:07 GMT',
+          vary: 'Accept-Encoding',
+          connection: 'close',
+          'content-length': data.length,
+          'content-type': 'application/json',
+        },
+      ]
+    })
 
-t.test('setup server', t => {
-  const http = require('http')
-  const data = Buffer.from('{"some":"data"}')
-  const server = http.createServer((req, res) => {
-    res.setHeader('cache-control', 'max-age=432000')
-    res.setHeader('accept-ranges', 'bytes')
-    res.setHeader('etag', '"a2177e7d2ad8d263e6c38e6fe8dd6f79"')
-    res.setHeader('last-modified', 'Sat, 26 May 2018 16:03:07 GMT')
-    res.setHeader('vary', 'Accept-Encoding')
-    res.setHeader('connection', 'close')
-    res.setHeader('content-length', data.length)
-    res.setHeader('content-type', 'application/json')
-    res.end(data)
+  const res = await fetch('http://localhost/foo', {
+    cachePath: cache,
+    integrity: 'sha512-012',
   })
-  server.listen(port, () => {
-    t.parent.teardown(() => server.close())
-    t.end()
-  })
-})
 
-t.test('cacheable request with invalid integrity', t => {
-  const integrity = 'sha512-012'
-  const cache = me + '/cache'
-  return t.rejects(fetch(`http://localhost:${port}/foo`, {
-    cacheManager: cache,
-    integrity,
-    body: null,
-    method: 'GET',
-  }).then((res) => {
-    t.pass('got response, drain to check integrity and cache', res.headers)
-    return res.json()
-  }), {
-    code: 'EINTEGRITY',
-  }) // TODO: add a .then() to verify cache was cleaned up
+  await t.rejects(res.json(), { code: 'EINTEGRITY' })
+  t.ok(req.isDone())
+  const dir = await readdir(cache)
+  t.same(dir, [], 'did not write to cache')
 })

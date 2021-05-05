@@ -1,19 +1,18 @@
-const { Headers, Request, Response, FetchError } = require('../')
-const fetch = require('minipass-fetch')
-const { test } = require('tap')
+const t = require('tap')
+const minipassFetch = require('minipass-fetch')
 
-test('exports the same helper classes', t => {
-  t.equal(Headers, fetch.Headers)
-  t.match(Headers, Function)
+const fetch = require('../lib/index.js')
 
-  t.equal(Request, fetch.Request)
-  t.match(Request, Function)
+t.test('exports fetch classes', async (t) => {
+  t.equal(fetch.FetchError, minipassFetch.FetchError)
+  t.type(fetch.FetchError, Function)
 
-  t.equal(Response, fetch.Response)
-  t.match(Response, Function)
+  t.equal(fetch.Headers, minipassFetch.Headers)
+  t.type(fetch.Headers, Function)
 
-  t.equal(FetchError, fetch.FetchError)
-  t.match(FetchError, Function)
+  t.equal(fetch.Request, minipassFetch.Request)
+  t.type(fetch.Request, Function)
 
-  t.end()
+  t.equal(fetch.Response, minipassFetch.Response)
+  t.type(fetch.Response, Function)
 })

@@ -10,7 +10,7 @@ const MockHttp = mockHttpAgent('http')
 
 MockHttp.HttpsAgent = mockHttpAgent('https')
 
-const agent = requireInject.installGlobally('../agent.js', {
+const agent = requireInject.installGlobally('../lib/agent.js', {
   'is-lambda': true,
   agentkeepalive: MockHttp,
   'https-proxy-agent': mockHttpAgent('https-proxy'),
@@ -33,34 +33,31 @@ const OPTS = {
   timeout: 5,
 }
 
-test('extracts process env variables', t => {
+test('extracts process env variables', async (t) => {
   process.env = { TEST_ENV: 'test', ANOTHER_ENV: 'no' }
 
-  t.deepEqual(agent.getProcessEnv('test_ENV'), 'test', 'extracts single env')
+  t.same(agent.getProcessEnv('test_ENV'), 'test', 'extracts single env')
 
-  t.deepEqual(
+  t.same(
     agent.getProcessEnv(['not_existing_env', 'test_ENV', 'another_env']),
     'test',
     'extracts env from array of env names'
   )
-  t.done()
 })
 
-test('global http agent when lambda', t => {
-  t.deepEqual(agent('http://foo.com/bar', OPTS), http.globalAgent)
-  t.done()
+test('global http agent when lambda', async (t) => {
+  t.same(agent('http://foo.com/bar', OPTS), http.globalAgent)
 })
 
-test('global https agent when lambda', t => {
-  t.deepEqual(agent('https://foo.com/bar', OPTS), https.globalAgent)
-  t.done()
+test('global https agent when lambda', async (t) => {
+  t.same(agent('https://foo.com/bar', OPTS), https.globalAgent)
 })
 
-test('all expected options passed down to proxy agent', t => {
+test('all expected options passed down to proxy agent', async (t) => {
   const opts = Object.assign({
     proxy: 'https://user:pass@my.proxy:1234/foo',
   }, OPTS)
-  t.deepEqual(agent('https://foo.com/bar', opts), {
+  t.same(agent('https://foo.com/bar', opts), {
     __type: 'https-proxy',
     host: 'my.proxy',
     port: '1234',
@@ -75,5 +72,4 @@ test('all expected options passed down to proxy agent', t => {
     rejectUnauthorized: 'strictSSL',
     timeout: 6,
   }, 'only expected options passed to https proxy')
-  t.done()
 })

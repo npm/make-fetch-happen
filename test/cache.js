@@ -1,1604 +1,1245 @@
 'use strict'
 
-const { Request, Response } = require('minipass-fetch')
-const requireInject = require('require-inject')
-const { Buffer } = require('safe-buffer')
-const tnock = require('./util/tnock')
-const Minipass = require('minipass')
-const { test } = require('tap')
+const { join } = require('path')
+const cacache = require('cacache')
+const fs = require('fs')
+const nock = require('nock')
 const ssri = require('ssri')
+const t = require('tap')
+const util = require('util')
+const zlib = require('zlib')
 
-const CACHE = require('./util/test-dir')(__filename)
+const readdir = util.promisify(fs.readdir)
+
+const configureOptions = require('../lib/options.js')
+const CachePolicy = require('../lib/cache/policy.js')
+const cacheKey = require('../lib/cache/key.js')
+const fetch = require('../lib/index.js')
+const Request = fetch.Request
+
+// const CACHE = t.testdir()
 const CONTENT = Buffer.from('hello, world!')
 const INTEGRITY = ssri.fromData(CONTENT).toString()
 const HOST = 'https://local.registry.npm'
-const HEADERS = {
+
+const getHeaders = (content) => ({
+  'content-type': 'application/octet-stream',
+  'content-length': content.length,
   'cache-control': 'max-age=300',
+  host: 'local.registry.npm:443',
   date: new Date().toISOString(),
-}
+})
 
-function mockRequire (mocks = {}) {
-  const mergedMocks = Object.assign(
-    {},
-    {
-      cacache: {},
+nock.disableNetConnect()
+t.beforeEach(() => nock.cleanAll())
+
+t.test('storable()', async (t) => {
+  const storeOpts = configureOptions({ cachePath: './foo' })
+  const noStoreOpts = configureOptions({ cachePath: './foo', cache: 'no-store' })
+
+  const getReq = new Request(`${HOST}/test`)
+  const getReqNoCache = new Request(`${HOST}/test`, {
+    headers: {
+      'cache-control': 'no-store',
     },
-    mocks
-  )
-  return requireInject('../cache', mergedMocks)
-}
+  })
 
-test('exports class', (t) => {
-  const Cache = require('../cache')
+  const headReq = new Request(`${HOST}/test`, { method: 'HEAD' })
+  const putReq = new Request(`${HOST}/test`, { method: 'PUT' })
+
+  t.equal(CachePolicy.storable(getReq, noStoreOpts), false, 'cache: no-store always returns false')
+  t.equal(CachePolicy.storable(getReq, storeOpts), true, 'get requests are storable')
+  t.equal(CachePolicy.storable(headReq, storeOpts), true, 'head requests are storable')
+  t.equal(CachePolicy.storable(putReq, storeOpts), false, 'put requests are not storable')
+  t.equal(CachePolicy.storable(getReqNoCache, storeOpts), false, 'cache-control header in the request is respected')
+})
+
+t.test('no match, fetches and replies', async (t) => {
+  const srv = nock(HOST)
+    .get('/test')
+    .reply(200, CONTENT, {
+      ...getHeaders(CONTENT),
+      'x-foo': 'something',
+    })
+
+  const reqKey = cacheKey(new Request(`${HOST}/test`))
   const dir = t.testdir()
-  const cache = new Cache(dir, {})
-  t.ok(cache instanceof Cache, 'instance check')
-  t.equal(cache._path, dir)
-  t.equal(cache.Promise, Promise, 'set Promise')
-  t.end()
+  const res = await fetch(`${HOST}/test`, { cachePath: dir })
+  t.ok(srv.isDone(), 'req is fulfilled')
+  t.equal(res.status, 200)
+  t.equal(res.url, `${HOST}/test`, 'has a url property matching the request')
+  t.equal(res.headers.get('cache-control'), 'max-age=300', 'kept cache-control')
+  t.equal(res.headers.get('content-type'), 'application/octet-stream', 'kept content-stream')
+  t.equal(res.headers.get('content-length'), `${CONTENT.length}`, 'kept content-length')
+  t.equal(res.headers.get('x-local-cache'), encodeURIComponent(dir), 'has cache dir')
+  t.equal(res.headers.get('x-local-cache-key'), encodeURIComponent(reqKey), 'has cache key')
+  t.equal(res.headers.get('x-local-cache-mode'), 'buffer', 'should buffer store')
+  t.equal(res.headers.get('x-local-cache-status'), 'miss', 'identifies as cache miss')
+  t.ok(res.headers.has('x-local-cache-time'), 'has cache time')
+  t.equal(res.headers.get('x-foo'), 'something', 'original response has all headers')
+  t.notOk(res.headers.has('x-local-cache-hash'), 'hash header is only set when served from cache')
+
+  const dirBeforeRead = await readdir(dir)
+  t.same(dirBeforeRead, [], 'should not write to the cache yet')
+
+  const buf = await res.buffer()
+  t.same(buf, CONTENT, 'got the correct content')
+  const dirAfterRead = await readdir(dir)
+  // note, this does not make any assumptions about what directories
+  // are in the cache, only that there is something there. this is so
+  // our tests do not have to change if cacache version bumps its content
+  // and/or index directories
+  t.ok(dirAfterRead.length > 0, 'cache has data after consuming the body')
+
+  // compact with a function that always returns false
+  // results in a list of all entries in the index
+  const entries = await cacache.index.compact(dir, reqKey, () => false)
+  t.equal(entries.length, 1, 'should only have one entry')
+  const entry = entries[0]
+  t.equal(entry.integrity, INTEGRITY, 'integrity matches')
+  t.equal(entry.metadata.url, `${HOST}/test`, 'url matches')
+  t.same(entry.metadata.reqHeaders, {}, 'metadata has no request headers as none are relevant')
+  t.same(entry.metadata.resHeaders, {
+    'content-type': res.headers.get('content-type'),
+    'cache-control': res.headers.get('cache-control'),
+    date: res.headers.get('date'),
+  }, 'resHeaders has only the relevant headers for caching')
 })
 
-test('put method', (t) => {
-  t.test('does not work if response body is a buffer', (t) => {
-    const Cache = require('../cache')
-    const dir = t.testdir()
-    const cache = new Cache(dir, {})
-    const req = new Request(`${HOST}/put-test`)
-    const res = new Response(CONTENT, {
-      headers: { 'content-size': CONTENT.length },
-    })
-    t.throws(
-      () => cache.put(req, res),
-      'oldBody.on is not a function'
-    )
-
-    t.end()
-  })
-
-  t.test('shape of response', (t) => {
-    t.plan(5)
-    const Cache = require('../cache')
-    const dir = t.testdir()
-    const cache = new Cache(dir, {})
-    const req = new Request(`${HOST}/put-test`)
-    const body = new Minipass()
-    body.end(CONTENT)
-    const resOpts = {
-      url: req.url,
-      status: 201,
-      headers: {
-        'content-length': CONTENT.length,
-        'some-header-key': 'some-header-value',
-      },
-    }
-    const initialResponse = new Response(body, resOpts)
-    return cache.put(req, initialResponse)
-      .then((actualResponse) => {
-        t.ok(actualResponse instanceof Response, 'type of response is Response')
-        t.equal(actualResponse.status, 201, 'should have the same status')
-        t.deepEqual(
-          actualResponse.headers,
-          initialResponse.headers,
-          'should have the same headers'
-        )
-        t.equal(
-          actualResponse.url,
-          req.url,
-          'should have the same url as request'
-        )
-        return t.resolveMatch(
-          actualResponse.text(),
-          CONTENT.toString(),
-          'should have the same body'
-        )
-      })
-  })
-
-  t.test('in memory: caches correctly', (t) => {
-    t.plan(5)
-    const dir = t.testdir()
-    const req = new Request(`${HOST}/put-test`)
-    const body = new Minipass()
-    body.end(CONTENT)
-    const resOpts = {
-      url: req.url,
-      status: 200,
-      headers: {
-        'content-length': CONTENT.length,
-      },
-    }
-    const initialResponse = new Response(body, resOpts)
-    const MockCacache = function cacache () {}
-    MockCacache.prototype.put = function putData (
-      cachePath,
-      cacheKey,
-      data,
-      cacheOpts
-    ) {
-      t.equal(cachePath, dir, 'should have correct cache path')
-      t.deepEqual(data, CONTENT, 'should have full body')
-      t.deepEqual(cacheOpts, {
-        algorithms: undefined,
-        metadata: {
-          url: `${HOST}/put-test`,
-          reqHeaders: {
-            ...req.headers.raw(),
-            ...Cache.pruneHeaders,
-          },
-          resHeaders: {
-            ...initialResponse.headers.raw(),
-            ...Cache.pruneHeaders,
-          },
-        },
-        size: CONTENT.length,
-        memoize: undefined,
-      }, 'should have correct cache options')
-      return Promise.resolve()
-    }
-    MockCacache.prototype.put.stream = function putStream () {
-      return new Minipass()
-    }
-    const Cache = mockRequire({ cacache: new MockCacache() })
-    const cache = new Cache(dir, {})
-    return cache.put(req, initialResponse)
-      .then((actualResponse) => {
-        t.ok(actualResponse instanceof Response, 'type of response is Response')
-        return t.resolveMatch(
-          actualResponse.text(),
-          CONTENT.toString(),
-          'should have same body'
-        )
-      })
-  })
-
-  t.test('stream (not in memory): caches correctly', (t) => {
-    t.plan(5)
-    const dir = t.testdir()
-    const MockCacache = function cacache () {}
-    MockCacache.prototype.put = () => Promise.resolve()
-    MockCacache.prototype.put.stream = function putStream (
-      cachePath,
-      cacheKey,
-      cacheOpts
-    ) {
-      t.equal(cachePath, dir, 'should have correct cache path')
-      t.deepEqual(cacheOpts, {
-        algorithms: undefined,
-        metadata: {
-          url: `${HOST}/put-test`,
-          reqHeaders: {
-            ...req.headers.raw(),
-            ...Cache.pruneHeaders,
-          },
-          resHeaders: {
-            ...initialResponse.headers.raw(),
-            ...Cache.pruneHeaders,
-          },
-        },
-        size: null,
-        memoize: false,
-      }, 'should have correct cache options')
-      const cacheStream = new Minipass()
-      // cache stream actually takes a sec to get started
-      setTimeout(() => cacheStream.concat().then((data) => {
-        t.equal(
-          data.toString(),
-          CONTENT.toString(),
-          'cached body is from response'
-        )
-      }))
-      return cacheStream
-    }
-    const Cache = mockRequire({ cacache: new MockCacache() })
-    const cache = new Cache(dir, {})
-    const req = new Request(`${HOST}/put-test`)
-    const body = new Minipass()
-    body.write(CONTENT.slice(0, 10))
-    body.end(CONTENT.slice(10))
-    const resOpts = { url: req.url, status: 200, headers: {} }
-    const initialResponse = new Response(body, resOpts)
-    return cache.put(req, initialResponse)
-      .then((actualResponse) => {
-        t.ok(actualResponse instanceof Response, 'type of response is Response')
-        return t.resolveMatch(
-          actualResponse.text(),
-          CONTENT.toString(),
-          'should have same body'
-        )
-      })
-  })
-
-  t.test('propertly sets cacheKey', (t) => {
-    t.plan(3)
-    const dir = t.testdir()
-    const MockCacache = function cacache () {}
-    MockCacache.prototype.put = function putData (
-      cachePath,
-      cacheKey,
-      data,
-      cacheOpts
-    ) {
-      const expectedCacheKey = `make-fetch-happen:request-cache:${HOST}/put-test?a=1`
-      t.equal(
-        cacheKey,
-        expectedCacheKey,
-        'should have correctly formated cache key'
-      )
-      return Promise.resolve()
-    }
-    MockCacache.prototype.put.stream = function putStream () {}
-    const Cache = mockRequire({ cacache: new MockCacache() })
-    const cache = new Cache(dir, {})
-    const req = new Request(`${HOST}/put-test?a=1`)
-    const body = new Minipass()
-    body.end(CONTENT)
-    const resOpts = {
-      url: req.url,
-      status: 200,
-      headers: {
-        'content-length': CONTENT.length,
-      },
-    }
-    const initialResponse = new Response(body, resOpts)
-    return cache.put(req, initialResponse)
-      .then((actualResponse) => {
-        t.ok(actualResponse instanceof Response, 'type of response is Response')
-        return t.resolveMatch(
-          actualResponse.text(),
-          CONTENT.toString(),
-          'should have same body'
-        )
-      })
-  })
-
-  t.test('request method HEAD or status 304', { skip: true }, (t) => {
-    t.plan(6)
-    const dir = t.testdir()
-    const MockCacache = function cacache () {}
-    MockCacache.prototype.put = () => Promise.resolve()
-    MockCacache.prototype.get = () => Promise.resolve()
-    MockCacache.prototype.get.stream = () => new Minipass()
-    MockCacache.prototype.put.stream = function putStream (
-      cachePath,
-      cacheKey,
-      cacheOpts
-    ) {
-      t.deepEqual(
-        cacheOpts.integrity,
-        INTEGRITY,
-        'should have added integrity property to cache options'
-      )
-      const stream = new Minipass()
-      return stream
-    }
-    MockCacache.prototype.get.info = () => Promise.resolve({
-      integrity: INTEGRITY,
-    })
-    MockCacache.prototype.get.stream.byDigest = (
-      cachePath,
-      integrity,
-      cacheOpts
-    ) => {
-      t.equal(integrity, INTEGRITY, 'should pass in integrity value')
-      t.deepEqual(
-        cacheOpts.integrity,
-        INTEGRITY,
-        'should have added integrity property to cache options'
-      )
-      const mp = new Minipass()
-      mp.end(CONTENT)
-      return mp
-    }
-    const Cache = mockRequire({ cacache: new MockCacache() })
-    const cache = new Cache(dir, {})
-    const req = new Request(`${HOST}/put-test`, { method: 'HEAD' })
-    const body = new Minipass()
-    body.end(CONTENT)
-    const resOpts = {
-      url: req.url,
-      status: 200,
-      headers: {
-        'content-length': CONTENT.length,
-      },
-    }
-    const initialResponse = new Response(body, resOpts)
-    return cache.put(req, initialResponse)
-      .then((actualResponse) => {
-        t.ok(actualResponse instanceof Response, 'type of response is Response')
-        t.equal(actualResponse, initialResponse, 'same response object')
-        return t.resolveMatch(
-          actualResponse.text(),
-          CONTENT.toString(),
-          'should have same body'
-        )
-      })
-  })
-
-  // NOTE(to self): Copy/Paste this to create new tests
-  t.test('BASE TEST', { skip: true }, (t) => {
-    t.plan(2)
-    const dir = t.testdir()
-    const MockCacache = function cacache () {}
-    MockCacache.prototype.put = () => Promise.resolve()
-    MockCacache.prototype.put.stream = () => new Minipass()
-    const Cache = mockRequire({ cacache: new MockCacache() })
-    const cache = new Cache(dir, {})
-    const req = new Request(`${HOST}/put-test`)
-    const body = new Minipass()
-    body.end(CONTENT)
-    const resOpts = {
-      url: req.url,
-      status: 200,
-      headers: {
-        'content-length': CONTENT.length,
-      },
-    }
-    const initialResponse = new Response(body, resOpts)
-    return cache.put(req, initialResponse)
-      .then((actualResponse) => {
-        t.ok(actualResponse instanceof Response, 'type of response is Response')
-        return t.resolveMatch(
-          actualResponse.text(),
-          CONTENT.toString(),
-          'should have same body'
-        )
-      })
-  })
-
-  t.end()
-})
-
-test('integration tests', (t) => {
-  const fetch = require('..')
-  t.test('accepts a local path for caches', t => {
-    tnock(t, HOST).get('/test').reply(200, CONTENT, HEADERS)
-    return fetch(`${HOST}/test`, {
-      cacheManager: CACHE,
-      retry: { retries: 0 },
-    }).then(res => {
-      t.notOk(
-        res.headers.get('x-local-cache'),
-        'no cache headers if response is from network'
-      )
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, CONTENT, 'got remote content')
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-        retry: { retries: 0 },
-      })
-    }).then(res => {
-      t.equal(res.status, 200, 'non-stale cached res has 200 status')
-      const hs = res.headers
-      t.equal(
-        decodeURIComponent(hs.get('x-local-cache')),
-        CACHE,
-        'path added for cached requests'
-      )
-      t.match(
-        decodeURIComponent(hs.get('x-local-cache-key')),
-        new RegExp(`${HOST}/test`),
-        'cache key contains URI'
-      )
-      t.equal(
-        decodeURIComponent(hs.get('x-local-cache-hash')),
-        INTEGRITY,
-        'content hash in header'
-      )
-      t.ok(hs.get('x-local-cache-time'), 'content write time in header')
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, CONTENT, 'got cached content')
-    })
-  })
-
-  t.test('accepts a local path for caches, memoize=false', t => {
-    tnock(t, HOST).get('/test').reply(200, CONTENT, HEADERS)
-    return fetch(`${HOST}/test`, {
-      cacheManager: CACHE,
-      retry: { retries: 0 },
-      memoize: false,
-    }).then(res => {
-      t.notOk(
-        res.headers.get('x-local-cache'),
-        'no cache headers if response is from network'
-      )
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, CONTENT, 'got remote content')
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-        retry: { retries: 0 },
-        memoize: false,
-      })
-    }).then(res => {
-      t.equal(res.status, 200, 'non-stale cached res has 200 status')
-      const hs = res.headers
-      t.equal(
-        decodeURIComponent(hs.get('x-local-cache')),
-        CACHE,
-        'path added for cached requests'
-      )
-      t.match(
-        decodeURIComponent(hs.get('x-local-cache-key')),
-        new RegExp(`${HOST}/test`),
-        'cache key contains URI'
-      )
-      t.equal(
-        decodeURIComponent(hs.get('x-local-cache-hash')),
-        INTEGRITY,
-        'content hash in header'
-      )
-      t.ok(hs.get('x-local-cache-time'), 'content write time in header')
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, CONTENT, 'got cached content')
-    })
-  })
-
-  t.test('supports defaulted fetch cache', t => {
-    tnock(t, HOST).get('/test').reply(200, CONTENT, HEADERS)
-    const defaultFetch = fetch.defaults({
-      cacheManager: CACHE,
-    })
-    return defaultFetch(`${HOST}/test`, {
-      retry: { retries: 0 },
-    }).then(res => res.buffer()).then(body => {
-      t.deepEqual(body, CONTENT, 'got remote content')
-      return defaultFetch(`${HOST}/test`, {
-        retry: { retries: 0 },
-      })
-    }).then(res => {
-      t.equal(res.status, 200, 'non-stale cached res has 200 status')
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, CONTENT, 'got cached content')
-    })
-  })
-
-  t.test('supports defaulted fetch cache with default uri', t => {
-    tnock(t, HOST).get('/test').reply(200, CONTENT, HEADERS)
-    const defaultFetch = fetch.defaults(`${HOST}/test`)
-    return defaultFetch(null, {
-      cacheManager: CACHE,
-      retry: { retries: 0 },
-    }).then(res => res.buffer()).then(body => {
-      t.deepEqual(body, CONTENT, 'got remote content')
-      return defaultFetch(null, {
-        cacheManager: CACHE,
-        retry: { retries: 0 },
-      })
-    }).then(res => {
-      t.equal(res.status, 200, 'non-stale cached res has 200 status')
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, CONTENT, 'got cached content')
-    })
-  })
-
-  t.test('supports defaulted fetch cache with uri and options', t => {
-    tnock(t, HOST).get('/test').reply(200, CONTENT, HEADERS)
-    const defaultFetch = fetch.defaults(`${HOST}/test`, {
-      cacheManager: CACHE,
-      retry: { retries: 0 },
-    })
-    return defaultFetch().then(res => res.buffer()).then(body => {
-      t.deepEqual(body, CONTENT, 'got remote content')
-      return defaultFetch()
-    }).then(res => {
-      t.equal(res.status, 200, 'non-stale cached res has 200 status')
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, CONTENT, 'got cached content')
-    })
-  })
-
-  t.test('nothing cached if body stream never used', t => {
-    const srv = tnock(t, HOST)
-    srv.get('/test').reply(200, CONTENT, HEADERS)
-    return fetch(`${HOST}/test`, {
-      cacheManager: CACHE,
-      retry: { retries: 0 },
-    }).then(res => {
-      srv.get('/test').reply(200, 'newcontent', HEADERS)
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-        retry: { retries: 0 },
-      })
-    }).then(res => {
-      t.equal(res.status, 200, 'non-stale cached res has 200 status')
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, Buffer.from('newcontent'), 'got second req content')
-    })
-  })
-
-  t.test('exports cache deletion API', t => {
-    tnock(t, HOST).get('/test').twice().reply(200, CONTENT, HEADERS)
-    return fetch(`${HOST}/test`, {
-      cacheManager: CACHE,
-      retry: { retries: 0 },
-    }).then(res => {
-      t.notOk(
-        res.headers.get('x-local-cache'),
-        'no cache headers if response is from network'
-      )
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, CONTENT, 'got remote content')
-      return fetch.delete(`${HOST}/test`, {
-        cacheManager: CACHE,
-      })
-    }).then(() => {
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-        retry: { retries: 0 },
-      })
-    }).then(res => {
-      t.equal(res.status, 200, 'request succeeded')
-      t.notOk(
-        res.headers.get('x-local-cache'),
-        'no cache headers if response is from network'
-      )
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, CONTENT, 'got remote content')
-    })
-  })
-
-  t.test('cache delete when memoized', t => {
-    t.test('memoize object with reset()', t => {
-      let resetCalled = false
-      const memoize = { reset () {
-        resetCalled = true
-      } }
-      const p = fetch.delete(`${HOST}/test`, {
-        cacheManager: CACHE,
-        memoize,
-      })
-      t.equal(resetCalled, true, 'called memoize.reset()')
-      return p
-    })
-    t.test('memoize object with clear()', t => {
-      let clearCalled = false
-      const memoize = { clear () {
-        clearCalled = true
-      } }
-      const p = fetch.delete(`${HOST}/test`, {
-        cacheManager: CACHE,
-        memoize,
-      })
-      t.equal(clearCalled, true, 'called memoize.clear()')
-      return p
-    })
-    t.test('just an object, null all the keys', t => {
-      const memoize = { a: 'a', b: 'b', c: 'c' }
-      const p = fetch.delete(`${HOST}/test`, {
-        cacheManager: CACHE,
-        memoize,
-      })
-      t.strictSame(memoize, { a: null, b: null, c: null }, 'nulled memoize obj')
-      return p
-    })
-    t.end()
-  })
-
-  t.test('small responses cached', t => {
-    tnock(t, HOST).get('/test').reply(200, CONTENT, {
-      'Content-Length': CONTENT.length,
-      'cache-control': HEADERS['cache-control'],
-    })
-    return fetch(`${HOST}/test`, {
-      cacheManager: CACHE,
-      retry: { retries: 0 },
-    }).then(res => res.buffer()).then(body => {
-      t.deepEqual(body, CONTENT, 'got remote content')
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-        retry: { retries: 0 },
-      })
-    }).then(res => {
-      t.equal(res.status, 200, 'non-stale cached res has 200 status')
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, CONTENT, 'got cached content')
-    })
-  })
-
-  t.test('supports request streaming', t => {
-    tnock(t, HOST).get('/test').reply(200, CONTENT, HEADERS)
-    return fetch(`${HOST}/test`, {
-      cacheManager: CACHE,
-      retry: { retries: 0 },
-    }).then(res => {
-      return res.body.concat().then(data => {
-        t.deepEqual(
-          data,
-          CONTENT,
-          'initial request streamed correct content'
-        )
-      })
-    }).then(() => {
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-      })
-    }).then(res => {
-      return res.body.concat().then(data => {
-        t.deepEqual(
-          data,
-          CONTENT,
-          'cached request streamed correct content'
-        )
-      })
-    })
-  })
-
-  t.test('only `200 OK` responses cached', t => {
-    const srv = tnock(t, HOST)
-    srv.get('/test').reply(201, CONTENT, {
-      Foo: 'first',
-      'cache-control': HEADERS['cache-control'],
-    })
-    return fetch(`${HOST}/test`, {
-      cacheManager: CACHE,
-      retry: { retries: 0 },
-    }).then(res => res.buffer()).then(body => {
-      t.deepEqual(body, CONTENT, 'got remote content')
-      srv.get('/test').reply(200, CONTENT, {
-        Foo: 'second',
-        'cache-control': HEADERS['cache-control'],
-      })
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-      })
-    }).then(res => {
-      t.equal(res.headers.get('foo'), 'second', 'got second request')
-      t.equal(res.status, 200, 'got second request status')
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, CONTENT, 'got request content')
-    })
-  })
-
-  t.test('status code is 304 on revalidated cache hit', t => {
-    const srv = tnock(t, HOST)
-    srv.get('/test').reply(200, CONTENT, {
-      'Cache-Control': 'max-age = 0',
-      ETag: 'thisisanetag',
-      Date: new Date(new Date() - 100000).toUTCString(),
-    })
-    return fetch(`${HOST}/test`, {
-      cacheManager: CACHE,
-      retry: { retries: 0 },
-    }).then(res => {
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, CONTENT, 'got remote content')
-      srv.get('/test').reply(304, '', {
-        etag: 'W/thisisanetag',
-      })
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-      })
-    }).then(res => {
-      t.equal(res.status, 304, 'stale cached req returns 304')
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, CONTENT, 'got cached content')
-    })
-  })
-
-  t.test('status code is 200 on stale cache + cond request w/ new data', t => {
-    const srv = tnock(t, HOST)
-    srv.get('/test').reply(200, CONTENT, {
-      'Cache-Control': 'max-age = 0',
-      ETag: 'thisisanetag',
-      Date: new Date(new Date() - 100000).toUTCString(),
-    })
-    return fetch(`${HOST}/test`, {
-      cacheManager: CACHE,
-      retry: { retries: 0 },
-    }).then(res => {
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, CONTENT, 'got remote content')
-      srv.get('/test').reply(200, 'meh', {
-        'Cache-Control': 'max-age=300',
-        ETag: 'thisisanetag',
-        Date: new Date().toUTCString(),
-      })
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-      })
-    }).then(res => {
-      t.equal(res.status, 200, 'refreshed cache req returns 200')
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, Buffer.from('meh'), 'got new content')
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-      })
-    }).then(res => {
-      t.equal(res.status, 200, 'non-stale cached res has 200 status')
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, Buffer.from('meh'), 'got cached content')
-    })
-  })
-
-  t.test('forces revalidation if cached response is `must-revalidate`', t => {
-    const srv = tnock(t, HOST)
-    srv.get('/test').reply(200, CONTENT, {
-      'Cache-Control': 'must-revalidate',
-      ETag: 'thisisanetag',
-      Date: new Date().toUTCString(),
-    })
-    return fetch(`${HOST}/test`, {
-      cacheManager: CACHE,
-      retry: { retries: 0 },
-    }).then(res => {
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, CONTENT, 'got remote content')
-      srv.get('/test').reply(304, function () {
-        t.equal(this.req.headers['if-none-match'][0], 'thisisanetag', 'got etag')
-      })
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-      })
-    }).then(res => {
-      t.equal(res.status, 304, 'revalidated cached req returns 304')
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, CONTENT, 'got cached content')
-    })
-  })
-
-  t.test('falls back to stale cache on request failure (adds Warning, too)', t => {
-    const srv = tnock(t, HOST)
-    srv.get('/test').reply(200, CONTENT, {
-      'Cache-Control': 'max-age=0',
-      ETag: 'thisisanetag',
-      Date: new Date().toUTCString(),
-    })
-    return fetch(`${HOST}/test`, {
-      cacheManager: CACHE,
-      retry: { retries: 0 },
-    }).then(res => {
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, CONTENT, 'got remote content')
-      srv.get('/test').reply(500, function () {
-        t.equal(this.req.headers['if-none-match'][0], 'thisisanetag', 'got etag')
-      })
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-        retry: { retries: 0 },
-      })
-    }).then(res => {
-      t.equal(res.status, 200, 'fell back to cached version on error')
-      t.match(res.headers.get('Warning'), /111 local\.registry\.npm/, 'added warning')
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-        retry: { retries: 0 },
-      })
-    }).then(res => {
-      return res.buffer()
-    }).then(buf => {
-      t.deepEqual(buf, CONTENT, 'cached content returned')
-    })
-  })
-
-  t.test('does not return stale cache on failure if `must-revalidate`', t => {
-    const srv = tnock(t, HOST)
-    srv.get('/test').reply(200, CONTENT, {
-      'Cache-Control': 'must-revalidate',
-      ETag: 'thisisanetag',
-      Date: new Date().toUTCString(),
-    })
-    return fetch(`${HOST}/test`, {
-      cacheManager: CACHE,
-      retry: { retries: 0 },
-    }).then(res => {
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, CONTENT, 'got remote content')
-      srv.get('/test').reply(500, function () {
-        t.equal(this.req.headers['if-none-match'][0], 'thisisanetag', 'got etag')
-      })
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-        retry: { retries: 0 },
-      })
-    }).then(res => {
-      t.equal(res.status, 500, '500-range error returned as-is')
-      return t.rejects(fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-        retry: { retries: 0 },
-      }), { type: 'system' }, 'programmatic error returned as-is')
-    })
-  })
-
-  t.test('reqs never stale if Cache-control: immutable', t => {
-    const srv = tnock(t, HOST)
-    srv.get('/test').reply(200, CONTENT, {
-      Expires: new Date(new Date() - 10000000).toUTCString(),
-      'Last-Modified': new Date(new Date() - 10000000).toUTCString(),
-      Date: new Date().toUTCString(),
-      'Cache-Control': 'immutable',
-    })
-    return fetch(`${HOST}/test`, {
-      cacheManager: CACHE,
-      retry: { retries: 0 },
-    }).then(res => {
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, CONTENT, 'got remote content')
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-        retry: { retries: 0 },
-      })
-    }).then(res => {
-      t.equal(res.status, 200, 'used entry from cache even though expired')
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, CONTENT, 'got cached content')
-    })
-  })
-
-  t.test('treats reqs as stale on Cache-Control: no-cache in a response', t => {
-    const srv = tnock(t, HOST)
-    srv.get('/test').reply(200, CONTENT, {
-      Expires: new Date(new Date() + 10000000).toUTCString(),
-      Date: new Date().toUTCString(),
-      ETag: 'deadbeef',
-      'Cache-Control': 'no-cache',
-      'Last-Modified': new Date(new Date() - 10000000).toUTCString(),
-    })
-    return fetch(`${HOST}/test`, {
-      cacheManager: CACHE,
-      retry: { retries: 0 },
-    }).then(res => {
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, CONTENT, 'got remote content')
-      srv.get('/test').reply(304, function () {
-        t.equal(this.req.headers['if-none-match'][0], 'deadbeef', 'got etag')
-        t.ok(this.req.headers['if-modified-since'][0], 'got if-modified-since')
-      })
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-        retry: { retries: 0 },
-      })
-    }).then(res => {
-      t.equal(res.status, 304, 'revalidated cached req returns 304')
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, CONTENT, 'got cached content')
-    })
-  })
-
-  t.test('treats request as stale on Pragma: no-cache in a response', t => {
-    const srv = tnock(t, HOST)
-    srv.get('/test').reply(200, CONTENT, {
-      Expires: new Date(new Date() + 10000000).toUTCString(),
-      Date: new Date().toUTCString(),
-      ETag: 'deadbeef',
-      Pragma: 'no-cache',
-      'Last-Modified': new Date(new Date() - 10000000).toUTCString(),
-    })
-    return fetch(`${HOST}/test`, {
-      cacheManager: CACHE,
-      retry: { retries: 0 },
-    }).then(res => {
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, CONTENT, 'got remote content')
-      srv.get('/test').reply(304, function () {
-        t.equal(this.req.headers['if-none-match'][0], 'deadbeef', 'got etag')
-        t.ok(this.req.headers['if-modified-since'][0], 'got if-modified-since')
-      })
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-        retry: { retries: 0 },
-      })
-    }).then(res => {
-      t.equal(res.status, 304, 'revalidated cached req returns 304')
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, CONTENT, 'got cached content')
-    })
-  })
-
-  t.test('uses Expires header if no Pragma or Cache-Control', t => {
-    const srv = tnock(t, HOST)
-    srv.get('/test').reply(200, CONTENT, {
-      Expires: new Date(new Date() - 1000).toUTCString(),
-      Date: new Date().toUTCString(),
-      ETag: 'deadbeef',
-      'Last-Modified': new Date(new Date() - 10000000).toUTCString(),
-    })
-    return fetch(`${HOST}/test`, {
-      cacheManager: CACHE,
-      retry: { retries: 0 },
-    }).then(res => {
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, CONTENT, 'got remote content')
-      srv.get('/test').reply(304, function () {
-        t.equal(this.req.headers['if-none-match'][0], 'deadbeef', 'got etag')
-        t.ok(this.req.headers['if-modified-since'][0], 'got if-modified-since')
-      })
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-        retry: { retries: 0 },
-      })
-    }).then(res => {
-      t.equal(res.status, 304, 'revalidated cached req returns 304')
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, CONTENT, 'got cached content')
-    })
-  })
-
-  t.test('heuristic freshness lifetime', t => {
-    const srv = tnock(t, HOST)
-    srv.get('/test').reply(200, CONTENT, {
-      Date: new Date(new Date() - 700000).toUTCString(),
-      Foo: 'some-value',
-      'Cache-Control': 'must-revalidate',
-    })
-    return fetch(`${HOST}/test`, {
-      cacheManager: CACHE,
-      retry: { retries: 0 },
-    }).then(res => {
-      t.equal(res.headers.get('Foo'), 'some-value', 'got original Foo header')
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, CONTENT, 'got remote content')
-      srv.head('/test').reply(304, '', {
-        Date: new Date().toUTCString(),
-        Foo: 'some-other-value',
-        'Cache-Control': 'immutable',
-      })
-      return fetch(`${HOST}/test`, {
-        method: 'HEAD',
-        cacheManager: CACHE,
-        retry: { retries: 0 },
-      })
-    }).then(res => {
-      t.equal(res.status, 304, 'revalidated cached req returns 304')
-      t.equal(res.headers.get('Foo'), 'some-other-value', 'updated Foo')
-      t.equal(res.headers.get('Cache-Control'), 'immutable', 'new C-Ctrl')
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, Buffer.from(''), 'HEAD request has empty body')
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-        retry: { retries: 0 },
-      })
-    }).then(res => {
-      t.equal(res.status, 200, 'local cache not stale after update')
-      t.equal(res.headers.get('Foo'), 'some-other-value', 'updated Foo')
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, CONTENT, 'got cached content again')
-    })
-  })
-
-  t.test('heuristic age warning', t => {
-    const srv = tnock(t, HOST)
-    // just a very old thing
-    // this used to have an old server date to verify that we don't
-    // trust server dates that are too far out of date, but
-    // http-cache-semantics@4.1.0 made trustServerDate always on,
-    // regardless of how far out of whack the server Date header is.
-    srv.get('/heuristic').reply(200, CONTENT, {
-      age: 3600 * 72,
-      'last-modified': 'Tue, 15 Nov 1994 12:45:26 GMT',
-    })
-    return fetch(`${HOST}/heuristic`, {
-      cacheManager: CACHE,
-      retry: { retries: 0 },
-    }).then(res => res.buffer().then(body => {
-      t.equal(res.headers.get('warning'), null, 'no warnings')
-      t.deepEqual(body, CONTENT, 'got remote content')
-      return fetch(`${HOST}/heuristic`, {
-        cacheManager: CACHE,
-        retry: { retries: 0 },
-      })
-    })).then(res => {
-      t.equal(res.status, 200, 'got 200 response')
-      t.same(res.headers.get('warning'), '113 - "rfc7234 5.5.4"')
-      return res.buffer()
-    })
-  })
-
-  t.test('refreshes cached request on HEAD request', t => {
-    const srv = tnock(t, HOST)
-    srv.get('/test').reply(200, CONTENT, {
-      Age: '3000',
-      Date: new Date(new Date() - 800000).toUTCString(),
-      'Last-Modified': new Date(new Date() - 800000).toUTCString(),
-    })
-    return fetch(`${HOST}/test`, {
-      cacheManager: CACHE,
-      retry: { retries: 0 },
-    }).then(res => {
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, CONTENT, 'got remote content')
-      srv.get('/test').reply(304, 'why a body', {
-        Age: '3000',
-      })
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-        retry: { retries: 0 },
-      })
-    }).then(res => {
-      t.equal(res.status, 304, 'revalidated cached req returns 304')
-      t.deepEqual(
-        res.headers.get('Warning'),
-        null,
-        'successfully revalidated -- no warnings'
-      )
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, CONTENT, 'got original cached content')
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-        retry: { retries: 0 },
-      })
-    }).then(res => {
-      t.equal(res.status, 200, 'local cache not stale after update')
-      // TODO - pending https://github.com/pornel/http-cache-semantics/issues/3
-      // t.match(
-      //   res.headers.get('Warning'),
-      //   /^113 localhost/,
-      //   'heurisic usage warning header added'
-      // )
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, CONTENT, 'got cached content again')
-    })
-  })
-
-  t.test('original Warning header 1xx removed on cache hit', t => {
-    tnock(t, HOST).get('/test').reply(200, CONTENT, {
-      Warning: '199 localhost welp',
-      'Cache-Control': 'max-age=10000000',
-    })
-    return fetch(`${HOST}/test`, {
-      cacheManager: CACHE,
-      retry: { retries: 0 },
-    }).then(res => res.buffer()).then(body => {
-      t.deepEqual(body, CONTENT, 'got remote content')
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-      })
-    }).then(res => {
-      t.equal(res.status, 200, 'non-stale cached res has 200 status')
-      t.equal(res.headers.get('Warning'), null, 'no Warning header because 1xx')
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, CONTENT, 'got cached content')
-    })
-  })
-
-  t.test('Warning header 2xx retained on cache hit', t => {
-    tnock(t, HOST).get('/test').reply(200, CONTENT, {
+t.test('no match, fetches and replies even when no content-length', async (t) => {
+  // when no content-length header is set in the response, we pass null as the size
+  // to cacache when writing, so we test that separately since it will fail if we
+  // were to do something silly like coercing the raw value of the header into a number
+  const srv = nock(HOST)
+    .get('/test')
+    .reply(200, CONTENT, {
+      // no content-length in the response
       'cache-control': 'max-age=300',
-      Warning: '200 localhost welp',
+      'content-type': 'application/octet-stream',
+      date: new Date().toISOString(),
+      'x-foo': 'something',
     })
-    return fetch(`${HOST}/test`, {
-      cacheManager: CACHE,
-      retry: { retries: 0 },
-    }).then(res => res.buffer()).then(body => {
-      t.deepEqual(body, CONTENT, 'got remote content')
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-      })
-    }).then(res => {
-      t.equal(res.status, 200, 'non-stale cached res has 200 status')
-      t.equal(
-        res.headers.get('Warning'), '200 localhost welp', '2xx warning retained'
-      )
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, CONTENT, 'got cached content')
+
+  const reqKey = cacheKey(new Request(`${HOST}/test`))
+  const dir = t.testdir()
+  const res = await fetch(`${HOST}/test`, { cachePath: dir })
+  t.ok(srv.isDone(), 'req is fulfilled')
+  t.equal(res.status, 200)
+  t.equal(res.headers.get('cache-control'), 'max-age=300', 'kept cache-control')
+  t.equal(res.headers.get('content-type'), 'application/octet-stream', 'kept content-stream')
+  t.notOk(res.headers.has('content-length'), 'does not have a content-length')
+  t.equal(res.headers.get('x-local-cache'), encodeURIComponent(dir), 'has cache dir')
+  t.equal(res.headers.get('x-local-cache-key'), encodeURIComponent(reqKey), 'has cache key')
+  t.equal(res.headers.get('x-local-cache-mode'), 'stream', 'should stream store since size is unknown')
+  t.equal(res.headers.get('x-local-cache-status'), 'miss', 'identifies as cache miss')
+  t.ok(res.headers.has('x-local-cache-time'), 'has cache time')
+  t.equal(res.headers.get('x-foo'), 'something', 'original response has all headers')
+  t.notOk(res.headers.has('x-local-cache-hash'), 'hash header is only set when served from cache')
+
+  const dirBeforeRead = await readdir(dir)
+  t.same(dirBeforeRead, [], 'should not write to the cache yet')
+
+  const buf = await res.buffer()
+  t.same(buf, CONTENT, 'got the correct content')
+  const dirAfterRead = await readdir(dir)
+  // note, this does not make any assumptions about what directories
+  // are in the cache, only that there is something there. this is so
+  // our tests do not have to change if cacache version bumps its content
+  // and/or index directories
+  t.ok(dirAfterRead.length > 0, 'cache has data after consuming the body')
+
+  // compact with a function that always returns false
+  // results in a list of all entries in the index
+  const entries = await cacache.index.compact(dir, reqKey, () => false)
+  t.equal(entries.length, 1, 'should only have one entry')
+  const entry = entries[0]
+  t.equal(entry.integrity, INTEGRITY, 'integrity matches')
+  t.equal(entry.metadata.url, `${HOST}/test`, 'url matches')
+  t.same(entry.metadata.reqHeaders, {}, 'metadata has no request headers as none are relevant')
+  t.same(entry.metadata.resHeaders, {
+    'content-type': res.headers.get('content-type'),
+    'cache-control': res.headers.get('cache-control'),
+    date: res.headers.get('date'),
+  }, 'resHeaders has only the relevant headers for caching')
+})
+
+t.test('no matches, cache mode only-if-cached rejects', async (t) => {
+  const dir = t.testdir()
+
+  await t.rejects(() => fetch(`${HOST}/test`, { cache: 'only-if-cached', cachePath: dir }),
+    { code: 'ENOTCACHED' },
+    'rejects with the correct error')
+})
+
+t.test('cache hit, no revalidation', async (t) => {
+  const srv = nock(HOST)
+    .get('/test')
+    .reply(200, CONTENT, getHeaders(CONTENT))
+
+  const dir = t.testdir()
+  const reqKey = cacheKey(new Request(`${HOST}/test`))
+  const cacheRes = await fetch(`${HOST}/test`, { cachePath: dir, retry: false })
+  await cacheRes.buffer() // drain it immediately so it stores to the cache
+  t.ok(srv.isDone(), 'req has fulfilled')
+
+  const res = await fetch(`${HOST}/test`, { cachePath: dir, retry: false })
+  const buf = await res.buffer()
+  t.same(buf, CONTENT, 'got the right content')
+  t.equal(res.status, 200, 'got a 200')
+  t.equal(res.url, `${HOST}/test`, 'has the right url')
+  t.equal(res.headers.get('cache-control'), 'max-age=300', 'kept cache-control')
+  t.equal(res.headers.get('content-type'), 'application/octet-stream', 'kept content-type')
+  t.equal(res.headers.get('content-length'), `${CONTENT.length}`, 'kept content-length')
+  t.equal(res.headers.get('x-local-cache'), encodeURIComponent(dir), 'encoded the path')
+  t.equal(res.headers.get('x-local-cache-status'), 'hit', 'got a cache hit')
+  t.equal(res.headers.get('x-local-cache-key'), encodeURIComponent(reqKey), 'got the right cache key')
+  t.equal(res.headers.get('x-local-cache-mode'), 'buffer', 'should buffer read')
+  t.equal(res.headers.get('x-local-cache-hash'), encodeURIComponent(INTEGRITY), 'has the right hash')
+  // just make sure x-local-cache-time is set, no need to assert its value
+  t.ok(res.headers.has('x-local-cache-time'))
+})
+
+t.test('cache hit, cache mode reload 304', async (t) => {
+  const srv = nock(HOST)
+    .get('/test')
+    .reply(200, CONTENT, {
+      ...getHeaders(CONTENT),
+      etag: '"beefc0ffee"',
     })
+
+  const revalidateSrv = nock(HOST, {
+    reqHeaders: {
+      'if-none-match': '"beefc0ffee"',
+    },
+  })
+    .get('/test')
+    .reply(304)
+
+  const dir = t.testdir()
+  const reqKey = cacheKey(new Request(`${HOST}/test`))
+  const cacheRes = await fetch(`${HOST}/test`, { cachePath: dir, retry: false })
+  await cacheRes.buffer() // drain it immediately so it stores to the cache
+  t.ok(srv.isDone(), 'first req fulfilled')
+
+  const res = await fetch(`${HOST}/test`, { cachePath: dir, retry: false, cache: 'reload' })
+  const buf = await res.buffer()
+  t.ok(revalidateSrv.isDone(), 'second req fulfilled')
+  t.same(buf, CONTENT, 'got the right content')
+  t.equal(res.status, 200, 'got a 200')
+  t.equal(res.url, `${HOST}/test`, 'has the right url property')
+  t.equal(res.headers.get('cache-control'), 'max-age=300', 'kept cache-control')
+  t.equal(res.headers.get('content-type'), 'application/octet-stream', 'kept content-type')
+  t.equal(res.headers.get('content-length'), `${CONTENT.length}`, 'kept content-length')
+  t.equal(res.headers.get('etag'), '"beefc0ffee"', 'kept the etag')
+  t.equal(res.headers.get('x-local-cache'), encodeURIComponent(dir), 'encoded the path')
+  t.equal(res.headers.get('x-local-cache-status'), 'revalidated', 'got a cache revalidated')
+  t.equal(res.headers.get('x-local-cache-key'), encodeURIComponent(reqKey), 'got the right cache key')
+  t.equal(res.headers.get('x-local-cache-hash'), encodeURIComponent(INTEGRITY), 'has the right hash')
+  // just make sure x-local-cache-time is set, no need to assert its value
+  t.ok(res.headers.has('x-local-cache-time'))
+
+  const entries = await cacache.index.compact(dir, reqKey, () => false)
+  t.equal(entries.length, 2, 'should have 2 entries')
+})
+
+t.test('cache hit, cache mode reload 200', async (t) => {
+  const srv = nock(HOST)
+    .get('/test')
+    .reply(200, CONTENT, {
+      ...getHeaders(CONTENT),
+      etag: '"beefc0ffee"',
+    })
+
+  const revalidateSrv = nock(HOST, {
+    reqHeaders: {
+      'if-none-match': '"beefc0ffee"',
+    },
+  })
+    .get('/test')
+    .reply(200, CONTENT, {
+      ...getHeaders(CONTENT),
+      etag: '"beefcafe"',
+    })
+
+  const dir = t.testdir()
+  const reqKey = cacheKey(new Request(`${HOST}/test`))
+  const cacheRes = await fetch(`${HOST}/test`, { cachePath: dir })
+  await cacheRes.buffer() // drain it immediately so it stores to the cache
+  t.ok(srv.isDone(), 'first req fulfilled')
+
+  const res = await fetch(`${HOST}/test`, { cachePath: dir, retry: false, cache: 'reload' })
+  const buf = await res.buffer()
+  t.ok(revalidateSrv.isDone(), 'second req fulfilled')
+  t.same(buf, CONTENT, 'got the right content')
+  t.equal(res.status, 200, 'got a 200')
+  t.equal(res.url, `${HOST}/test`, 'has the right url property')
+  t.equal(res.headers.get('cache-control'), 'max-age=300', 'kept cache-control')
+  t.equal(res.headers.get('content-type'), 'application/octet-stream', 'kept content-type')
+  t.equal(res.headers.get('content-length'), `${CONTENT.length}`, 'kept content-length')
+  t.equal(res.headers.get('etag'), '"beefcafe"', 'kept the etag')
+  t.equal(res.headers.get('x-local-cache'), encodeURIComponent(dir), 'encoded the path')
+  t.equal(res.headers.get('x-local-cache-status'), 'updated', 'got a cache updated')
+  t.equal(res.headers.get('x-local-cache-key'), encodeURIComponent(reqKey), 'got the right cache key')
+  // just make sure x-local-cache-time is set, no need to assert its value
+  t.ok(res.headers.has('x-local-cache-time'))
+  t.notOk(res.headers.has('x-local-cache-hash'), 'does not have a hash')
+
+  const entries = await cacache.index.compact(dir, reqKey, () => false)
+  t.equal(entries.length, 2, 'should have two entries')
+  // because compact returns an array that has been run through reduceRight
+  // our newest entry will be the first in the resulting array. make sure we
+  // have the newest etag where it belongs
+  t.equal(entries[0].metadata.resHeaders.etag, '"beefcafe"', 'new etag takes priority')
+})
+
+t.test('cache hit, stale but mode is only-if-cached', async (t) => {
+  // rewind time to make cacache put a timestamp in the past
+  const now = Date.now()
+  const realNow = Date.now
+  Date.now = () => {
+    return now - (1000 * 60 * 10)
+  }
+  // restore it in a teardown just in case
+  // this test blows up early
+  t.teardown(() => {
+    Date.now = realNow
   })
 
-  t.test('invalidates cache on put/post/delete', t => {
-    const srv = tnock(t, HOST)
-    srv.get('/test').reply(200, CONTENT, {
-      'Cache-Control': 'immutable',
-      Foo: 'old',
-      Date: new Date().toUTCString(),
+  const srv = nock(HOST)
+    .get('/test')
+    .reply(200, CONTENT, {
+      ...getHeaders(CONTENT),
+      etag: '"beefc0ffee"',
     })
-    return fetch(`${HOST}/test`, {
-      cacheManager: CACHE,
-      retry: { retries: 0 },
-    }).then(res => {
-      t.equal(res.headers.get('Foo'), 'old', 'got old Foo header')
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, CONTENT, 'got remote content')
-      srv.post('/test').reply(201)
-      return fetch(`${HOST}/test`, {
-        method: 'post',
-        cacheManager: CACHE,
-        retry: { retries: 0 },
-      })
-    }).then(res => {
-      t.equal(res.status, 201, 'status code from POST')
-      return res.buffer()
-    }).then(body => {
-      srv.get('/test').reply(200, 'another', {
-        'Cache-Control': 'immutable',
-        Foo: 'another',
-        Date: new Date().toUTCString(),
-      })
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-        retry: { retries: 0 },
-      })
-    }).then(res => {
-      t.equal(res.status, 200, 'got a proper 200 code')
-      t.equal(res.headers.get('Foo'), 'another', 'got new Foo header')
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, Buffer.from('another'), 'got new remote content')
-      srv.put('/test').reply(201)
-      return fetch(`${HOST}/test`, {
-        method: 'put',
-        cacheManager: CACHE,
-        retry: { retries: 0 },
-      })
-    }).then(res => {
-      t.equal(res.status, 201, 'status code from POST')
-      return res.buffer()
-    }).then(body => {
-      srv.get('/test').reply(200, 'new', {
-        'Cache-Control': 'immutable',
-        Foo: 'new',
-        Date: new Date().toUTCString(),
-      })
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-        retry: { retries: 0 },
-      })
-    }).then(res => {
-      t.equal(res.status, 200, 'got a proper 200 code')
-      t.equal(res.headers.get('Foo'), 'new', 'got new Foo header')
-      return res.buffer()
-    })
+
+  const dir = t.testdir()
+  const reqKey = cacheKey(new Request(`${HOST}/test`))
+  const initialRes = await fetch(`${HOST}/test`, { cachePath: dir, retry: false })
+  await initialRes.buffer()
+  t.ok(srv.isDone())
+
+  // back to the present
+  Date.now = realNow
+
+  const revalidateRes = await fetch(`${HOST}/test`, { cachePath: dir, cache: 'only-if-cached' })
+  const revalidateBuf = await revalidateRes.buffer()
+  t.same(revalidateBuf, CONTENT, 'got the right content')
+  t.equal(revalidateRes.status, 200, 'got a 200')
+  t.equal(revalidateRes.headers.get('cache-control'), 'max-age=300', 'kept cache-control')
+  t.equal(revalidateRes.headers.get('content-type'), 'application/octet-stream', 'kept content-type')
+  t.equal(revalidateRes.headers.get('content-length'), `${CONTENT.length}`, 'kept content-length')
+  t.equal(revalidateRes.headers.get('etag'), '"beefc0ffee"', 'kept the etag')
+  t.equal(revalidateRes.headers.get('x-local-cache'), encodeURIComponent(dir), 'encoded the path')
+  t.equal(revalidateRes.headers.get('x-local-cache-status'), 'stale', 'got a cache stale')
+  t.equal(revalidateRes.headers.get('x-local-cache-key'), encodeURIComponent(reqKey), 'got the right cache key')
+  t.equal(revalidateRes.headers.get('x-local-cache-hash'), encodeURIComponent(INTEGRITY), 'has the right hash')
+  // just make sure x-local-cache-time is set, no need to assert its value
+  t.ok(revalidateRes.headers.has('x-local-cache-time'))
+
+  const entries = await cacache.index.compact(dir, reqKey, () => false)
+  t.equal(entries.length, 1, 'should have 1 entry')
+})
+
+t.test('cache hit, stale but revalidate request fails', async (t) => {
+  // rewind time to make cacache put a timestamp in the past
+  const now = Date.now()
+  const realNow = Date.now
+  Date.now = () => {
+    return now - (1000 * 60 * 10)
+  }
+  // restore it in a teardown just in case
+  // this test blows up early
+  t.teardown(() => {
+    Date.now = realNow
   })
 
-  t.test('request failures invalidate cache', t => {
-    const srv = tnock(t, HOST)
-    srv.get('/test').reply(200, CONTENT, {
-      'Cache-Control': 'must-revalidate',
-      ETag: 'thisisanetag',
-      Date: new Date().toUTCString(),
+  const srv = nock(HOST)
+    .get('/test')
+    .reply(200, CONTENT, {
+      ...getHeaders(CONTENT),
+      etag: '"beefc0ffee"',
     })
-    return fetch(`${HOST}/test`, {
-      cacheManager: CACHE,
-      retry: { retries: 0 },
-    }).then(res => {
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, CONTENT, 'got remote content')
-      srv.get('/test').reply(500)
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-        retry: { retries: 0 },
-      })
-    }).then(res => {
-      t.equal(res.status, 500, 'got a 500 because must-revalidate')
-      srv.get('/test').reply(200, CONTENT, {
-        'Cache-Control': 'must-revalidate',
-        ETag: 'thisisanetag',
-        Date: new Date().toUTCString(),
-      })
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-      })
-    }).then(res => {
-      t.equal(res.status, 200, 'original was invalidated -- fresh round-trip')
-      return res.buffer()
-    }).then(() => {
-      srv.put('/test').reply(500)
-      return fetch(`${HOST}/test`, {
-        method: 'put',
-        cacheManager: CACHE,
-        retry: { retries: 0 },
-      })
-    }).then(res => {
-      t.equal(res.status, 500, 'got a 500 because must-revalidate on PUT')
-      srv.get('/test').reply(200, CONTENT, {
-        'Cache-Control': 'must-revalidate',
-        ETag: 'thisisanetag',
-        Date: new Date().toUTCString(),
-      })
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-      })
-    }).then(res => {
-      t.equal(res.status, 200, 'original was invalidated -- fresh round-trip')
-      return res.buffer()
-    }).then(() => {
-      srv.put('/test').reply(500)
-      let calledOnRetry = 0
-      const onRetry = () => calledOnRetry++
-      return fetch(`${HOST}/test`, {
-        onRetry,
-        method: 'put',
-        cacheManager: CACHE,
-        retry: { retries: 0 },
-      }).then(res => {
-        t.equal(res.status, 500, 'got a 500 because must-revalidate on PUT')
-        t.equal(calledOnRetry, 1, 'if onRetry function provided, will be called')
-      })
-    })
+    .get('/test')
+    .replyWithError('failed request')
+
+  const dir = t.testdir()
+  const reqKey = cacheKey(new Request(`${HOST}/test`))
+  const initialRes = await fetch(`${HOST}/test`, { cachePath: dir, retry: false })
+  await initialRes.buffer()
+
+  // back to the present
+  Date.now = realNow
+
+  const revalidateRes = await fetch(`${HOST}/test`, { cachePath: dir, retry: false })
+  const revalidateBuf = await revalidateRes.buffer()
+  t.same(revalidateBuf, CONTENT, 'got the right content')
+  t.equal(revalidateRes.status, 200, 'got a 200')
+  t.equal(revalidateRes.url, `${HOST}/test`, 'has the right url property')
+  t.equal(revalidateRes.headers.get('cache-control'), 'max-age=300', 'kept cache-control')
+  t.equal(revalidateRes.headers.get('content-type'), 'application/octet-stream', 'kept content-type')
+  t.equal(revalidateRes.headers.get('content-length'), `${CONTENT.length}`, 'kept content-length')
+  t.equal(revalidateRes.headers.get('etag'), '"beefc0ffee"', 'kept the etag')
+  t.equal(revalidateRes.headers.get('x-local-cache'), encodeURIComponent(dir), 'encoded the path')
+  t.equal(revalidateRes.headers.get('x-local-cache-status'), 'stale', 'got a cache stale')
+  t.equal(revalidateRes.headers.get('x-local-cache-key'), encodeURIComponent(reqKey), 'got the right cache key')
+  t.equal(revalidateRes.headers.get('x-local-cache-hash'), encodeURIComponent(INTEGRITY), 'has the right hash')
+  // just make sure x-local-cache-time is set, no need to assert its value
+  t.ok(revalidateRes.headers.has('x-local-cache-time'))
+
+  const entries = await cacache.index.compact(dir, reqKey, () => false)
+  t.equal(entries.length, 1, 'should have 1 entry')
+  t.ok(srv.isDone())
+})
+
+t.test('cache hit, stale, revalidate request fails and response has must-revalidate', async (t) => {
+  // rewind time to make cacache put a timestamp in the past
+  const now = Date.now()
+  const realNow = Date.now
+  Date.now = () => {
+    return now - (1000 * 60 * 10)
+  }
+  // restore it in a teardown just in case
+  // this test blows up early
+  t.teardown(() => {
+    Date.now = realNow
   })
 
-  t.test('uses GET cache if request is HEAD (without returning body)', t => {
-    tnock(t, HOST).get('/test').reply(200, CONTENT)
-    return fetch(`${HOST}/test`, {
-      cacheManager: CACHE,
-      retry: { retries: 0 },
-    }).then(res => res.buffer()).then(body => {
-      t.deepEqual(body, CONTENT, 'got remote content')
-      return fetch(`${HOST}/test`, {
-        method: 'head',
-        cacheManager: CACHE,
-        retry: { retries: 0 },
-      })
-    }).then(res => {
-      t.equal(res.status, 200, 'HEAD hit cached path!')
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, Buffer.from(''), 'no body')
+  const srv = nock(HOST)
+    .get('/test')
+    .reply(200, CONTENT, {
+      ...getHeaders(CONTENT),
+      etag: '"beefc0ffee"',
+      'cache-control': 'must-revalidate',
     })
+    .get('/test')
+    .replyWithError({
+      message: 'failed request',
+      code: 'ECONNRESET',
+    })
+
+  const dir = t.testdir()
+  const initialRes = await fetch(`${HOST}/test`, { cachePath: dir, retry: false })
+  await initialRes.buffer()
+
+  // back to the present
+  Date.now = realNow
+
+  await t.rejects(fetch(`${HOST}/test`, { cachePath: dir, retry: false }), { code: 'ECONNRESET' }, 'rejects with error from request')
+  t.ok(srv.isDone())
+})
+
+t.test('cache hit, policy requires revalidation', async (t) => {
+  // rewind time to make cacache put a timestamp in the past
+  const now = Date.now()
+  const realNow = Date.now
+  Date.now = () => {
+    return now - (1000 * 60 * 10)
+  }
+  // restore it in a teardown just in case
+  // this test blows up early
+  t.teardown(() => {
+    Date.now = realNow
   })
 
-  t.test('file handle not opened if body stream never used', t => {
-    tnock(t, HOST).get('/test').reply(200, CONTENT)
-    return fetch(`${HOST}/test`, {
-      cacheManager: CACHE,
-      retry: { retries: 0 },
-    }).then(res => res.buffer()).then(body => {
-      t.deepEqual(body, CONTENT, 'got remote content')
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-      })
-    }).then(res => {
-      t.equal(res.status, 200, 'Got a 200 response!')
-      t.comment('TODO: this test is "ok" because it used to crash, but it needs to do the job some better way.')
+  const initialSrv = nock(HOST)
+    .get('/test')
+    .reply(200, CONTENT, {
+      ...getHeaders(CONTENT),
+      etag: '"beefc0ffee"',
     })
-  })
 
-  t.test('checks for staleness using Cache-Control: max-age', t => {
-    const srv = tnock(t, HOST)
-    srv.get('/test').reply(200, CONTENT, {
-      'Cache-Control': 'max-age=0',
-    })
-    return fetch(`${HOST}/test`, {
-      cacheManager: CACHE,
-    }).then(res => res.buffer()).then(() => {
-      srv.get('/test').reply(304, 'feh', {
-        'Cache-Control': 'max-age=1',
-      })
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-      })
-    }).then(res => {
-      t.equal(res.status, 304, 'request revalidated')
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-      })
-    }).then(res => {
-      t.equal(res.status, 200, 'request no longer stale')
-    })
+  const revalidateSrv = nock(HOST, {
+    reqHeaders: {
+      'if-none-match': '"beefc0ffee"',
+    },
   })
+    .get('/test')
+    .reply(304)
 
-  t.test('does not store response if it has Cache-Control: no-store header', t => {
-    const srv = tnock(t, HOST)
-    srv.get('/test').reply(200, CONTENT, {
-      'Cache-Control': 'no-store',
+  const dir = t.testdir()
+  const reqKey = cacheKey(new Request(`${HOST}/test`))
+  const initialRes = await fetch(`${HOST}/test`, { cachePath: dir })
+  await initialRes.buffer()
+  t.ok(initialSrv.isDone())
+
+  // back to the present
+  Date.now = realNow
+
+  const revalidateRes = await fetch(`${HOST}/test`, { cachePath: dir })
+  const revalidateBuf = await revalidateRes.buffer()
+  t.ok(revalidateSrv.isDone())
+  t.same(revalidateBuf, CONTENT, 'got the right content')
+  t.equal(revalidateRes.status, 200, 'got a 200')
+  t.equal(revalidateRes.headers.get('cache-control'), 'max-age=300', 'kept cache-control')
+  t.equal(revalidateRes.headers.get('content-type'), 'application/octet-stream', 'kept content-type')
+  t.equal(revalidateRes.headers.get('content-length'), `${CONTENT.length}`, 'kept content-length')
+  t.equal(revalidateRes.headers.get('etag'), '"beefc0ffee"', 'kept the etag')
+  t.equal(revalidateRes.headers.get('x-local-cache'), encodeURIComponent(dir), 'encoded the path')
+  t.equal(revalidateRes.headers.get('x-local-cache-status'), 'revalidated', 'got a cache revalidated')
+  t.equal(revalidateRes.headers.get('x-local-cache-key'), encodeURIComponent(reqKey), 'got the right cache key')
+  t.equal(revalidateRes.headers.get('x-local-cache-hash'), encodeURIComponent(INTEGRITY), 'has the right hash')
+  // just make sure x-local-cache-time is set, no need to assert its value
+  t.ok(revalidateRes.headers.has('x-local-cache-time'))
+
+  const entries = await cacache.index.compact(dir, reqKey, () => false)
+  t.equal(entries.length, 2, 'should have 2 entries')
+})
+
+t.test('cached GET is used for HEAD', async (t) => {
+  const srv = nock(HOST)
+    .get('/test')
+    .reply(200, CONTENT, {
+      ...getHeaders(CONTENT),
+      etag: '"beefc0ffee"',
     })
-    return fetch(`${HOST}/test`, {
-      cacheManager: CACHE,
-    }).then(res => res.buffer()).then(buf => {
-      t.deepEqual(buf, CONTENT, 'got content from original req')
-      srv.get('/test').reply(200, 'feh')
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-      })
-    }).then(res => {
-      t.equal(res.status, 200, 'request made again -- no cache used')
-      return res.buffer()
-    }).then(buf => {
-      t.deepEqual(buf, Buffer.from('feh'), 'body from second request used')
+
+  const dir = t.testdir()
+  const reqKey = cacheKey(new Request(`${HOST}/test`))
+  const cacheRes = await fetch(`${HOST}/test`, { cachePath: dir })
+  await cacheRes.buffer() // drain it immediately so it stores to the cache
+  t.ok(srv.isDone(), 'req has fulfilled')
+
+  const res = await fetch(`${HOST}/test`, { method: 'HEAD', cachePath: dir })
+  const buf = await res.buffer()
+  t.same(buf, Buffer.from([]), 'got no content')
+  t.equal(res.status, 200, 'got a 200')
+  t.equal(res.url, `${HOST}/test`, 'has the right url property')
+  t.equal(res.headers.get('cache-control'), 'max-age=300', 'kept cache-control')
+  t.equal(res.headers.get('content-type'), 'application/octet-stream', 'kept content-type')
+  t.equal(res.headers.get('content-length'), `${CONTENT.length}`, 'kept content-length')
+  t.equal(res.headers.get('x-local-cache'), encodeURIComponent(dir), 'encoded the path')
+  t.equal(res.headers.get('x-local-cache-status'), 'hit', 'got a cache hit')
+  t.equal(res.headers.get('x-local-cache-key'), encodeURIComponent(reqKey), 'got the right cache key')
+  t.equal(res.headers.get('x-local-cache-hash'), encodeURIComponent(INTEGRITY), 'has the right hash')
+  // just make sure x-local-cache-time is set, no need to assert its value
+  t.ok(res.headers.has('x-local-cache-time'))
+})
+
+t.test('HEAD requests are not stored', async (t) => {
+  const srv = nock(HOST)
+    .head('/test')
+    .reply(200, undefined, getHeaders(CONTENT))
+
+  const dir = t.testdir()
+  const res = await fetch(`${HOST}/test`, { method: 'HEAD', cachePath: dir })
+  const buf = await res.buffer()
+  t.ok(srv.isDone())
+  t.equal(res.status, 200, 'got a 200')
+  t.equal(res.url, `${HOST}/test`, 'has the right url property')
+  t.same(buf, Buffer.from([]), 'got no body')
+  t.equal(res.headers.get('x-local-cache-status'), 'skip', 'did not cache the response')
+})
+
+t.test('caches resulting GET after initial redirect', async (t) => {
+  const srv = nock(HOST)
+    .get('/test')
+    .reply(301, undefined, {
+      location: `${HOST}/final`,
+      'cache-control': 'max-age=300',
     })
+    .get('/final')
+    .reply(200, CONTENT, {
+      ...getHeaders(CONTENT),
+      etag: '"beefc0ffee"',
+    })
+
+  const dir = t.testdir()
+  // note: the request to /test will be cached with a status of 303, but
+  // the key we cache the content under is the key for /final and that's
+  // what will be indicated in the response headers
+  const redirectKey = cacheKey(new Request(`${HOST}/test`))
+  const reqKey = cacheKey(new Request(`${HOST}/final`))
+  const res = await fetch(`${HOST}/test`, { cachePath: dir })
+  const buf = await res.buffer()
+  t.ok(srv.isDone())
+  t.same(buf, CONTENT, 'got the right body')
+  t.equal(res.status, 200, 'got a 200')
+  t.equal(res.url, `${HOST}/final`, 'has the right url property')
+  t.equal(res.headers.get('cache-control'), 'max-age=300', 'kept cache-control')
+  t.equal(res.headers.get('content-type'), 'application/octet-stream', 'kept content-type')
+  t.equal(res.headers.get('content-length'), `${CONTENT.length}`, 'kept content-length')
+  t.equal(res.headers.get('x-local-cache'), encodeURIComponent(dir), 'encoded the path')
+  t.equal(res.headers.get('x-local-cache-status'), 'miss', 'got a cache hit')
+  t.equal(res.headers.get('x-local-cache-key'), encodeURIComponent(reqKey), 'got the right cache key')
+  // just make sure x-local-cache-time is set, no need to assert its value
+  t.ok(res.headers.has('x-local-cache-time'))
+  t.notOk(res.headers.has('x-local-cache-hash'), 'should not have a hash for initial write')
+
+  const secondRes = await fetch(`${HOST}/test`, { cachePath: dir })
+  const secondBuf = await secondRes.buffer()
+  t.same(secondBuf, CONTENT, 'got the right body')
+  t.equal(secondRes.status, 200, 'got a 200')
+  t.equal(secondRes.url, `${HOST}/final`, 'has the right url property')
+  t.equal(secondRes.headers.get('cache-control'), 'max-age=300', 'kept cache-control')
+  t.equal(secondRes.headers.get('content-type'), 'application/octet-stream', 'kept content-type')
+  t.equal(secondRes.headers.get('content-length'), `${CONTENT.length}`, 'kept content-length')
+  t.equal(secondRes.headers.get('x-local-cache'), encodeURIComponent(dir), 'encoded the path')
+  t.equal(secondRes.headers.get('x-local-cache-status'), 'hit', 'got a cache hit')
+  t.equal(secondRes.headers.get('x-local-cache-key'), encodeURIComponent(reqKey), 'got the right cache key')
+  t.equal(secondRes.headers.get('x-local-cache-hash'), encodeURIComponent(INTEGRITY), 'got the correct hash')
+  // just make sure x-local-cache-time is set, no need to assert its value
+  t.ok(secondRes.headers.has('x-local-cache-time'))
+
+  // the redirect itself is cached too
+  const redirectRes = await fetch(`${HOST}/test`, { cachePath: dir, redirect: 'manual' })
+  t.equal(redirectRes.status, 301, 'got the redirect')
+  t.equal(redirectRes.url, `${HOST}/test`, 'has the right url property')
+  t.equal(redirectRes.headers.get('location'), `${HOST}/final`, 'kept the location header')
+  t.equal(redirectRes.headers.get('x-local-cache-status'), 'hit', 'cache hit')
+  t.equal(redirectRes.headers.get('x-local-cache-key'), encodeURIComponent(redirectKey), 'has the correct key')
+})
+
+t.test('cache misses when accept header differs', async (t) => {
+  const jsonContent = Buffer.from(JSON.stringify({ some: 'data' }))
+  const jsonSrv = nock(HOST, {
+    reqHeaders: {
+      accept: 'application/json',
+    },
   })
-
-  t.test('supports matching using Vary header', t => {
-    const srv = tnock(t, HOST)
-    srv.get('/test').reply(200, CONTENT, {
-      Vary: 'Accept',
-      'Cache-Control': 'immutable',
-      'Content-Type': 'fullfat',
+    .get('/test')
+    .reply(200, jsonContent, {
+      ...getHeaders(jsonContent),
+      'content-type': 'application/json',
     })
-    return fetch(`${HOST}/test`, {
-      cacheManager: CACHE,
-      headers: {
-        accept: 'fullfat',
+
+  const plainSrv = nock(HOST, {
+    reqHeaders: {
+      accept: 'application/octet-stream',
+    },
+  })
+    .get('/test')
+    .reply(200, CONTENT, getHeaders(CONTENT))
+
+  const dir = t.testdir()
+  const jsonRes = await fetch(`${HOST}/test`, {
+    cachePath: dir,
+    headers: {
+      accept: 'application/json',
+    },
+  })
+  const json = await jsonRes.json()
+  t.ok(jsonSrv.isDone())
+  t.same(json, { some: 'data' }, 'got the right content')
+  t.equal(jsonRes.headers.get('content-type'), 'application/json', 'got the right content type')
+  t.equal(jsonRes.headers.get('x-local-cache-status'), 'miss', 'got a miss status')
+
+  const plainRes = await fetch(`${HOST}/test`, {
+    cachePath: dir,
+    headers: {
+      accept: 'application/octet-stream',
+    },
+  })
+  const plain = await plainRes.buffer()
+  t.ok(plainSrv.isDone())
+  t.same(plain, CONTENT, 'got the right content')
+  t.equal(plainRes.headers.get('content-type'), 'application/octet-stream', 'got the right content type')
+  t.equal(plainRes.headers.get('x-local-cache-status'), 'miss', 'got a miss status')
+})
+
+t.test('cache hits with the correct content-type', async (t) => {
+  const jsonContent = Buffer.from(JSON.stringify({ some: 'data' }))
+  const jsonSrv = nock(HOST, {
+    reqHeaders: {
+      accept: 'application/json',
+    },
+  })
+    .get('/test')
+    .reply(200, jsonContent, {
+      ...getHeaders(jsonContent),
+      etag: '"beef"',
+      'content-type': 'application/json',
+    })
+
+  const plainSrv = nock(HOST, {
+    reqHeaders: {
+      accept: 'application/octet-stream',
+    },
+  })
+    .get('/test')
+    .reply(200, CONTENT, {
+      ...getHeaders(CONTENT),
+      etag: '"cafe"',
+    })
+
+  const fooSrv = nock(HOST, {
+    reqHeaders: {
+      accept: 'application/x-foo',
+    },
+  })
+    .get('/test')
+    .reply(200, CONTENT, {
+      ...getHeaders(CONTENT),
+      etag: '"c0ffee"',
+      'content-type': 'application/x-foo',
+    })
+
+  const dir = t.testdir()
+  const jsonRes = await fetch(`${HOST}/test`, {
+    cachePath: dir,
+    headers: {
+      accept: 'application/json',
+    },
+  })
+  const json = await jsonRes.json()
+  t.ok(jsonSrv.isDone())
+  t.same(json, { some: 'data' }, 'got the right content')
+  t.equal(jsonRes.headers.get('content-type'), 'application/json', 'got the right content type')
+  t.equal(jsonRes.headers.get('x-local-cache-status'), 'miss', 'got a miss status')
+
+  const plainRes = await fetch(`${HOST}/test`, {
+    cachePath: dir,
+    headers: {
+      accept: 'application/octet-stream',
+    },
+  })
+  const plain = await plainRes.buffer()
+  t.ok(plainSrv.isDone())
+  t.same(plain, CONTENT, 'got the right content')
+  t.equal(plainRes.headers.get('content-type'), 'application/octet-stream', 'got the right content type')
+  t.equal(plainRes.headers.get('x-local-cache-status'), 'miss', 'got a miss status')
+
+  const fooRes = await fetch(`${HOST}/test`, {
+    cachePath: dir,
+    headers: {
+      accept: 'application/x-foo',
+    },
+  })
+  const foo = await fooRes.buffer()
+  t.ok(fooSrv.isDone())
+  t.same(foo, CONTENT, 'got the right content')
+  t.equal(fooRes.headers.get('content-type'), 'application/x-foo', 'got the right content type')
+  t.equal(fooRes.headers.get('x-local-cache-status'), 'miss', 'got a miss status')
+
+  const cachedJsonRes = await fetch(`${HOST}/test`, {
+    cachePath: dir,
+    headers: {
+      accept: 'application/json',
+    },
+  })
+  const cachedJson = await cachedJsonRes.json()
+  t.same(cachedJson, { some: 'data' }, 'got the right content')
+  t.equal(cachedJsonRes.headers.get('content-type'), 'application/json', 'got the right content type')
+  t.equal(cachedJsonRes.headers.get('x-local-cache-status'), 'hit', 'got a hit status')
+
+  const cachedPlainRes = await fetch(`${HOST}/test`, {
+    cachePath: dir,
+    headers: {
+      accept: 'application/octet-stream',
+    },
+  })
+  const cachedPlain = await cachedPlainRes.buffer()
+  t.same(cachedPlain, CONTENT, 'got the right content')
+  t.equal(cachedPlainRes.headers.get('content-type'), 'application/octet-stream', 'got the right content type')
+  t.equal(cachedPlainRes.headers.get('x-local-cache-status'), 'hit', 'got a hit status')
+
+  const cachedFooRes = await fetch(`${HOST}/test`, {
+    cachePath: dir,
+    headers: {
+      accept: 'application/x-foo',
+    },
+  })
+  const cachedFoo = await cachedFooRes.buffer()
+  t.same(cachedFoo, CONTENT, 'got the right content')
+  t.equal(cachedFooRes.headers.get('content-type'), 'application/x-foo', 'got the right content type')
+  t.equal(cachedFooRes.headers.get('x-local-cache-status'), 'hit', 'got a miss status')
+})
+
+t.test('large payload switches to streaming mode', async (t) => {
+  const desiredSize = 5 * 1024 * 1024 // 5MB, currently hard coded in lib/cache/entry.js
+  const count = Math.ceil(desiredSize / CONTENT.length) + 1
+  const largeContent = Buffer.from(new Array(count).join(CONTENT))
+  const expectedIntegrity = ssri.fromData(largeContent).toString()
+  const srv = nock(HOST)
+    .get('/test')
+    .reply(200, largeContent, {
+      ...getHeaders(largeContent),
+      etag: '"c0ffeecafe"',
+    })
+
+  const reqKey = cacheKey(new Request(`${HOST}/test`))
+  const dir = t.testdir()
+  const res = await fetch(`${HOST}/test`, { cachePath: dir })
+  const buf = await res.buffer()
+  t.same(buf, largeContent, 'got the correct content')
+  t.ok(srv.isDone(), 'req is fulfilled')
+  t.equal(res.status, 200, 'got success status')
+  t.equal(res.headers.get('cache-control'), 'max-age=300', 'kept cache-control')
+  t.equal(res.headers.get('content-type'), 'application/octet-stream', 'kept content-stream')
+  t.equal(res.headers.get('content-length'), `${largeContent.length}`, 'kept content-length')
+  t.equal(res.headers.get('x-local-cache'), encodeURIComponent(dir), 'has cache dir')
+  t.equal(res.headers.get('x-local-cache-key'), encodeURIComponent(reqKey), 'has cache key')
+  t.equal(res.headers.get('x-local-cache-mode'), 'stream', 'used a stream to store')
+  t.equal(res.headers.get('x-local-cache-status'), 'miss', 'identifies as cache miss')
+  t.ok(res.headers.has('x-local-cache-time'), 'has cache time')
+  t.notOk(res.headers.has('x-local-cache-hash'), 'hash header is only set when served from cache')
+
+  const cachedRes = await fetch(`${HOST}/test`, { cachePath: dir })
+  const cachedBuf = await cachedRes.buffer()
+  t.equal(cachedRes.status, 200, 'got success status')
+  t.same(cachedBuf, largeContent, 'got the correct content')
+  t.equal(cachedRes.headers.get('cache-control'), 'max-age=300', 'kept cache-control')
+  t.equal(cachedRes.headers.get('content-type'), 'application/octet-stream', 'kept content-stream')
+  t.equal(cachedRes.headers.get('content-length'), `${largeContent.length}`, 'kept content-length')
+  t.equal(cachedRes.headers.get('x-local-cache'), encodeURIComponent(dir), 'has cache dir')
+  t.equal(cachedRes.headers.get('x-local-cache-hash'), encodeURIComponent(expectedIntegrity), 'hash header is only set when served from cache')
+  t.equal(cachedRes.headers.get('x-local-cache-key'), encodeURIComponent(reqKey), 'has cache key')
+  t.equal(cachedRes.headers.get('x-local-cache-mode'), 'stream', 'used a stream to respond')
+  t.equal(cachedRes.headers.get('x-local-cache-status'), 'hit', 'identifies as cache hit')
+  t.ok(cachedRes.headers.has('x-local-cache-time'), 'has cache time')
+})
+
+t.test('errors streaming from cache propagate to request', async (t) => {
+  const desiredSize = 5 * 1024 * 1024 // 5MB, currently hard coded in lib/cache/entry.js
+  const count = Math.ceil(desiredSize / CONTENT.length) + 1
+  const largeContent = Buffer.from(new Array(count).join(CONTENT))
+  const srv = nock(HOST)
+    .get('/test')
+    .reply(200, largeContent, {
+      ...getHeaders(largeContent),
+      etag: '"c0ffeecafe"',
+    })
+
+  const dir = t.testdir()
+  const res = await fetch(`${HOST}/test`, { cachePath: dir })
+  const buf = await res.buffer()
+  t.same(buf, largeContent, 'got the correct content')
+  t.ok(srv.isDone(), 'req is fulfilled')
+  t.equal(res.status, 200, 'got success status')
+  t.equal(res.headers.get('x-local-cache-mode'), 'stream', 'used a stream to store')
+  t.equal(res.headers.get('x-local-cache-status'), 'miss', 'identifies as cache miss')
+
+  const hexIntegrity = ssri.fromData(largeContent).hexDigest()
+  const cachedContent = join(dir, 'content-v2', 'sha512', hexIntegrity.slice(0, 2), hexIntegrity.slice(2, 4), hexIntegrity.slice(4))
+  t.ok(fs.existsSync(cachedContent), 'cache file is present')
+  // delete the real content, and write garbage in its place
+  fs.unlinkSync(cachedContent)
+  fs.writeFileSync(cachedContent, 'invalid data', { flag: 'wx' })
+
+  const cachedRes = await fetch(`${HOST}/test`, { cachePath: dir })
+  t.equal(cachedRes.status, 200, 'got success status')
+  t.equal(cachedRes.headers.get('x-local-cache-mode'), 'stream', 'used a stream to respond')
+  t.equal(cachedRes.headers.get('x-local-cache-status'), 'hit', 'identifies as cache hit')
+  await t.rejects(cachedRes.buffer(), { code: 'EINTEGRITY' }, 'rejects when consuming body')
+})
+
+t.test('errors reading from cache propagate to request', async (t) => {
+  const srv = nock(HOST)
+    .get('/test')
+    .reply(200, CONTENT, {
+      ...getHeaders(CONTENT),
+      etag: '"beefc0ffee"',
+    })
+
+  const dir = t.testdir()
+  const cacheRes = await fetch(`${HOST}/test`, { cachePath: dir })
+  await cacheRes.buffer() // drain it immediately so it stores to the cache
+  t.ok(srv.isDone(), 'req has fulfilled')
+
+  const hexIntegrity = ssri.fromData(CONTENT).hexDigest()
+  const cachedContent = join(dir, 'content-v2', 'sha512', hexIntegrity.slice(0, 2), hexIntegrity.slice(2, 4), hexIntegrity.slice(4))
+  t.ok(fs.existsSync(cachedContent), 'cache file is present')
+  // delete the real content, and write garbage in its place
+  fs.unlinkSync(cachedContent)
+  fs.writeFileSync(cachedContent, 'invalid data', { flag: 'wx' })
+
+  const res = await fetch(`${HOST}/test`, { cachePath: dir })
+  t.equal(res.status, 200, 'got a success response')
+  t.equal(res.headers.get('x-local-cache-status'), 'hit', 'got a cache hit')
+  await t.rejects(res.buffer(), { code: 'EINTEGRITY' }, 'consuming payload rejects')
+})
+
+t.test('keeps encoding headers when compress is disabled', async (t) => {
+  const gzippedContent = zlib.gzipSync(CONTENT)
+  const srv = nock(HOST)
+    .get('/test')
+    .reply(200, gzippedContent, {
+      ...getHeaders(gzippedContent),
+      etag: '"c0ffee"',
+      'content-encoding': 'gzip',
+    })
+    .get('/test')
+    .reply(200, CONTENT, {
+      ...getHeaders(CONTENT),
+      etag: '"c0ffee"',
+    })
+
+  const dir = t.testdir()
+  const cacheRes = await fetch(`${HOST}/test`, {
+    cachePath: dir,
+    compress: false,
+    headers: {
+      'accept-encoding': 'gzip',
+    },
+  })
+  const cacheBuf = await cacheRes.buffer()
+  t.same(cacheBuf, gzippedContent, 'returned the gzipped content')
+  t.equal(cacheRes.status, 200, 'got a success response')
+  t.equal(cacheRes.headers.get('x-local-cache-status'), 'miss', 'got a cache miss')
+  t.equal(cacheRes.headers.get('content-encoding'), 'gzip', 'kept content-encoding')
+
+  const res = await fetch(`${HOST}/test`, {
+    cachePath: dir,
+    compress: false,
+    headers: {
+      'accept-encoding': 'gzip',
+    },
+  })
+  const buf = await res.buffer()
+  t.same(buf, gzippedContent, 'returned the gzipped content')
+  t.equal(res.status, 200, 'got a success response')
+  t.equal(res.headers.get('x-local-cache-status'), 'hit', 'got a cache hit')
+  t.equal(res.headers.get('content-encoding'), 'gzip', 'kept content-encoding')
+
+  const reqKey = cacheKey(new Request(`${HOST}/test`))
+  const entries = await cacache.index.compact(dir, reqKey, () => false)
+  t.equal(entries.length, 1, 'cache has one entry')
+  t.equal(entries[0].metadata.reqHeaders['accept-encoding'], 'gzip', 'kept the request header')
+  t.equal(entries[0].metadata.resHeaders['content-encoding'], 'gzip', 'kept the response header')
+
+  const compressRes = await fetch(`${HOST}/test`, { cachePath: dir })
+  const compressBuf = await compressRes.buffer()
+  t.same(compressBuf, CONTENT, 'got the expected content')
+  t.equal(compressRes.status, 200, 'got a success')
+  t.equal(compressRes.headers.get('x-local-cache-status'), 'miss', 'got a cache miss')
+  t.notOk(compressRes.headers.has('content-encoding'), 'did not get a content-encoding header')
+
+  const newEntries = await cacache.index.compact(dir, reqKey, () => false)
+  t.equal(newEntries.length, 2, 'cache now has two entries')
+  t.ok(srv.isDone())
+})
+
+t.test('handles vary header correctly', async (t) => {
+  const enContent = Buffer.from('hello')
+  const esContent = Buffer.from('hola')
+
+  const enSrv = nock(HOST, {
+    reqHeaders: {
+      'accept-language': 'en',
+    },
+  })
+    .get('/test')
+    .reply(200, enContent, {
+      ...getHeaders(enContent),
+      etag: '"beef"',
+      'content-language': 'en',
+      vary: 'accept-language',
+    })
+
+  const esSrv = nock(HOST, {
+    reqHeaders: {
+      'accept-language': 'es',
+    },
+  })
+    .get('/test')
+    .reply(200, esContent, {
+      ...getHeaders(esContent),
+      etag: '"cafe"',
+      'content-language': 'es',
+      vary: 'accept-language',
+    })
+
+  const dir = t.testdir()
+  const enInitialRes = await fetch(`${HOST}/test`, {
+    cachePath: dir,
+    headers: {
+      'accept-language': 'en',
+    },
+  })
+  t.equal(enInitialRes.status, 200, 'got a success status')
+  t.equal(enInitialRes.headers.get('x-local-cache-status'), 'miss', 'got a cache miss')
+  t.equal(enInitialRes.headers.get('content-language'), 'en', 'kept content-language')
+  const enInitialBuf = await enInitialRes.buffer()
+  t.same(enInitialBuf, enContent, 'got the right content')
+  t.ok(enSrv.isDone())
+
+  const esInitialRes = await fetch(`${HOST}/test`, {
+    cachePath: dir,
+    headers: {
+      'accept-language': 'es',
+    },
+  })
+  t.equal(esInitialRes.status, 200, 'got a success status')
+  t.equal(esInitialRes.headers.get('x-local-cache-status'), 'miss', 'got a cache miss')
+  t.equal(esInitialRes.headers.get('content-language'), 'es', 'kept content-language')
+  const esInitialBuf = await esInitialRes.buffer()
+  t.same(esInitialBuf, esContent, 'got the right content')
+  t.ok(esSrv.isDone())
+
+  const enCachedRes = await fetch(`${HOST}/test`, {
+    cachePath: dir,
+    headers: {
+      'accept-language': 'en',
+    },
+  })
+  t.equal(enCachedRes.status, 200, 'got success status')
+  t.equal(enCachedRes.headers.get('x-local-cache-status'), 'hit', 'got a cache hit')
+  t.equal(enCachedRes.headers.get('content-language'), 'en', 'got the right content-language')
+  const enCachedBuf = await enCachedRes.buffer()
+  t.same(enCachedBuf, enContent, 'got the right content')
+
+  const esCachedRes = await fetch(`${HOST}/test`, {
+    cachePath: dir,
+    headers: {
+      'accept-language': 'es',
+    },
+  })
+  t.equal(esCachedRes.status, 200, 'got success status')
+  t.equal(esCachedRes.headers.get('x-local-cache-status'), 'hit', 'got a cache hit')
+  t.equal(esCachedRes.headers.get('content-language'), 'es', 'got the right content-language')
+  const esCachedBuf = await esCachedRes.buffer()
+  t.same(esCachedBuf, esContent, 'got the right content')
+})
+
+t.test('cache misses when urls match but host header differs', async (t) => {
+  const srv = nock(HOST)
+    .get('/test')
+    .twice()
+    .reply(200, CONTENT, {
+      ...getHeaders(CONTENT),
+      etag: '"beef"',
+    })
+
+  const dir = t.testdir()
+  const reqKey = cacheKey(new Request(`${HOST}/test`))
+  const initialRes = await fetch(`${HOST}/test`, {
+    cachePath: dir,
+    headers: {
+      host: 'foo.bar:443',
+    },
+  })
+  t.equal(initialRes.status, 200, 'got a 200')
+  t.equal(initialRes.headers.get('x-local-cache-status'), 'miss', 'got a cache miss')
+  const initialBuf = await initialRes.buffer()
+  t.same(initialBuf, CONTENT, 'got the right content')
+
+  const secondRes = await fetch(`${HOST}/test`, {
+    cachePath: dir,
+    headers: {
+      host: 'bar.baz:443',
+    },
+  })
+  t.equal(secondRes.status, 200, 'got a 200')
+  t.equal(secondRes.headers.get('x-local-cache-status'), 'miss', 'got a cache miss')
+  const secondBuf = await secondRes.buffer()
+  t.same(secondBuf, CONTENT, 'got the right content')
+
+  const entries = await cacache.index.compact(dir, reqKey, () => false)
+  t.equal(entries.length, 2, 'should have two entries')
+  // entries are newest first
+  t.equal(entries[0].metadata.reqHeaders.host, 'bar.baz:443', 'host header was saved')
+  t.equal(entries[1].metadata.reqHeaders.host, 'foo.bar:443', 'host header was saved')
+
+  t.ok(srv.isDone())
+})
+
+t.test('vary headers in response correctly store the request headers in cache', async (t) => {
+  const srv = nock(HOST)
+    .get('/star')
+    .reply(200, CONTENT, {
+      ...getHeaders(CONTENT),
+      vary: '*',
+    })
+    .get('/foo')
+    .reply(200, CONTENT, {
+      ...getHeaders(CONTENT),
+      vary: 'x-foo',
+    })
+
+  const dir = t.testdir()
+
+  const starKey = cacheKey(new Request(`${HOST}/star`))
+  const starRes = await fetch(`${HOST}/star`, {
+    cachePath: dir,
+    headers: {
+      'x-foo': 'bar',
+    },
+  })
+  t.equal(starRes.status, 200, 'got success response')
+  t.equal(starRes.headers.get('x-local-cache-status'), 'miss', 'cache misses')
+  const starBuf = await starRes.buffer()
+  t.same(starBuf, CONTENT, 'got the correct content')
+
+  const starEntries = await cacache.index.compact(dir, starKey, () => false)
+  t.equal(starEntries.length, 1, 'has one entry')
+  t.equal(starEntries[0].metadata.reqHeaders['x-foo'], undefined, 'did not keep x-foo')
+
+  const fooKey = cacheKey(new Request(`${HOST}/foo`))
+  const fooRes = await fetch(`${HOST}/foo`, {
+    cachePath: dir,
+    headers: {
+      'x-foo': 'bar',
+    },
+  })
+  t.equal(fooRes.status, 200, 'got success response')
+  t.equal(fooRes.headers.get('x-local-cache-status'), 'miss', 'cache misses')
+  const fooBuf = await fooRes.buffer()
+  t.same(fooBuf, CONTENT, 'got the correct content')
+
+  const fooEntries = await cacache.index.compact(dir, fooKey, () => false)
+  t.equal(fooEntries.length, 1, 'has one entry')
+  t.equal(fooEntries[0].metadata.reqHeaders['x-foo'], 'bar', 'did keep x-foo')
+  t.ok(srv.isDone())
+})
+
+t.test('cache is invalidated by a non-GET/HEAD request to the same url', async (t) => {
+  const srv = nock(HOST)
+    .get('/test')
+    .twice()
+    .reply(200, CONTENT, {
+      ...getHeaders(CONTENT),
+      etag: '"beef"',
+    })
+    .post('/test')
+    .reply(201)
+
+  const dir = t.testdir()
+  const initialRes = await fetch(`${HOST}/test`, {
+    cachePath: dir,
+  })
+  t.equal(initialRes.status, 200, 'got a success response')
+  t.equal(initialRes.headers.get('x-local-cache-status'), 'miss', 'was a cache miss')
+  await initialRes.buffer() // consume the buffer so the cache stores it
+
+  // first request should've cached, this proves it
+  const verifyRes = await fetch(`${HOST}/test`, {
+    cachePath: dir,
+  })
+  t.equal(verifyRes.status, 200, 'got a success response')
+  t.equal(verifyRes.headers.get('x-local-cache-status'), 'hit', 'was a cache hit')
+
+  // the POST request invalidates the url entirely
+  const postRes = await fetch(`${HOST}/test`, {
+    method: 'POST',
+    body: null,
+    cachePath: dir,
+  })
+  t.equal(postRes.status, 201, 'got the right response')
+
+  // now this fetch will be a miss
+  const afterRes = await fetch(`${HOST}/test`, {
+    cachePath: dir,
+  })
+  t.equal(afterRes.status, 200, 'got a success response')
+  t.equal(afterRes.headers.get('x-local-cache-status'), 'miss', 'back to a cache miss')
+  await afterRes.buffer()
+  t.ok(srv.isDone())
+})
+
+t.test('cache deduplicates and appropriately removes null integrity entries from previous versions', async (t) => {
+  // previous versions of make-fetch-happen naively used cacache, which would append a new entry every
+  // time a request was made that did not match, in addition to that an invalidation in the previous
+  // version would write an entry with a null integrity which cacache interpreted as a deleted entry,
+  // while this current version of make-fetch-happen uses null integrity entries for stored redirects.
+  // this test is meant to ensure that a user who upgrades from an old make-fetch-happen to a new one
+  // keeping the same cache does not get erroneous results, and their indexes are deduplicated correctly.
+
+  const dir = t.testdir()
+  const reqKey = cacheKey(new Request(`${HOST}/test`))
+  await cacache.index.insert(dir, reqKey, INTEGRITY, {
+    metadata: {
+      url: `${HOST}/test`,
+      reqHeaders: {
+        accept: ['application/json'],
       },
-    }).then(res => res.buffer()).then(body => {
-      t.deepEqual(body, CONTENT, 'got remote content')
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-        headers: {
-          Accept: 'fullfat',
-        },
-      })
-    }).then(res => {
-      t.equal(res.status, 200, 'cached response used!')
-      t.equal(
-        res.headers.get('content-type'), 'fullfat', 'got original content-type'
-      )
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, CONTENT, 'got cached content')
-      srv.get('/test').reply(200, CONTENT, {
-        'Cache-Control': 'cache-max=0',
-        'Content-Type': 'corgi',
-        Vary: '*',
-      })
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-        headers: {
-          Accept: 'corgi',
-        },
-      })
-    }).then(res => {
-      t.equal(res.status, 200, 'got 200 OK')
-      t.equal(res.headers.get('content-type'), 'corgi', 'got new content-type')
-      return res.buffer()
-    }).then(() => {
-      srv.get('/test').reply(200, CONTENT, {
-        'Cache-Control': 'cache-max=0',
-        'Content-Type': 'whatever',
-      })
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-        headers: {
-          Accept: 'corgi',
-        },
-      })
-    }).then(res => {
-      t.equal(
-        res.headers.get('content-type'),
-        'whatever',
-        'did a new, full request because Vary: *'
-      )
-    })
+    },
   })
-
-  t.test('supports range caching (partial requests)')
-  t.test('Support Cache object injection')
-
-  t.test('mode: no-store', t => {
-    const srv = tnock(t, HOST)
-    srv.get('/test').reply(200, 'foo')
-    return fetch(`${HOST}/test`, {
-      cacheManager: CACHE,
-      retry: { retries: 0 },
-    }).then(res => res.buffer()).then(() => {
-      t.comment('cache warmed up')
-      srv.get('/test').reply(200, CONTENT, {
-        Foo: 'second req',
-      })
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-        cache: 'no-store',
-        retry: { retries: 0 },
-      })
-    }).then(res => {
-      t.equal(res.status, 200, 'got 200 status')
-      t.equal(res.headers.get('foo'), 'second req', 'request was redone')
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, CONTENT, 'got second request content')
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-        retry: { retries: 0 },
-      })
-    }).then(res => res.buffer()).then(buf => {
-      t.deepEqual(
-        buf, Buffer.from('foo'), 'no-store request did not affect cache'
-      )
-    })
+  await cacache.index.insert(dir, reqKey, INTEGRITY, {
+    metadata: {
+      url: `${HOST}/test`,
+      reqHeaders: {
+        accept: ['application/vnd.npm.install-v1+json'],
+      },
+    },
   })
-
-  t.test('mode: default -> no-store', t => {
-    const srv = tnock(t, HOST)
-    srv.get('/test').reply(200, 'foo')
-    return fetch(`${HOST}/test`, {
-      cacheManager: CACHE,
-      retry: { retries: 0 },
-    }).then(res => res.buffer()).then(() => {
-      t.comment('cache warmed up')
-      srv.get('/test').reply(200, CONTENT, {
-        Foo: 'second req',
-      })
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-        retry: { retries: 0 },
-        headers: {
-          'if-none-match': 'foo',
-        },
-      })
-    }).then(res => {
-      t.equal(res.status, 200, 'got 200 status')
-      t.equal(
-        res.headers.get('foo'),
-        'second req',
-        'request went out-- default acted like no-cache due to header'
-      )
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, CONTENT, 'got second request content')
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-        retry: { retries: 0 },
-      })
-    }).then(res => res.buffer()).then(buf => {
-      t.deepEqual(
-        buf, Buffer.from('foo'), 'no-store request did not affect cache'
-      )
-    })
+  await cacache.index.insert(dir, reqKey, null)
+  await cacache.index.insert(dir, reqKey, INTEGRITY, {
+    metadata: {
+      url: `${HOST}/test`,
+      reqHeaders: {
+        accept: ['application/json'],
+      },
+    },
   })
+  const srv = nock(HOST)
+    .get('/test')
+    .reply(200, CONTENT, {
+      ...getHeaders(CONTENT),
+      'content-type': 'application/json',
+      etag: '"beef"',
+    })
 
-  t.test('mode: reload', t => {
-    const srv = tnock(t, HOST)
-    srv.get('/test').reply(200, 'foo', {
-      'Cache-Control': 'cache-max=0',
-      ETag: 'foobarbaz',
-    })
-    return fetch(`${HOST}/test`, {
-      cacheManager: CACHE,
-      retry: { retries: 0 },
-    }).then(res => res.buffer()).then(() => {
-      t.comment('cache warmed up')
-      srv.get('/test').reply(function () {
-        t.deepEqual(this.req.headers['if-none-match'], null, 'no etag sent')
-        return [
-          200,
-          CONTENT,
-          { Foo: 'second req' },
-        ]
-      })
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-        cache: 'reload',
-        retry: { retries: 0 },
-      })
-    }).then(res => {
-      t.equal(res.status, 200, 'got 200 status')
-      t.equal(res.headers.get('foo'), 'second req', 'request was redone')
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, CONTENT, 'got second request content')
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-        retry: { retries: 0 },
-      })
-    }).then(res => res.buffer()).then(buf => {
-      t.deepEqual(buf, CONTENT, 'reload request refreshed cache')
-    })
+  const initialRes = await fetch(`${HOST}/test`, {
+    cachePath: dir,
+    headers: {
+      accept: 'application/json',
+    },
   })
+  t.equal(initialRes.status, 200, 'got a success response')
+  // the status is update because we deduplicated the original responses, found the one that
+  // matches our client's request, and then revalidates it
+  t.equal(initialRes.headers.get('x-local-cache-status'), 'updated', 'identified as an update')
+  t.equal(initialRes.headers.get('content-type'), 'application/json', 'got the right content-type')
+  // at this point, the index should be deduplicated down to 2 entries
+  const initialEntries = await cacache.index.compact(dir, reqKey, () => false, { validateEntry: () => true })
+  t.equal(initialEntries.length, 2, 'should have two entries')
+  await initialRes.buffer() // write it to the cache, this appends a third
 
-  t.test('mode: no-cache', t => {
-    const srv = tnock(t, HOST)
-    srv.get('/test').reply(200, 'foo', {
-      'Cache-Control': 'cache-max=0',
-      ETag: 'foobarbaz',
-    })
-    return fetch(`${HOST}/test`, {
-      cacheManager: CACHE,
-      retry: { retries: 0 },
-    }).then(res => res.buffer()).then(() => {
-      t.comment('cache warmed up')
-      srv.get('/test').reply(function () {
-        t.equal(this.req.headers['if-none-match'][0], 'foobarbaz', 'got etag')
-        return [
-          200,
-          CONTENT,
-          { Foo: 'second req' },
-        ]
-      })
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-        cache: 'no-cache',
-        retry: { retries: 0 },
-      })
-    }).then(res => {
-      t.equal(res.status, 200, 'got 200 status')
-      t.equal(res.headers.get('foo'), 'second req', 'request was redone')
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, CONTENT, 'got second request content')
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-        retry: { retries: 0 },
-      })
-    }).then(res => res.buffer()).then(buf => {
-      t.deepEqual(buf, CONTENT, 'reload request refreshed cache')
-    })
-  })
+  const entries = await cacache.index.compact(dir, reqKey, () => false, { validateEntry: () => true })
+  t.equal(entries.length, 3, 'should have three entries')
+  t.equal(entries[0].metadata.reqHeaders.accept, 'application/json', 'has the right request header')
+  t.ok(srv.isDone())
+})
 
-  t.test('mode: force-cache', t => {
-    const srv = tnock(t, HOST)
-    srv.get('/test').reply(200, CONTENT, {
-      'Cache-Control': 'max-age=0',
-      Date: new Date().toUTCString(),
-      'Last-Modified': new Date(new Date() - 1000000).toUTCString(),
-    })
-    return fetch(`${HOST}/test`, {
-      cacheManager: CACHE,
-      cache: 'force-cache',
-      retry: { retries: 0 },
-    }).then(res => res.buffer()).then(() => {
-      t.comment('cache warmed up')
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-        cache: 'force-cache',
-        retry: { retries: 0 },
-      })
-    }).then(res => {
-      t.equal(res.status, 200, 'got 200 status')
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, CONTENT, 'got cached content even w/ stale cache')
-    })
-  })
+t.test('revalidate updates headers in the metadata with new values', async (t) => {
+  // this is an example of metadata that previous versions of this module
+  // may have written to the cache index
+  const metadata = {
+    url: `${HOST}/test`,
+    reqHeaders: {
+      // this represents request headers that this release of make-fetch-happen
+      // does not care about, and will not store in the index
+      'user-agent': 'should not be here, but does not break matching',
+    },
+    resHeaders: {
+      // note there is no cache-control in the old entry
+      etag: '"beef"',
+      date: new Date().toISOString(),
+      'content-type': 'text/plain',
+    },
+  }
 
-  t.test('mode: only-if-cached', t => {
-    const srv = tnock(t, HOST)
-    srv.get('/test').reply(200, CONTENT, {
-      'Cache-Control': 'max-age=0',
-      Date: new Date().toUTCString(),
-      'Last-Modified': new Date(new Date() - 1000000).toUTCString(),
-    })
-    return fetch(`${HOST}/test`, {
-      cacheManager: CACHE,
-      retry: { retries: 0 },
-    }).then(res => res.buffer()).then(() => {
-      t.comment('cache warmed up')
-      return fetch(`${HOST}/test`, {
-        cacheManager: CACHE,
-        cache: 'only-if-cached',
-        retry: { retries: 0 },
-      })
-    }).then(res => {
-      t.equal(res.status, 200, 'got 200 status')
-      return res.buffer()
-    }).then(body => {
-      t.deepEqual(body, CONTENT, 'got cached content even w/ stale cache')
-      return fetch(`${HOST}/other`, {
-        cacheManager: CACHE,
-        cache: 'only-if-cached',
-        retry: { retries: 0 },
-      }).then(() => {
-        throw new Error('not supposed to succeed!')
-      }).catch(err => {
-        t.equal(err.code, 'ENOTCACHED', 'did not even try to hit network')
-      })
-    })
-  })
+  const dir = t.testdir()
+  const reqKey = cacheKey(new Request(`${HOST}/test`))
+  await cacache.put(dir, reqKey, CONTENT, { metadata })
 
-  t.end()
+  const beforeEntries = await cacache.index.compact(dir, reqKey, () => false, { validateEntry: () => true })
+  t.equal(beforeEntries.length, 1, 'has one entry')
+  t.equal(beforeEntries[0].metadata.reqHeaders['user-agent'], 'should not be here, but does not break matching', 'initial entry has user-agent')
+  t.notOk(beforeEntries[0].metadata.resHeaders['cache-control'], 'initial entry does not have cache-control')
+  t.equal(beforeEntries[0].metadata.resHeaders['content-type'], 'text/plain', 'initial entry has a content-type')
+
+  // NOTE: the body must be undefined, not null, otherwise nock
+  // will add an implicit content-type of application/json
+  const srv = nock(HOST)
+    .matchHeader('if-none-match', '"beef"')
+    .get('/test')
+    .reply(304, undefined, {
+      // note the 304 does not include a content-type
+      date: new Date().toISOString(),
+      etag: '"beef"',
+      'cache-control': 'max-age=300',
+    })
+
+  const revalidateRes = await fetch(`${HOST}/test`, { cachePath: dir })
+  t.equal(revalidateRes.status, 200, 'got a success status')
+  t.equal(revalidateRes.headers.get('x-local-cache-status'), 'revalidated', 'identifies as revalidated')
+  t.equal(revalidateRes.headers.get('content-type'), 'text/plain', 'got the content-type in the response')
+  await revalidateRes.buffer()
+  t.ok(srv.isDone())
+
+  const afterEntries = await cacache.index.compact(dir, reqKey, () => false, { validateEntry: () => true })
+  t.equal(afterEntries.length, 2, 'has two entries')
+  t.equal(afterEntries[0].metadata.resHeaders['cache-control'], 'max-age=300', 'now has cache-control header')
+  t.equal(afterEntries[0].metadata.resHeaders['content-type'], 'text/plain', 'new index entry kept the content-type')
+  t.notOk(afterEntries[0].metadata.reqHeaders['user-agent'], 'no longer has a user-agent in reqHeaders')
 })
