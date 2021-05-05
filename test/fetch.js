@@ -1,158 +1,89 @@
 'use strict'
 
-const { Response, Headers } = require('minipass-fetch')
-const requireInject = require('require-inject')
-const { Buffer } = require('safe-buffer')
+const { Headers, FetchError } = require('minipass-fetch')
 const Minipass = require('minipass')
-const { test } = require('tap')
+const t = require('tap')
 const nock = require('nock')
-const url = require('url')
-
-const tnock = require('./util/tnock')
+const fetch = require('../lib/index.js')
 
 const CONTENT = Buffer.from('hello, world!', 'utf8')
 const HOST = 'https://make-fetch-happen.npm'
 const HTTPHOST = 'http://registry.npm.test.org'
 
-function mockRequire (mocks = {}) {
-  const mergedMocks = Object.assign(
-    {},
-    {
-      '../agent': (uri, opts) => {
-        if (opts.agent === false)
-          return false
-        const parsedUri = new url.URL(typeof uri === 'string' ? uri : uri.url)
-        const isHttps = parsedUri.protocol === 'https:'
-        return (isHttps)
-          ? new (require('agentkeepalive').HttpsAgent)()
-          : new (require('agentkeepalive'))()
-      },
-      '../warning': () => {},
-      '../utils/configure-options': (opts = {}) => {
-        const retry = (!opts.retry)
-          ? { retries: 0 }
-          : (typeof opts.retry === 'object')
-            ? opts.retry
-            : (typeof opts.retry === 'number')
-              ? { retries: opts.retry }
-              : (typeof opts.retry === 'string')
-                ? { retries: parseInt(opts.retry, 10) }
-                : { retries: 0 }
-        const method = (!opts.method) ? 'GET' : opts.method.toUpperCase()
-        const cache = opts.cache || 'default'
-        const cacheManager = {
-          delete: () => Promise.resolve(),
-          match: () => Promise.resolve(new Response()),
-          put: () => Promise.resolve(new Response()),
-        }
-        return (!opts.cacheManager)
-          ? Object.assign({}, opts, { method, retry })
-          : Object.assign({}, opts, { method, retry, cache, cacheManager })
-      },
-      '../utils/initialize-cache': () => {},
-      '../utils/iterable-to-object': () => {},
-      '../utils/make-policy': () => {},
-    },
-    mocks
-  )
-  return requireInject('../index', mergedMocks)
-}
+nock.disableNetConnect()
+t.beforeEach(() => nock.cleanAll())
 
-test('requests remote content', t => {
-  const fetch = mockRequire({})
-  const srv = tnock(t, HOST)
-  srv
+t.test('requests remote content', async t => {
+  const srv = nock(HOST)
     .get('/test')
     .reply(200, CONTENT)
 
-  return fetch(`${HOST}/test`)
-    .then(res => {
-      t.equal(res.status, 200, 'successful status code')
-      return res.buffer()
-    })
-    .then(buf => {
-      t.deepEqual(buf, CONTENT, 'request succeeded')
-    })
+  const res = await fetch(`${HOST}/test`)
+  t.equal(res.status, 200, 'successful status code')
+  t.same(res.headers.get('x-fetch-attempts'), '1', 'sets the correct header')
+  const buf = await res.buffer()
+  t.same(buf, CONTENT, 'request succeeded')
+  t.ok(srv.isDone())
 })
 
-test('supports http', t => {
-  const fetch = mockRequire({})
-  const srv = tnock(t, 'http://foo.npm')
-  srv
+t.test('supports http', async t => {
+  const srv = nock('http://foo.npm')
     .get('/test')
     .reply(200, CONTENT)
 
-  return fetch('http://foo.npm/test')
-    .then(res => {
-      t.equal(res.url, 'http://foo.npm/test', 'http request url')
-      return res.buffer()
-    })
-    .then(buf => {
-      t.deepEqual(buf, CONTENT, 'request succeeded')
-    })
+  const res = await fetch('http://foo.npm/test')
+  t.equal(res.url, 'http://foo.npm/test', 'http request url')
+  const buf = await res.buffer()
+  t.same(buf, CONTENT, 'request succeeded')
+  t.ok(srv.isDone())
 })
 
-test('supports https', t => {
-  const fetch = mockRequire({})
-  const srv = tnock(t, 'https://foo.npm')
-  srv
+t.test('supports https', async t => {
+  const srv = nock('https://foo.npm')
     .get('/test')
     .reply(200, CONTENT)
 
-  return fetch('https://foo.npm/test')
-    .then(res => {
-      t.equal(res.url, 'https://foo.npm/test', 'https request url')
-      return res.buffer()
-    })
-    .then(buf => {
-      t.deepEqual(buf, CONTENT, 'request succeeded')
-    })
+  const res = await fetch('https://foo.npm/test')
+  t.equal(res.url, 'https://foo.npm/test', 'https request url')
+  const buf = await res.buffer()
+  t.same(buf, CONTENT, 'request succeeded')
+  t.ok(srv.isDone())
 })
 
-test('500-level responses not thrown', t => {
-  const fetch = mockRequire({})
+t.test('500-level responses not thrown', async t => {
+  t.test('500 response', async (t) => {
+    const srv = nock(HOST)
+      .get('/test-500')
+      .reply(500)
 
-  t.test('500 response', (t) => {
-    const srv = tnock(t, HOST)
-    srv.get('/test-500').reply(500)
-
-    return fetch(`${HOST}/test-500`, { retry: { retries: 0 } })
-      .then(res => {
-        t.equal(res.status, 500, 'got regular response w/ errcode 500')
-      })
-  })
-  t.test('543 response', (t) => {
-    const srv = tnock(t, HOST)
-    srv.get('/test-543').reply(543)
-
-    return fetch(`${HOST}/test-543`, { retry: { retries: 0 } })
-      .then(res => {
-        t.equal(res.status, 543, 'got regular response w/ errcode 543, as given')
-      })
+    const res = await fetch(`${HOST}/test-500`, { retry: { retries: 0 } })
+    t.equal(res.status, 500, 'got regular response w/ errcode 500')
+    t.ok(srv.isDone())
   })
 
-  t.end()
+  t.test('543 response', async (t) => {
+    const srv = nock(HOST)
+      .get('/test-543')
+      .reply(543)
+
+    const res = await fetch(`${HOST}/test-543`, { retry: { retries: 0 } })
+    t.equal(res.status, 543, 'got regular response w/ errcode 543, as given')
+    t.ok(srv.isDone())
+  })
 })
 
-test('calls opts.onRetry', t => {
-  const fetch = mockRequire({})
+t.test('calls opts.onRetry', async t => {
+  t.test('when request is retriable', async (t) => {
+    const srv = nock(HOST)
+      .get('/test-onretry')
+      .reply(500)
+      .get('/test-onretry')
+      .reply(200)
 
-  t.test('when request is retriable', (t) => {
-    const srv = tnock(t, HOST)
     let retryNotification = 0
-    let attempt = 0
     let calledOnRetry = false
 
-    const replyCb = () => {
-      attempt++
-      return null
-    }
-
-    srv
-      .get('/test-onretry').reply(500, replyCb)
-      .get('/test-onretry').reply(200, replyCb)
-
-    return fetch(`${HOST}/test-onretry`, {
+    const res = await fetch(`${HOST}/test-onretry`, {
       retry: {
         retries: 1,
       },
@@ -160,18 +91,15 @@ test('calls opts.onRetry', t => {
         calledOnRetry = true
         retryNotification++
       },
-    }).then((res) => {
-      t.equal(calledOnRetry, true, 'should have called onRetry')
-      t.equal(retryNotification, 1, 'should have called method once')
-      t.equal(attempt, 2, 'should have tried twice')
     })
+    t.same(res.headers.get('x-fetch-attempts'), '2', 'set the appropriate header')
+    t.equal(calledOnRetry, true, 'should have called onRetry')
+    t.equal(retryNotification, 1, 'should have called method once')
+    t.ok(srv.isDone())
   })
 
-  t.test('when request is retriable; and caught', (t) => {
-    const srv = tnock(t, HOST)
-    let calledOnRetry = false
-
-    srv
+  t.test('when request is retriable; and caught', async (t) => {
+    const srv = nock(HOST)
       .get('/catch-retry')
       .replyWithError({
         message: 'retry please',
@@ -180,12 +108,14 @@ test('calls opts.onRetry', t => {
       .get('/catch-retry')
       .reply(200, CONTENT)
 
-    return fetch(`${HOST}/catch-retry`, {
+    let calledOnRetry = false
+
+    const res = await fetch(`${HOST}/catch-retry`, {
       retry: {
         retries: 1,
       },
       onRetry: (err) => {
-        t.deepEqual(
+        t.equal(
           err.message,
           `request to ${HOST}/catch-retry failed, reason: retry please`,
           'correct error message'
@@ -193,18 +123,16 @@ test('calls opts.onRetry', t => {
         t.equal(err.code, 'ECONNRESET', 'correct error code')
         calledOnRetry = true
       },
-    }).then((res) => {
-      t.equal(calledOnRetry, true, 'should have called onRetry')
-      return res.buffer()
-    }).then((buf) => {
-      t.deepEqual(buf, CONTENT, 'request succeeded')
     })
+    t.equal(res.headers.get('x-fetch-attempts'), '2', 'set the appropriate header')
+    t.equal(calledOnRetry, true, 'should have called onRetry')
+    const buf = await res.buffer()
+    t.same(buf, CONTENT, 'request succeeded')
+    t.ok(srv.isDone())
   })
 
-  t.test('onRetry not supplied', (t) => {
-    const srv = tnock(t, HOST)
-
-    srv
+  t.test('onRetry not supplied', async (t) => {
+    const srv = nock(HOST)
       .get('/catch-retry')
       .replyWithError({
         message: 'retry please',
@@ -213,45 +141,22 @@ test('calls opts.onRetry', t => {
       .get('/catch-retry')
       .reply(200, CONTENT)
 
-    return fetch(`${HOST}/catch-retry`, {
+    const res = await fetch(`${HOST}/catch-retry`, {
       retry: {
         retries: 1,
       },
       onRetry: null,
-    }).then((res) => {
-      t.equal(res.status, 200, 'successful status code')
-      return res.buffer()
-    }).then((buf) => {
-      t.deepEqual(buf, CONTENT, 'request succeeded')
     })
+    t.equal(res.status, 200, 'successful status code')
+    t.equal(res.headers.get('x-fetch-attempts'), '2', 'set the appropriate header')
+    const buf = await res.buffer()
+    t.same(buf, CONTENT, 'request succeeded')
+    t.ok(srv.isDone())
   })
-
-  t.end()
 })
 
-test('custom headers', t => {
-  const fetch = mockRequire({})
-  const srv = tnock(t, HOST)
-
-  srv
-    .get('/test')
-    .reply(200, CONTENT, {
-      foo: (req) => {
-        t.equal(req.headers.test[0], 'ayy', 'got request header')
-        return 'bar'
-      },
-    })
-  return fetch(`${HOST}/test`, { headers: { test: 'ayy' } })
-    .then(res => {
-      t.equal(res.headers.get('foo'), 'bar', 'got response header')
-    })
-})
-
-test('custom headers (class)', t => {
-  const fetch = mockRequire({})
-  const srv = tnock(t, HOST)
-
-  srv
+t.test('custom headers', async t => {
+  const srv = nock(HOST)
     .get('/test')
     .reply(200, CONTENT, {
       foo: (req) => {
@@ -260,182 +165,164 @@ test('custom headers (class)', t => {
       },
     })
 
-  return fetch(`${HOST}/test`, { headers: new Headers({ test: 'ayy' }) })
-    .then(res => {
-      t.equal(res.headers.get('foo'), 'bar', 'got response header')
-    })
+  const res = await fetch(`${HOST}/test`, { headers: { test: 'ayy' } })
+  t.equal(res.headers.get('foo'), 'bar', 'got response header')
+  t.ok(srv.isDone())
 })
 
-test('supports redirect logic', t => {
-  const fetch = mockRequire({})
+t.test('custom headers (class)', async t => {
+  const srv = nock(HOST)
+    .get('/test')
+    .reply(200, CONTENT, {
+      foo: (req) => {
+        t.equal(req.headers.test[0], 'ayy', 'got request header')
+        return 'bar'
+      },
+    })
 
-  t.test('simple redirect', (t) => {
-    const srv = tnock(t, HOST)
-    srv
+  const res = await fetch(`${HOST}/test`, { headers: new Headers({ test: 'ayy' }) })
+  t.equal(res.headers.get('foo'), 'bar', 'got response header')
+  t.ok(srv.isDone())
+})
+
+t.test('supports redirect logic', async t => {
+  t.test('simple redirect', async (t) => {
+    const srv = nock(HOST)
       .get('/redirect')
       .reply(301, '', { Location: `${HOST}/test` })
       .get('/test')
       .reply(200, CONTENT)
 
-    return fetch(`${HOST}/redirect`)
-      .then(res => {
-        t.equal(res.redirected, true, 'should have been redirected')
-        t.equal(res.url, `${HOST}/test`, 'should be from redirected url')
-        t.equal(res.status, 200, 'got the final status')
-        return res.buffer()
-      }).then(buf => {
-        t.deepEqual(buf, CONTENT, 'final req gave right body')
-      })
+    const res = await fetch(`${HOST}/redirect`)
+    t.equal(res.redirected, true, 'should have been redirected')
+    t.equal(res.url, `${HOST}/test`, 'should be from redirected url')
+    t.equal(res.status, 200, 'got the final status')
+    const buf = await res.buffer()
+    t.same(buf, CONTENT, 'final req gave right body')
+    t.ok(srv.isDone())
   })
 
-  t.test('set manual redirect', (t) => {
-    const srv = tnock(t, HOST)
-    srv
+  t.test('set manual redirect', async (t) => {
+    const srv = nock(HOST)
       .get('/redirect')
       .reply(301, '', { Location: `${HOST}/test` })
 
-    return fetch(`${HOST}/redirect`, { redirect: 'manual' })
-      .then((res) => {
-        t.equal(res.redirected, false, 'should not have been redirected')
-        t.equal(res.url, `${HOST}/redirect`, 'should be from original url')
-        t.equal(res.status, 301, 'did not follow redirect')
-        return res.buffer()
-      })
-      .then((buf) => {
-        t.equal(buf.length, 0, 'empty body')
-      })
+    const res = await fetch(`${HOST}/redirect`, { redirect: 'manual' })
+    t.equal(res.redirected, false, 'should not have been redirected')
+    t.equal(res.url, `${HOST}/redirect`, 'should be from original url')
+    t.equal(res.status, 301, 'did not follow redirect')
+    const buf = await res.buffer()
+    t.equal(buf.length, 0, 'empty body')
+    t.ok(srv.isDone())
   })
 
-  t.test('supports error redirect flag', (t) => {
-    const srv = tnock(t, HOST)
-    srv
+  t.test('supports error redirect flag', async (t) => {
+    const srv = nock(HOST)
       .get('/redirect')
       .reply(301, '', { Location: `${HOST}/test` })
 
-    return t.rejects(
+    await t.rejects(
       fetch(`${HOST}/redirect`, { redirect: 'error' }),
       {
         message: 'redirect mode is set to error: https://make-fetch-happen.npm/redirect',
         code: 'ENOREDIRECT',
       }
     )
+    t.ok(srv.isDone())
   })
 
-  t.test('throws error when redirect location is missing', (t) => {
-    const srv = tnock(t, HOST)
+  t.test('throws error when redirect location is missing', async (t) => {
+    const srv = nock(HOST)
+      .get('/redirect')
+      .reply(301)
 
-    srv.get('/redirect').reply(301)
-
-    return t.rejects(
-      fetch(`${HOST}/redirect`),
-      {
-        message: 'redirect location header missing at: https://make-fetch-happen.npm/redirect',
-        code: 'EINVALIDREDIRECT',
-      }
-    )
+    const err = await fetch(`${HOST}/redirect`).catch(err => err)
+    t.type(err, FetchError)
+    t.equal(err.code, 'EINVALIDREDIRECT')
+    t.ok(srv.isDone())
   })
 
-  t.test('bad location header information', (t) => {
-    const scope = tnock(t, HOST)
-
-    scope
+  t.test('bad location header information', async (t) => {
+    const srv = nock(HOST)
       .get('/redirect')
       .reply(301, '', { Location: 'ftp://nope' })
 
-    return t.rejects(
+    await t.rejects(
       fetch(`${HOST}/redirect`)
     )
+    t.ok(srv.isDone())
   })
-
-  t.end()
 })
 
-test('supports protocol switching on redirect', t => {
-  const fetch = mockRequire({})
-
-  t.test('rediret to https', (t) => {
-    const httpSrv = tnock(t, HTTPHOST)
-    const httpsSrv = tnock(t, HOST)
-
-    httpSrv
+t.test('supports protocol switching on redirect', async (t) => {
+  t.test('redirect to https', async (t) => {
+    const httpSrv = nock(HTTPHOST)
       .get('/redirect')
       .reply(301, '', { Location: `${HOST}/test` })
 
-    httpsSrv
+    const httpsSrv = nock(HOST)
       .get('/test')
       .reply(200, CONTENT)
 
-    return fetch(`${HTTPHOST}/redirect`)
-      .then(res => {
-        t.equal(res.url, `${HOST}/test`, 'response should be from https')
-        t.equal(res.redirected, true, 'response should have been redirected')
-        t.equal(res.status, 200, 'got the final status')
-        return res.buffer()
-      }).then(buf => {
-        t.deepEqual(buf, CONTENT, 'final req gave right body')
-      })
+    const res = await fetch(`${HTTPHOST}/redirect`)
+    t.equal(res.url, `${HOST}/test`, 'response should be from https')
+    t.equal(res.redirected, true, 'response should have been redirected')
+    t.equal(res.status, 200, 'got the final status')
+    const buf = await res.buffer()
+    t.same(buf, CONTENT, 'final req gave right body')
+    t.ok(httpSrv.isDone())
+    t.ok(httpsSrv.isDone())
   })
 
-  t.test('manually redirect to https', (t) => {
-    const httpSrv = tnock(t, HTTPHOST)
-
-    httpSrv
+  t.test('manually redirect to https', async (t) => {
+    const httpSrv = nock(HTTPHOST)
       .get('/redirect')
       .reply(301, '', { Location: `${HOST}/test` })
 
-    return fetch(`${HTTPHOST}/redirect`, { redirect: 'manual' })
-      .then((res) => {
-        t.equal(res.status, 301, 'did not follow redirect with manual mode')
-        return res.buffer()
-      })
-      .then((buf) => {
-        t.equal(buf.length, 0, 'empty body')
-      })
+    const res = await fetch(`${HTTPHOST}/redirect`, { redirect: 'manual' })
+    t.equal(res.status, 301, 'did not follow redirect with manual mode')
+    const buf = await res.buffer()
+    t.equal(buf.length, 0, 'empty body')
+    t.ok(httpSrv.isDone())
   })
-
-  t.end()
 })
 
-test('removes authorization header if changing hostnames', t => {
-  const fetch = mockRequire({})
-  const httpSrv = tnock(t, HTTPHOST)
-  const httpsSrv = tnock(t, HOST)
-
-  httpSrv
-    .matchHeader('authorization', 'test')
+t.test('removes authorization header if changing hostnames', async (t) => {
+  const httpSrv = nock(HTTPHOST, {
+    reqheaders: {
+      authorization: 'test',
+    },
+  })
     .get('/redirect')
     .reply(301, '', { Location: `${HOST}/test` })
 
-  httpsSrv
-    .matchHeader('authorization', 'test')
+  const httpsSrv = nock(HOST, {
+    reqheaders: {
+      authorization: 'test',
+    },
+  })
     .get('/test')
     .reply(200, () => {
       t.equal(true, false, 'meaningful failure, this should never be executed')
       return CONTENT
     })
 
-  return t.rejects(
+  await t.rejects(
     fetch(`${HTTPHOST}/redirect`, { headers: { authorization: 'test' } }),
     {
-      code: 'FETCH_ERROR',
+      code: 'ERR_NOCK_NO_MATCH', // this is the error nock throws due to the missing header
     }
   )
-    .then(() => {
-      t.equal(httpsSrv.pendingMocks().length, 1, 'redirect request does not happen')
-      nock.cleanAll()
-    })
+  t.ok(httpSrv.isDone())
+  t.notOk(httpsSrv.isDone(), 'redirect request does not happen')
 })
 
-test('supports passthrough of options on redirect', t => {
-  const fetch = mockRequire({})
-  const httpSrv = tnock(t, HTTPHOST)
-  const httpsSrv = tnock(t, HOST)
-
-  httpSrv
+t.test('supports passthrough of options on redirect', async (t) => {
+  const httpSrv = nock(HTTPHOST)
     .get('/redirect')
     .reply(301, '', { Location: `${HOST}/test` })
 
-  httpsSrv
+  const httpsSrv = nock(HOST)
     .get('/test')
     .matchHeader('x-test', 'test')
     .reply(200, CONTENT, {
@@ -446,107 +333,121 @@ test('supports passthrough of options on redirect', t => {
       },
     })
 
-  return fetch(`${HTTPHOST}/redirect`, { headers: { 'x-test': 'test' } })
-    .then((res) => {
-      t.equal(res.status, 200, 'successful status code')
-      t.equal(res.redirected, true, 'request was redirected')
-      t.equal(res.headers.get('test-header'), 'truthy', 'should get test header')
-      return res.buffer()
-    })
-    .then(buf => {
-      t.deepEqual(buf, CONTENT, 'request succeeded')
-    })
+  const res = await fetch(`${HTTPHOST}/redirect`, { headers: { 'x-test': 'test' } })
+  t.equal(res.status, 200, 'successful status code')
+  t.equal(res.redirected, true, 'request was redirected')
+  t.equal(res.headers.get('test-header'), 'truthy', 'should get test header')
+  const buf = await res.buffer()
+  t.same(buf, CONTENT, 'request succeeded')
+  t.ok(httpSrv.isDone())
+  t.ok(httpsSrv.isDone())
 })
 
-test('supports redirects from POST requests', t => {
-  const fetch = mockRequire({})
-
-  t.test('supports 301 redirects', (t) => {
-    const srv = tnock(t, HOST)
-    srv
+t.test('supports redirects from POST requests', async (t) => {
+  t.test('supports 301 redirects', async (t) => {
+    const srv = nock(HOST)
       .post('/redirect')
       .reply(301, '', { Location: `${HOST}/test` })
       .get('/test')
       .reply(200, CONTENT)
 
-    return fetch(`${HOST}/redirect`, {
+    const res = await fetch(`${HOST}/redirect`, {
       method: 'POST',
       body: 'test',
-    }).then(res => {
-      t.equal(res.status, 200, 'successful status code')
-      t.equal(res.redirected, true, 'request was redirected')
-      return res.buffer()
-    }).then(buf => {
-      t.deepEqual(buf, CONTENT, 'request succeeded')
     })
+    t.equal(res.status, 200, 'successful status code')
+    t.equal(res.redirected, true, 'request was redirected')
+    const buf = await res.buffer()
+    t.same(buf, CONTENT, 'request succeeded')
+    t.ok(srv.isDone())
   })
 
-  t.test('supports 302 redirects', (t) => {
-    const srv = tnock(t, HOST)
-    srv
+  t.test('can cache target of 301 redirect', async (t) => {
+    const dir = t.testdir()
+    const srv = nock(HOST)
+      .post('/redirect')
+      .reply(301, '', { Location: `${HOST}/test` })
+      .get('/test')
+      .reply(200, CONTENT, {
+        'content-length': CONTENT.length,
+        'cache-control': 'max-age=300',
+        etag: '"beefcafe"',
+      })
+
+    const res = await fetch(`${HOST}/redirect`, {
+      cachePath: dir,
+      method: 'POST',
+      body: 'test',
+    })
+
+    t.equal(res.status, 200, 'successful status code')
+    t.equal(res.redirected, true, 'request was redirected')
+    t.equal(res.headers.get('x-local-cache-status'), 'miss', 'adds cache related header')
+    const buf = await res.buffer()
+    t.same(buf, CONTENT, 'request succeeded')
+    // done with nock at this point, next request reads from cache
+    t.ok(srv.isDone())
+
+    const secondRes = await fetch(`${HOST}/test`, {
+      cachePath: dir,
+    })
+    t.equal(secondRes.status, 200, 'successful status code')
+    t.equal(secondRes.headers.get('x-local-cache-status'), 'hit', 'read from cache')
+  })
+
+  t.test('supports 302 redirects', async (t) => {
+    const srv = nock(HOST)
       .post('/redirect')
       .reply(302, '', { Location: `${HOST}/test` })
       .get('/test')
       .reply(200, CONTENT)
 
-    return fetch(`${HOST}/redirect`, {
+    const res = await fetch(`${HOST}/redirect`, {
       method: 'POST',
       body: 'test',
-    }).then(res => {
-      t.equal(res.status, 200, 'successful status code')
-      t.equal(res.redirected, true, 'request was redirected')
-      return res.buffer()
-    }).then(buf => {
-      t.deepEqual(buf, CONTENT, 'request succeeded')
     })
+    t.equal(res.status, 200, 'successful status code')
+    t.equal(res.redirected, true, 'request was redirected')
+    const buf = await res.buffer()
+    t.same(buf, CONTENT, 'request succeeded')
+    t.ok(srv.isDone())
   })
-
-  t.end()
 })
 
-test('throws error if follow is less than request count', t => {
-  const fetch = mockRequire({})
-  const srv = tnock(t, HOST)
-
-  srv
+t.test('throws error if follow is less than request count', async (t) => {
+  const srv = nock(HOST)
     .get('/redirect')
     .reply(301, '', { Location: `${HOST}/test` })
 
-  return t.rejects(
-    fetch(`${HOST}/redirect`, { follow: 0 }),
+  await t.rejects(fetch(`${HOST}/redirect`, { follow: 0 }),
     {
       message: 'maximum redirect reached at: https://make-fetch-happen.npm/redirect',
       code: 'EMAXREDIRECT',
     }
   )
+  t.ok(srv.isDone())
 })
 
-test('supports streaming content', t => {
-  const fetch = mockRequire({})
-  const srv = tnock(t, HOST)
-
-  srv
+t.test('supports streaming content', async (t) => {
+  const srv = nock(HOST)
     .get('/test')
     .reply(200, CONTENT)
 
-  return fetch(`${HOST}/test`)
-    .then(res => {
-      t.equal(res.status, 200, 'successful status code')
-      const buf = []
-      let bufLen = 0
-      res.body.on('data', d => {
-        buf.push(d)
-        bufLen += d.length
-      })
-      return res.body.promise().then(() => Buffer.concat(buf, bufLen))
-    })
-    .then(body => {
-      t.deepEqual(body, CONTENT, 'streamed body ok')
-    })
+  const res = await fetch(`${HOST}/test`)
+  t.equal(res.status, 200, 'successful status code')
+  const buf = []
+  let bufLen = 0
+  res.body.on('data', d => {
+    buf.push(d)
+    bufLen += d.length
+  })
+  await res.body.promise()
+  const body = Buffer.concat(buf, bufLen)
+  t.same(body, CONTENT, 'streamed body ok')
+  t.ok(srv.isDone())
 })
 
-test('supports proxy configurations', { skip: true }, t => {
-  const fetch = mockRequire({})
+t.test('supports proxy configurations', { skip: true }, async (t) => {
   t.plan(3)
   // Gotta do this manually 'cause nock's interception breaks proxies
   const srv = require('http').createServer((req, res) => {
@@ -572,34 +473,27 @@ test('supports proxy configurations', { skip: true }, t => {
   }).then(res => {
     return res.buffer()
   }).then(buf => {
-    t.deepEqual(buf, CONTENT, 'request succeeded')
+    t.same(buf, CONTENT, 'request succeeded')
   })
 })
 
-test('supports custom agent config', t => {
-  const fetch = mockRequire({})
-  const srv = tnock(t, HOST, { date: new Date().toISOString() })
-  srv
+t.test('supports custom agent config', async (t) => {
+  const srv = nock(HOST, { date: new Date().toISOString() })
     .get('/test')
     .reply(200, function () {
       t.equal(this.req.headers.connection[0], 'close', 'one-shot agent!')
       return CONTENT
     })
 
-  return fetch(`${HOST}/test`, { agent: false })
-    .then(res => {
-      t.equal(res.status, 200)
-      return res.buffer()
-    }).then(buf => {
-      t.deepEqual(buf, CONTENT, 'request succeeded')
-    })
+  const res = await fetch(`${HOST}/test`, { agent: false })
+  t.equal(res.status, 200)
+  const buf = await res.buffer()
+  t.same(buf, CONTENT, 'request succeeded')
+  t.ok(srv.isDone())
 })
 
-test('handles 15 concurrent requests', t => {
-  const fetch = mockRequire({})
-  const srv = tnock(t, HOST)
-
-  srv
+t.test('handles 15 concurrent requests', async (t) => {
+  const srv = nock(HOST)
     .get('/test')
     .times(15)
     .delay(50)
@@ -618,21 +512,20 @@ test('handles 15 concurrent requests', t => {
         })
     )
   }
-  return Promise.all(requests).then(results => {
-    t.deepEqual(results, expected, 'all requests resolved successfully')
-  })
+  const results = await Promise.all(requests)
+  t.same(results, expected, 'all requests resolved successfully')
+  t.ok(srv.isDone())
 })
 
-test('handle integrity options', (t) => {
-  const fetch = mockRequire({})
+t.test('handle integrity options', async (t) => {
   const integrity = 'sha512-MJ7MSJwS1utMxA9QyQLytNDtd+5RGnx6m808qG1M2G+YndNbxf9JlnDaNCVbRbDP2DDoH2Bdz33FVC6TrpzXbw=='
   const data = 'hello world'
 
-  t.test('valid integrity value', (t) => {
-    const scope = tnock(t, HOST)
-
-    scope.get('/integrity').reply(200, data)
-    scope.get('/integrity').reply(200, data)
+  t.test('valid integrity value', async (t) => {
+    const srv = nock(HOST)
+      .get('/integrity')
+      .twice()
+      .reply(200, data)
 
     const firstFetch = fetch(`${HOST}/integrity`, { integrity })
       .then((res) => {
@@ -641,7 +534,7 @@ test('handle integrity options', (t) => {
         return res.buffer()
       })
       .then((buf) => {
-        t.deepEqual(buf.toString(), data, 'request succeeded')
+        t.same(buf.toString(), data, 'request succeeded')
       })
 
     // 100% branch coverage
@@ -652,94 +545,80 @@ test('handle integrity options', (t) => {
         return res.buffer()
       })
       .then((buf) => {
-        t.deepEqual(buf.toString(), data, 'request succeeded')
+        t.same(buf.toString(), data, 'request succeeded')
       })
 
-    return Promise.resolve()
+    await Promise.resolve()
       .then(() => firstFetch)
       .then(() => secondFetch)
+
+    t.ok(srv.isDone())
   })
 
   // TODO: have isaac make this test work
-  t.test('valid integrity value', { skip: true }, (t) => {
-    const scope = tnock(t, HOST)
+  t.test('valid integrity value', { skip: true }, async (t) => {
+    const srv = nock(HOST)
+      .get('/integrity')
+      .reply(200, data)
+
     const badIntegrity = 'sha512-MJ7MSJwS1utMxA9QyQLytNDtd+5RGnx6m808qG1M2G+YndNbxf9JlnDaNCVbRbDP2DDoH2Bdz33FVC6TrpzXJJ=='
-    scope.get('/integrity').reply(200, data)
 
-    return fetch(`${HOST}/integrity`, { integrity: badIntegrity })
-      .then((res) => {
-        t.equal(res.status, 200, 'successful status code')
-        t.ok(Minipass.isStream(res.body), 'body is a stream')
-        return res.buffer()
-      })
-      .then((buf) => {
-        t.deepEqual(buf.toString(), data, 'request succeeded')
-      })
+    const res = await fetch(`${HOST}/integrity`, { integrity: badIntegrity })
+    t.equal(res.status, 200, 'successful status code')
+    t.ok(Minipass.isStream(res.body), 'body is a stream')
+    const buf = await res.buffer()
+    t.same(buf.toString(), data, 'request succeeded')
+    t.ok(srv.isDone())
   })
-
-  t.end()
 })
 
-test('supports opts.timeout for controlling request timeout time', t => {
-  const fetch = mockRequire({})
-  const srv = tnock(t, HOST)
-
-  srv
+t.test('supports opts.timeout for controlling request timeout time', async (t) => {
+  const srv = nock(HOST)
     .get('/test')
     .delay(10)
     .reply(200, CONTENT)
 
-  return t.rejects(
+  await t.rejects(
     fetch(`${HOST}/test`, { timeout: 1, retry: { retries: 0 } }),
     {
       code: 'FETCH_ERROR',
       type: 'request-timeout',
     }
   )
+  t.ok(srv.isDone())
 })
 
-test('retries non-POST requests on timeouts', t => {
-  const fetch = mockRequire({})
-
-  t.test('retries request', (t) => {
-    const srv = tnock(t, HOST)
-
-    srv
+t.test('retries non-POST requests on timeouts', async (t) => {
+  t.test('retries request', async (t) => {
+    const srv = nock(HOST)
       .get('/test')
       .delay(100)
       .times(4)
       .reply(200)
-
-    srv
       .get('/test')
       .reply(200, CONTENT)
 
-    return fetch(`${HOST}/test`, {
+    const res = await fetch(`${HOST}/test`, {
       timeout: 10,
       retry: {
         retries: 4,
         minTimeout: 5,
       },
     })
-      .then((res) => {
-        t.equal(res.headers.get('x-fetch-attempts'), '5', 'fetched five times')
-        return res.buffer()
-      })
-      .then((buf) => {
-        t.deepEqual(buf, CONTENT, 'request retried until success')
-      })
+    t.equal(res.headers.get('x-fetch-attempts'), '5', 'fetched five times')
+    const buf = await res.buffer()
+    t.same(buf, CONTENT, 'request retried until success')
+    t.ok(srv.isDone())
   })
 
-  t.test('throws if not enough retries', (t) => {
-    const srv = tnock(t, HOST)
-
-    srv
+  t.test('throws if not enough retries', async (t) => {
+    const srv = nock(HOST)
       .get('/test')
       .delay(100)
       .times(2)
       .reply(200)
 
-    return t.rejects(
+    await t.rejects(
       fetch(`${HOST}/test`, {
         timeout: 10,
         retry: { retries: 1, minTimeout: 1 },
@@ -748,117 +627,98 @@ test('retries non-POST requests on timeouts', t => {
         type: 'request-timeout',
       }
     )
+    t.ok(srv.isDone())
   })
-
-  t.end()
 })
 
-test('retries non-POST requests on 500 errors', t => {
-  const fetch = mockRequire({})
-
-  t.test('retries request', (t) => {
-    const srv = tnock(t, HOST)
-
-    srv
+t.test('retries non-POST requests on 500 errors', async (t) => {
+  t.test('retries request', async (t) => {
+    const srv = nock(HOST)
       .get('/test')
       .times(4)
       .reply(500)
       .get('/test')
       .reply(200, CONTENT)
 
-    return fetch(`${HOST}/test`, {
+    const res = await fetch(`${HOST}/test`, {
       retry: {
         retries: 4,
         minTimeout: 5,
       },
     })
-      .then((res) => {
-        t.equal(res.headers.get('x-fetch-attempts'), '5', 'five request attempts')
-        return res.buffer()
-      })
-      .then((buf) => {
-        t.deepEqual(buf, CONTENT, 'request retried until success')
-      })
+    t.equal(res.headers.get('x-fetch-attempts'), '5', 'five request attempts')
+    const buf = await res.buffer()
+    t.same(buf, CONTENT, 'request retried until success')
+    t.ok(srv.isDone())
   })
 
-  t.test('returns 500 if at max retries', (t) => {
-    const srv = tnock(t, HOST)
-
-    srv
+  t.test('returns 500 if at max retries', async (t) => {
+    const srv = nock(HOST)
       .get('/test')
       .twice()
       .reply(500)
 
-    return fetch(`${HOST}/test`, {
+    const res = await fetch(`${HOST}/test`, {
       retry: {
         retries: 1,
         minTimeout: 1,
       },
     })
-      .then((res) => {
-        t.equal(res.status, 500, 'got bad request back on failure')
-        t.equal(res.headers.get('x-fetch-attempts'), '2', 'two request attempts')
-      })
+    t.equal(res.status, 500, 'got bad request back on failure')
+    t.equal(res.headers.get('x-fetch-attempts'), '2', 'two request attempts')
+    t.ok(srv.isDone())
   })
 
-  t.test('returns 500 error on POST requests', (t) => {
-    const srv = tnock(t, HOST)
-
-    srv
+  t.test('returns 500 error on POST requests', async (t) => {
+    const srv = nock(HOST)
       .post('/test')
       .reply(500)
 
-    return fetch(`${HOST}/test`, {
+    const res = await fetch(`${HOST}/test`, {
       method: 'POST',
       retry: {
         retries: 3,
         minTimeout: 1,
       },
     })
-      .then((res) => {
-        t.equal(res.status, 500, 'bad post gives a 500 without retries')
-        t.equal(res.headers.get('x-fetch-attempts'), '1', 'one request attempts')
-      })
+    t.equal(res.status, 500, 'bad post gives a 500 without retries')
+    t.equal(res.headers.get('x-fetch-attempts'), '1', 'one request attempts')
+    t.ok(srv.isDone())
   })
 
-  t.test('does not retry because POST body is stream', (t) => {
-    const srv = tnock(t, HOST)
-    const stream = new Minipass()
-
-    srv
+  t.test('does not retry because POST body is stream', async (t) => {
+    const srv = nock(HOST)
       .put('/test')
       .reply(500)
 
+    const stream = new Minipass()
     setTimeout(() => {
       stream.write('bleh')
       stream.end()
     }, 50)
 
-    return fetch(`${HOST}/test`, {
+    const res = await fetch(`${HOST}/test`, {
       method: 'put',
       body: stream,
       retry: { retries: 5, minTimeout: 1 },
     })
-      .then((res) => {
-        t.equal(res.status, 500, 'bad put does not retry because body is stream')
-        t.equal(res.headers.get('x-fetch-attempts'), '1', 'one request attempts')
-      })
+    t.equal(res.status, 500, 'bad put does not retry because body is stream')
+    t.equal(res.headers.get('x-fetch-attempts'), '1', 'one request attempts')
+    t.ok(srv.isDone())
   })
 
-  t.test('successfully retries with request body', (t) => {
-    const srv = tnock(t, HOST)
-
-    srv
+  t.test('successfully retries with request body', async (t) => {
+    const srv = nock(HOST)
       .put('/put-test')
       .times(4)
       .reply(500)
       .put('/put-test')
       .reply(201, (uri, reqBody) => {
-        t.deepEqual(reqBody, 'great success!', 'PUT data match')
+        t.same(reqBody, 'great success!', 'PUT data match')
         return CONTENT
       })
 
-    return fetch(`${HOST}/put-test`, {
+    const res = await fetch(`${HOST}/put-test`, {
       method: 'PUT',
       body: Buffer.from('great success!'),
       retry: {
@@ -866,93 +726,58 @@ test('retries non-POST requests on 500 errors', t => {
         minTimeout: 5,
       },
     })
-      .then((res) => {
-        t.equal(res.status, 201, 'successful response')
-        t.equal(res.headers.get('x-fetch-attempts'), '5', 'five request attempts')
-        return res.buffer()
-      })
-      .then((body) => {
-        t.deepEqual(body, CONTENT, 'got content after multiple attempts')
-      })
+    t.equal(res.status, 201, 'successful response')
+    t.equal(res.headers.get('x-fetch-attempts'), '5', 'five request attempts')
+    const buf = await res.buffer()
+    t.same(buf, CONTENT, 'got content after multiple attempts')
+    t.ok(srv.isDone())
   })
-
-  t.end()
 })
 
-test('accepts opts.retry shorthands', t => {
-  const fetch = mockRequire({})
-
-  t.test('false value for retry', (t) => {
-    const srv = tnock(t, HOST)
-
-    srv
+t.test('accepts opts.retry shorthands', async (t) => {
+  t.test('false value for retry', async (t) => {
+    const srv = nock(HOST)
       .get('/test')
       .reply(500)
 
-    return fetch(`${HOST}/test`, { retry: false })
-      .then(res => {
-        t.equal(res.status, 500, 'did not retry')
-        t.equal(res.headers.get('x-fetch-attempts'), '1', 'one request attempt')
-      })
+    const res = await fetch(`${HOST}/test`, { retry: false })
+    t.equal(res.status, 500, 'did not retry')
+    t.equal(res.headers.get('x-fetch-attempts'), '1', 'one request attempt')
+    t.ok(srv.isDone())
   })
 
-  t.test('numeric value for retry', (t) => {
-    const srv = tnock(t, HOST)
-
-    srv
+  t.test('numeric value for retry', async (t) => {
+    const srv = nock(HOST)
       .get('/test')
       .reply(500, '')
       .get('/test')
       .reply(200, CONTENT)
 
-    return fetch(`${HOST}/test`, { retry: 1 })
-      .then(res => {
-        t.equal(res.status, 200, 'retried once')
-        t.equal(res.headers.get('x-fetch-attempts'), '2', 'two request attempts')
-        return res.buffer()
-      })
-      .then((buf) => {
-        t.deepEqual(buf, CONTENT, 'successful request')
-      })
+    const res = await fetch(`${HOST}/test`, { retry: 1 })
+    t.equal(res.status, 200, 'retried once')
+    t.equal(res.headers.get('x-fetch-attempts'), '2', 'two request attempts')
+    const buf = await res.buffer()
+    t.same(buf, CONTENT, 'successful request')
+    t.ok(srv.isDone())
   })
 
-  t.test('numeric value for retry, with error', (t) => {
-    const srv = tnock(t, HOST)
-
-    srv
+  t.test('numeric value for retry, with error', async (t) => {
+    const srv = nock(HOST)
       .get('/test')
       .twice()
       .reply(500)
 
-    return fetch(`${HOST}/test`, { retry: 1 })
-      .then((res) => {
-        t.equal(res.status, 500, 'failed on second retry')
-        t.equal(res.headers.get('x-fetch-attempts'), '2', 'two request attempts')
-      })
+    const res = await fetch(`${HOST}/test`, { retry: 1 })
+    t.equal(res.status, 500, 'failed on second retry')
+    t.equal(res.headers.get('x-fetch-attempts'), '2', 'two request attempts')
+    t.ok(srv.isDone())
   })
-
-  t.end()
 })
 
-test('delete cache', (t) => {
-  const fetch = mockRequire({})
-
-  t.test('no cacheManager', (t) => {
-    fetch.delete(`${HOST}/test`)
-    t.end()
-  })
-
-  t.test('with cacheManager', (t) => {
-    return fetch.delete(`${HOST}/test`, {
-      cache: 'default',
-      cacheManager: '/path/to/cache',
-    })
-  })
-
-  t.end()
-})
-
-test('pass opts to fetch.Request as well as agent', t => {
+// TODO this task is suuuuuuper hacky, if we want to keep it
+// it needs to be very much less hacky
+/*
+t.test('pass opts to fetch.Request as well as agent', async (t) => {
   const agent = { this_is_the_agent: true }
   const ca = 'ca'
   const timeout = 'timeout'
@@ -961,10 +786,9 @@ test('pass opts to fetch.Request as well as agent', t => {
   const rejectUnauthorized = 'rejectUnauthorized'
 
   let req = null
-  const fetch = requireInject('../index.js', {
+  const fetch = t.mock('../lib/index.js', {
     'minipass-fetch': Object.assign(async request => {
       t.equal(request, req, 'got the request object')
-      t.end()
       return {
         headers: new Map(),
         status: 200,
@@ -972,17 +796,17 @@ test('pass opts to fetch.Request as well as agent', t => {
       }
     }, require('minipass-fetch'), {
       Request: class Request {
-        constructor (uri, reqOpts) {
+        constructor (request, reqOpts) {
           req = this
-          t.equal(uri, 'uri')
+          this.headers = new Map()
           t.match(reqOpts, { agent, ca, timeout, cert, key, rejectUnauthorized })
         }
       },
     }),
-    '../agent.js': (uri, opts) => agent,
+    '../lib/agent.js': (uri, opts) => agent,
   })
 
-  fetch('uri', {
+  await fetch(`${HOST}/test`, {
     agent,
     ca,
     timeout,
@@ -991,6 +815,7 @@ test('pass opts to fetch.Request as well as agent', t => {
     strictSSL: rejectUnauthorized,
   })
 })
+*/
 
 // test('retries non-POST requests on ECONNRESET')
 // test('supports automatic agent pooling on unique configs')

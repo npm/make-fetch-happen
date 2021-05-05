@@ -1,12 +1,12 @@
 'use strict'
 
-const test = require('tap').test
+const { test } = require('tap')
 const requireInject = require('require-inject')
 const url = require('url')
 
 const MockHttp = mockHttpAgent('http')
 MockHttp.HttpsAgent = mockHttpAgent('https')
-const agent = requireInject.installGlobally('../agent.js', {
+const agent = requireInject.installGlobally('../lib/agent.js', {
   agentkeepalive: MockHttp,
   'https-proxy-agent': mockHttpAgent('https-proxy'),
   'http-proxy-agent': mockHttpAgent('http-proxy'),
@@ -19,10 +19,10 @@ function mockHttpAgent (type) {
   }
 }
 
-test('extracts process env variables', t => {
+test('extracts process env variables', async t => {
   process.env = { TEST_ENV: 'test', ANOTHER_ENV: 'no' }
 
-  t.strictEqual(agent.getProcessEnv(''), undefined, 'no env name returns undefined')
+  t.equal(agent.getProcessEnv(''), undefined, 'no env name returns undefined')
   t.equal(agent.getProcessEnv('test_ENV'), 'test', 'extracts single env')
 
   t.equal(
@@ -30,7 +30,6 @@ test('extracts process env variables', t => {
     'test',
     'extracts env from array of env names'
   )
-  t.done()
 })
 
 const OPTS = {
@@ -44,53 +43,48 @@ const OPTS = {
   timeout: 5,
 }
 
-test('agent: false returns false', t => {
+test('agent: false returns false', async t => {
   t.equal(agent({ url: 'http://x.com' }, { ...OPTS, agent: false }), false)
-  t.end()
 })
 
-test('all expected options passed down to HttpAgent', t => {
-  t.deepEqual(agent('http://foo.com/bar', OPTS), {
+test('all expected options passed down to HttpAgent', async t => {
+  t.same(agent('http://foo.com/bar', OPTS), {
     __type: 'http',
     maxSockets: 5,
     localAddress: 'localAddress',
     timeout: 6,
   }, 'only expected options passed to HttpAgent')
-  t.done()
 })
 
-test('timeout 0 keeps timeout 0', t => {
-  t.deepEqual(agent('http://foo.com/bar', { ...OPTS, timeout: 0 }), {
+test('timeout 0 keeps timeout 0', async t => {
+  t.same(agent('http://foo.com/bar', { ...OPTS, timeout: 0 }), {
     __type: 'http',
     maxSockets: 5,
     localAddress: 'localAddress',
     timeout: 0,
   }, 'only expected options passed to HttpAgent')
-  t.done()
 })
 
-test('no max sockets gets 15 max sockets', t => {
-  t.deepEqual(agent('http://foo.com/bar', { ...OPTS, maxSockets: undefined }), {
+test('no max sockets gets 15 max sockets', async t => {
+  t.same(agent('http://foo.com/bar', { ...OPTS, maxSockets: undefined }), {
     __type: 'http',
     maxSockets: 15,
     localAddress: 'localAddress',
     timeout: 6,
   }, 'only expected options passed to HttpAgent')
-  t.done()
 })
 
-test('no timeout gets timeout 0', t => {
-  t.deepEqual(agent('http://foo.com/bar', { ...OPTS, timeout: undefined }), {
+test('no timeout gets timeout 0', async t => {
+  t.same(agent('http://foo.com/bar', { ...OPTS, timeout: undefined }), {
     __type: 'http',
     maxSockets: 5,
     localAddress: 'localAddress',
     timeout: 0,
   }, 'only expected options passed to HttpAgent')
-  t.done()
 })
 
-test('all expected options passed down to HttpsAgent', t => {
-  t.deepEqual(agent('https://foo.com/bar', OPTS), {
+test('all expected options passed down to HttpsAgent', async t => {
+  t.same(agent('https://foo.com/bar', OPTS), {
     __type: 'https',
     ca: 'ca',
     cert: 'cert',
@@ -100,14 +94,13 @@ test('all expected options passed down to HttpsAgent', t => {
     rejectUnauthorized: 'strictSSL',
     timeout: 6,
   }, 'only expected options passed to HttpsAgent')
-  t.done()
 })
 
-test('all expected options passed down to proxy agent', t => {
+test('all expected options passed down to proxy agent', async t => {
   const opts = Object.assign({
     proxy: 'https://user:pass@my.proxy:1234/foo',
   }, OPTS)
-  t.deepEqual(agent('https://foo.com/bar', opts), {
+  t.same(agent('https://foo.com/bar', opts), {
     __type: 'https-proxy',
     host: 'my.proxy',
     port: '1234',
@@ -122,15 +115,14 @@ test('all expected options passed down to proxy agent', t => {
     rejectUnauthorized: 'strictSSL',
     timeout: 6,
   }, 'only expected options passed to https proxy')
-  t.done()
 })
 
-test('all expected options passed down to proxy agent, username only', t => {
+test('all expected options passed down to proxy agent, username only', async t => {
   const opts = Object.assign({
     proxy: 'https://user-no-pass@my.proxy:1234/foo',
     // bust the cache
   }, { ...OPTS, timeout: OPTS.timeout + 1 })
-  t.deepEqual(agent('https://foo.com/bar', opts), {
+  t.same(agent('https://foo.com/bar', opts), {
     __type: 'https-proxy',
     host: 'my.proxy',
     port: '1234',
@@ -145,10 +137,9 @@ test('all expected options passed down to proxy agent, username only', t => {
     rejectUnauthorized: 'strictSSL',
     timeout: 7,
   }, 'only expected options passed to https proxy')
-  t.done()
 })
 
-test('get proxy uri', t => {
+test('get proxy uri', async t => {
   const { getProxyUri } = agent
   const { httpProxy, httpsProxy, noProxy } = process.env
   t.teardown(() => {
@@ -181,11 +172,9 @@ test('get proxy uri', t => {
   delete process.env.https_proxy
   t.strictSame(getProxyUri('https://foo.com/bar', {}), null, 'no https proxy without https_proxy env')
   t.strictSame(getProxyUri('http://foo.com/bar', {}), new url.URL(hp), 'http proxy for http')
-
-  t.end()
 })
 
-test('get proxy agent', t => {
+test('get proxy agent', async t => {
   const { getProxy } = agent
   const OPTS = {
     ca: 'ca',
@@ -297,6 +286,4 @@ test('get proxy agent', t => {
     message: 'unsupported proxy protocol: \'gopher:\'',
     url: 'gopher://proxy.local',
   })
-
-  t.end()
 })
