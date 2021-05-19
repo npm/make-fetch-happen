@@ -34,7 +34,7 @@
   "license": "ISC",
   "dependencies": {
     "agentkeepalive": "^4.1.3",
-    "cacache": "github:npm/cacache#nlf/expose-new-index-methods",
+    "cacache": "^15.1.0",
     "http-cache-semantics": "^4.1.0",
     "http-proxy-agent": "^4.0.1",
     "https-proxy-agent": "^5.0.0",
