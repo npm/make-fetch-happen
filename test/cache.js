@@ -105,6 +105,63 @@ t.test('no match, fetches and replies', async (t) => {
   }, 'resHeaders has only the relevant headers for caching')
 })
 
+t.test('no match, fetches and replies even when no content-length', async (t) => {
+  // when no content-length header is set in the response, we pass null as the size
+  // to cacache when writing, so we test that separately since it will fail if we
+  // were to do something silly like coercing the raw value of the header into a number
+  const srv = nock(HOST)
+    .get('/test')
+    .reply(200, CONTENT, {
+      // no content-length in the response
+      'cache-control': 'max-age=300',
+      'content-type': 'application/octet-stream',
+      date: new Date().toISOString(),
+      'x-foo': 'something',
+    })
+
+  const reqKey = cacheKey(new Request(`${HOST}/test`))
+  const dir = t.testdir()
+  const res = await fetch(`${HOST}/test`, { cachePath: dir })
+  t.ok(srv.isDone(), 'req is fulfilled')
+  t.equal(res.status, 200)
+  t.equal(res.headers.get('cache-control'), 'max-age=300', 'kept cache-control')
+  t.equal(res.headers.get('content-type'), 'application/octet-stream', 'kept content-stream')
+  t.notOk(res.headers.has('content-length'), 'does not have a content-length')
+  t.equal(res.headers.get('x-local-cache'), encodeURIComponent(dir), 'has cache dir')
+  t.equal(res.headers.get('x-local-cache-key'), encodeURIComponent(reqKey), 'has cache key')
+  t.equal(res.headers.get('x-local-cache-mode'), 'stream', 'should stream store since size is unknown')
+  t.equal(res.headers.get('x-local-cache-status'), 'miss', 'identifies as cache miss')
+  t.ok(res.headers.has('x-local-cache-time'), 'has cache time')
+  t.equal(res.headers.get('x-foo'), 'something', 'original response has all headers')
+  t.notOk(res.headers.has('x-local-cache-hash'), 'hash header is only set when served from cache')
+
+  const dirBeforeRead = await readdir(dir)
+  t.same(dirBeforeRead, [], 'should not write to the cache yet')
+
+  const buf = await res.buffer()
+  t.same(buf, CONTENT, 'got the correct content')
+  const dirAfterRead = await readdir(dir)
+  // note, this does not make any assumptions about what directories
+  // are in the cache, only that there is something there. this is so
+  // our tests do not have to change if cacache version bumps its content
+  // and/or index directories
+  t.ok(dirAfterRead.length > 0, 'cache has data after consuming the body')
+
+  // compact with a function that always returns false
+  // results in a list of all entries in the index
+  const entries = await cacache.index.compact(dir, reqKey, () => false)
+  t.equal(entries.length, 1, 'should only have one entry')
+  const entry = entries[0]
+  t.equal(entry.integrity, INTEGRITY, 'integrity matches')
+  t.equal(entry.metadata.url, `${HOST}/test`, 'url matches')
+  t.same(entry.metadata.reqHeaders, {}, 'metadata has no request headers as none are relevant')
+  t.same(entry.metadata.resHeaders, {
+    'content-type': res.headers.get('content-type'),
+    'cache-control': res.headers.get('cache-control'),
+    date: res.headers.get('date'),
+  }, 'resHeaders has only the relevant headers for caching')
+})
+
 t.test('no matches, cache mode only-if-cached rejects', async (t) => {
   const dir = t.testdir()
 
