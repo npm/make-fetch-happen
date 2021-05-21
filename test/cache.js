@@ -1070,3 +1070,112 @@ t.test('vary headers in response correctly store the request headers in cache', 
   t.equal(fooEntries[0].metadata.reqHeaders['x-foo'], 'bar', 'did keep x-foo')
   t.ok(srv.isDone())
 })
+
+t.test('cache is invalidated by a non-GET/HEAD request to the same url', async (t) => {
+  const srv = nock(HOST)
+    .get('/test')
+    .twice()
+    .reply(200, CONTENT, {
+      ...getHeaders(CONTENT),
+      etag: '"beef"',
+    })
+    .post('/test')
+    .reply(201)
+
+  const dir = t.testdir()
+  const initialRes = await fetch(`${HOST}/test`, {
+    cachePath: dir,
+  })
+  t.equal(initialRes.status, 200, 'got a success response')
+  t.equal(initialRes.headers.get('x-local-cache-status'), 'miss', 'was a cache miss')
+  await initialRes.buffer() // consume the buffer so the cache stores it
+
+  // first request should've cached, this proves it
+  const verifyRes = await fetch(`${HOST}/test`, {
+    cachePath: dir,
+  })
+  t.equal(verifyRes.status, 200, 'got a success response')
+  t.equal(verifyRes.headers.get('x-local-cache-status'), 'hit', 'was a cache hit')
+
+  // the POST request invalidates the url entirely
+  const postRes = await fetch(`${HOST}/test`, {
+    method: 'POST',
+    body: null,
+    cachePath: dir,
+  })
+  t.equal(postRes.status, 201, 'got the right response')
+
+  // now this fetch will be a miss
+  const afterRes = await fetch(`${HOST}/test`, {
+    cachePath: dir,
+  })
+  t.equal(afterRes.status, 200, 'got a success response')
+  t.equal(afterRes.headers.get('x-local-cache-status'), 'miss', 'back to a cache miss')
+  await afterRes.buffer()
+  t.ok(srv.isDone())
+})
+
+t.test('cache deduplicates and appropriately removes null integrity entries from previous versions', async (t) => {
+  // previous versions of make-fetch-happen naively used cacache, which would append a new entry every
+  // time a request was made that did not match, in addition to that an invalidation in the previous
+  // version would write an entry with a null integrity which cacache interpreted as a deleted entry,
+  // while this current version of make-fetch-happen uses null integrity entries for stored redirects.
+  // this test is meant to ensure that a user who upgrades from an old make-fetch-happen to a new one
+  // keeping the same cache does not get erroneous results, and their indexes are deduplicated correctly.
+
+  const dir = t.testdir()
+  const reqKey = cacheKey(new Request(`${HOST}/test`))
+  await cacache.index.insert(dir, reqKey, INTEGRITY, {
+    metadata: {
+      url: `${HOST}/test`,
+      reqHeaders: {
+        accept: ['application/json'],
+      },
+    },
+  })
+  await cacache.index.insert(dir, reqKey, INTEGRITY, {
+    metadata: {
+      url: `${HOST}/test`,
+      reqHeaders: {
+        accept: ['application/vnd.npm.install-v1+json'],
+      },
+    },
+  })
+  await cacache.index.insert(dir, reqKey, null)
+  await cacache.index.insert(dir, reqKey, INTEGRITY, {
+    metadata: {
+      url: `${HOST}/test`,
+      reqHeaders: {
+        accept: ['application/json'],
+      },
+    },
+  })
+  const srv = nock(HOST)
+    .get('/test')
+    .reply(200, CONTENT, {
+      ...getHeaders(CONTENT),
+      'content-type': 'application/json',
+      etag: '"beef"',
+    })
+
+  const initialRes = await fetch(`${HOST}/test`, {
+    cachePath: dir,
+    headers: {
+      accept: 'application/json',
+    },
+  })
+  t.equal(initialRes.status, 200, 'got a success response')
+  // the status is update because we deduplicated the original responses, found the one that
+  // matches our client's request, and then revalidates it
+  t.equal(initialRes.headers.get('x-local-cache-status'), 'updated', 'identified as an update')
+  t.equal(initialRes.headers.get('content-type'), 'application/json', 'got the right content-type')
+  // at this point, the index should be deduplicated down to 2 entries
+  const initialEntries = await cacache.index.compact(dir, reqKey, () => false, { validateEntry: () => true })
+  t.equal(initialEntries.length, 2, 'should have two entries')
+  await initialRes.buffer() // write it to the cache, this appends a third
+
+  const entries = await cacache.index.compact(dir, reqKey, () => false, { validateEntry: () => true })
+  t.equal(entries.length, 3, 'should have three entries')
+  t.equal(entries[0].metadata.reqHeaders.accept, 'application/json', 'has the right request header')
+  t.ok(srv.isDone())
+})
