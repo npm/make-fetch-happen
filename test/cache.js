@@ -79,10 +79,13 @@ t.test('no match, fetches and replies', async (t) => {
   t.equal(res.headers.get('x-foo'), 'something', 'original response has all headers')
   t.notOk(res.headers.has('x-local-cache-hash'), 'hash header is only set when served from cache')
 
+  // console.error('reading dir')
   const dirBeforeRead = await readdir(dir)
   t.same(dirBeforeRead, [], 'should not write to the cache yet')
 
+  // console.error('consuming body')
   const buf = await res.buffer()
+  // console.error('consumed body, all done')
   t.same(buf, CONTENT, 'got the correct content')
   const dirAfterRead = await readdir(dir)
   // note, this does not make any assumptions about what directories
@@ -1182,9 +1185,11 @@ t.test('cache deduplicates and appropriately removes null integrity entries from
   // at this point, the index should be deduplicated down to 2 entries
   const initialEntries = await cacache.index.compact(dir, reqKey, () => false, { validateEntry: () => true })
   t.equal(initialEntries.length, 2, 'should have two entries')
+  console.error(require('util').inspect(initialEntries, { depth: null }))
   await initialRes.buffer() // write it to the cache, this appends a third
 
   const entries = await cacache.index.compact(dir, reqKey, () => false, { validateEntry: () => true })
+  console.error(require('util').inspect(entries, { depth: null }))
   t.equal(entries.length, 3, 'should have three entries')
   t.equal(entries[0].metadata.reqHeaders.accept, 'application/json', 'has the right request header')
   t.ok(srv.isDone())
