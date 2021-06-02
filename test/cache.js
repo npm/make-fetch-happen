@@ -1,6 +1,6 @@
 'use strict'
 
-const { basename, join } = require('path')
+const { basename, join, sep } = require('path')
 const cacache = require('cacache')
 const fs = require('fs')
 const nock = require('nock')
@@ -36,7 +36,7 @@ t.beforeEach(() => nock.cleanAll())
 t.test('policy preload', async (t) => {
   // see comments at the top of lib/cache/policy.js
   const loadedModules = Object.keys(require.cache)
-    .filter(key => key.includes('/negotiator/') && !key.endsWith('index.js'))
+    .filter(key => key.includes(`${sep}negotiator${sep}`) && !key.endsWith('index.js'))
     .map(key => basename(key, '.js'))
 
   t.ok(loadedModules.includes('charset'), 'preloaded charset.js')
