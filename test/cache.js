@@ -211,7 +211,7 @@ t.test('cache hit, no revalidation', async (t) => {
   t.ok(res.headers.has('x-local-cache-time'))
 })
 
-t.test('cache hit, cache mode reload 304', async (t) => {
+t.test('cache hit, cache mode no-cache 304', async (t) => {
   const srv = nock(HOST)
     .get('/test')
     .reply(200, CONTENT, {
@@ -233,7 +233,7 @@ t.test('cache hit, cache mode reload 304', async (t) => {
   await cacheRes.buffer() // drain it immediately so it stores to the cache
   t.ok(srv.isDone(), 'first req fulfilled')
 
-  const res = await fetch(`${HOST}/test`, { cachePath: dir, retry: false, cache: 'reload' })
+  const res = await fetch(`${HOST}/test`, { cachePath: dir, retry: false, cache: 'no-cache' })
   const buf = await res.buffer()
   t.ok(revalidateSrv.isDone(), 'second req fulfilled')
   t.same(buf, CONTENT, 'got the right content')
@@ -254,7 +254,7 @@ t.test('cache hit, cache mode reload 304', async (t) => {
   t.equal(entries.length, 2, 'should have 2 entries')
 })
 
-t.test('cache hit, cache mode reload 200', async (t) => {
+t.test('cache hit, cache mode no-cache 200', async (t) => {
   const srv = nock(HOST)
     .get('/test')
     .reply(200, CONTENT, {
@@ -279,7 +279,7 @@ t.test('cache hit, cache mode reload 200', async (t) => {
   await cacheRes.buffer() // drain it immediately so it stores to the cache
   t.ok(srv.isDone(), 'first req fulfilled')
 
-  const res = await fetch(`${HOST}/test`, { cachePath: dir, retry: false, cache: 'reload' })
+  const res = await fetch(`${HOST}/test`, { cachePath: dir, retry: false, cache: 'no-cache' })
   const buf = await res.buffer()
   t.ok(revalidateSrv.isDone(), 'second req fulfilled')
   t.same(buf, CONTENT, 'got the right content')
@@ -302,6 +302,42 @@ t.test('cache hit, cache mode reload 200', async (t) => {
   // our newest entry will be the first in the resulting array. make sure we
   // have the newest etag where it belongs
   t.equal(entries[0].metadata.resHeaders.etag, '"beefcafe"', 'new etag takes priority')
+})
+
+t.test('cache mode reload', async (t) => {
+  const srv = nock(HOST)
+    .get('/test')
+    .twice()
+    .reply(200, CONTENT, {
+      ...getHeaders(CONTENT),
+      etag: '"beefc0ffee"',
+    })
+
+  const dir = t.testdir()
+  const reqKey = cacheKey(new Request(`${HOST}/test`))
+  const cacheRes = await fetch(`${HOST}/test`, { cachePath: dir, retry: false })
+  await cacheRes.buffer() // drain it immediately so it stores to the cache
+
+  // reload will always give a status of miss and send a full request
+  const res = await fetch(`${HOST}/test`, { cachePath: dir, retry: false, cache: 'reload' })
+  const buf = await res.buffer()
+  t.ok(srv.isDone(), 'both requests fulfilled')
+  t.same(buf, CONTENT, 'got the right content')
+  t.equal(res.status, 200, 'got a 200')
+  t.equal(res.url, `${HOST}/test`, 'has the right url property')
+  t.equal(res.headers.get('cache-control'), 'max-age=300', 'kept cache-control')
+  t.equal(res.headers.get('content-type'), 'application/octet-stream', 'kept content-type')
+  t.equal(res.headers.get('content-length'), `${CONTENT.length}`, 'kept content-length')
+  t.equal(res.headers.get('etag'), '"beefc0ffee"', 'kept the etag')
+  t.equal(res.headers.get('x-local-cache'), encodeURIComponent(dir), 'encoded the path')
+  t.equal(res.headers.get('x-local-cache-status'), 'miss', 'got a cache miss')
+  t.equal(res.headers.get('x-local-cache-key'), encodeURIComponent(reqKey), 'got the right cache key')
+  // just make sure x-local-cache-time is set, no need to assert its value
+  t.ok(res.headers.has('x-local-cache-time'))
+  t.notOk(res.headers.has('x-local-cache-hash'), 'does not have a hash header')
+
+  const entries = await cacache.index.compact(dir, reqKey, () => false)
+  t.equal(entries.length, 2, 'should have 2 entries')
 })
 
 t.test('cache hit, stale but mode is only-if-cached', async (t) => {

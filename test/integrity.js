@@ -138,7 +138,7 @@ t.test('checks integrity on cache fetch too', async (t) => {
   const safetch = fetch.defaults({
     cacheManager: CACHE,
     integrity: INTEGRITY,
-    cache: 'reload',
+    cache: 'no-cache',
   })
 
   const goodRes = await safetch(`${HOST}/test`)
