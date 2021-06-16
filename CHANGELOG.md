@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [9.0.3](https://github.com/npm/make-fetch-happen/compare/v9.0.2...v9.0.3) (2020-06-16)
+
+### Bug Fixes
+
+* corrects the implementation of the `'reload'` cache mode, and implements `'no-cache'` per the fetch spec
+
+### [9.0.2](https://github.com/npm/make-fetch-happen/compare/v9.0.1...v9.0.2) (2020-06-01)
+
+### Bug Fixes
+
+* correctly supports URI encoded proxy authorization
+
+### [9.0.0](https://github.com/npm/make-fetch-happen/compare/v8.0.14...v9.0.0) (2020-06-01)
+
+### ⚠ BREAKING CHANGES
+
+* the `cacheManager` option used to accept either a path or an instance of a Cache object, this has been removed in favor of `cachePath` which can only be a directory.
+there is no longer an option to provide a different caching implementation and [cacache](https://github.com/npm/cacache) will always be used.
+
+### Features
+
+* exports now match those of `node-fetch`
+
+### Bug Fixes
+
+* the cache is now capable of storing multiple requests and responses for the same URL to better account for the `accept` and `vary` family of headers
+* cache indexes will be deduplicated when being read, and deleted entirely when invalidated. this prevents the cache directory from growing unbounded with every request
+
+
 ### [8.0.3](https://github.com/npm/make-fetch-happen/compare/v8.0.2...v8.0.3) (2020-03-03)
 
 
