@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [9.0.4](https://github.com/npm/make-fetch-happen/compare/v9.0.3...v9.0.3) (2021-07-15)
+
+### Bug Fixes
+
+* fix: retry ERR_SOCKET_TIMEOUT errors
+* fix: clean up EINTEGRITY and ENOENT errors when reading from cacache
+* fix: store an explicit timestamp instead of relying on cacache's
+
 ### [9.0.3](https://github.com/npm/make-fetch-happen/compare/v9.0.2...v9.0.3) (2020-06-16)
 
 ### Bug Fixes
