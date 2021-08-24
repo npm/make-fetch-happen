@@ -39,7 +39,7 @@ const OPTS = {
   cert: 'cert',
   key: 'key',
   localAddress: 'localAddress',
-  strictSSL: 'strictSSL',
+  rejectUnauthorized: 'strictSSL',
   timeout: 5,
 }
 
@@ -183,7 +183,7 @@ test('get proxy agent', async t => {
     timeout: 1,
     localAddress: 'local address',
     maxSockets: 3,
-    strictSSL: true,
+    rejectUnauthorized: true,
   }
 
   t.strictSame(getProxy(new url.URL('http://proxy.local:443/'), OPTS, true), {
