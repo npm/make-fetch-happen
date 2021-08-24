@@ -29,7 +29,7 @@ const OPTS = {
   cert: 'cert',
   key: 'key',
   localAddress: 'localAddress',
-  strictSSL: 'strictSSL',
+  rejectUnauthorized: 'strictSSL',
   timeout: 5,
 }
 
