@@ -212,6 +212,44 @@ t.test('cache hit, no revalidation', async (t) => {
   t.ok(res.headers.has('x-local-cache-time'))
 })
 
+t.test('cache hit, no revalidation, extra headers', async (t) => {
+  const srv = nock(HOST)
+    .get('/test')
+    .reply(200, CONTENT, {
+      ...getHeaders(CONTENT),
+      'extra-stored-header': 'this should also be stored in the cache',
+      'extra-unstored-header': 'this should *not* be stored in the cache',
+    })
+
+  const cachedResponseHeaders = ['extra-stored-header', ...fetch.CACHED_RESPONSE_HEADERS]
+  const dir = t.testdir()
+  const reqKey = cacheKey(new Request(`${HOST}/test`))
+  const cacheRes = await fetch(`${HOST}/test`, { cachePath: dir, retry: false, cachedResponseHeaders })
+  await cacheRes.buffer() // drain it immediately so it stores to the cache
+  t.ok(srv.isDone(), 'req has fulfilled')
+
+  const res = await fetch(`${HOST}/test`, { cachePath: dir, retry: false, cachedResponseHeaders })
+  const buf = await res.buffer()
+  t.same(buf, CONTENT, 'got the right content')
+  t.equal(res.status, 200, 'got a 200')
+  t.equal(res.url, `${HOST}/test`, 'has the right url')
+  t.equal(res.headers.get('cache-control'), 'max-age=300', 'kept cache-control')
+  t.equal(res.headers.get('content-type'), 'application/octet-stream', 'kept content-type')
+  t.equal(res.headers.get('content-length'), `${CONTENT.length}`, 'kept content-length')
+  t.equal(res.headers.get('x-local-cache'), encodeURIComponent(dir), 'encoded the path')
+  t.equal(res.headers.get('x-local-cache-status'), 'hit', 'got a cache hit')
+  t.equal(res.headers.get('x-local-cache-key'), encodeURIComponent(reqKey), 'got the right cache key')
+  t.equal(res.headers.get('x-local-cache-mode'), 'buffer', 'should buffer read')
+  t.equal(res.headers.get('x-local-cache-hash'), encodeURIComponent(INTEGRITY), 'has the right hash')
+  // just make sure x-local-cache-time is set, no need to assert its value
+  t.ok(res.headers.has('x-local-cache-time'))
+
+  t.notOk(res.headers.has('extra-unstored-header'), 'does not have the extra unstored header')
+  t.equal(res.headers.get('extra-stored-header'),
+    'this should also be stored in the cache',
+    'has the extra stored header')
+})
+
 t.test('cache hit, cache mode no-cache 304', async (t) => {
   const srv = nock(HOST)
     .get('/test')

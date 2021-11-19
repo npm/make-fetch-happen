@@ -22,6 +22,7 @@ pooling, proxies, retries, [and more](#features)!
   * [`make-fetch-happen` options](#extra-options)
     * [`opts.cachePath`](#opts-cache-path)
     * [`opts.cache`](#opts-cache)
+    * [`opts.cachedResponseHeaders`](#opts-cache-response-headers)
     * [`opts.proxy`](#opts-proxy)
     * [`opts.noProxy`](#opts-no-proxy)
     * [`opts.ca, opts.cert, opts.key`](#https-opts)
@@ -138,6 +139,7 @@ make-fetch-happen augments the `minipass-fetch` API with additional features ava
 
 * [`opts.cachePath`](#opts-cache-path) - Cache target to read/write
 * [`opts.cache`](#opts-cache) - `fetch` cache mode. Controls cache *behavior*.
+* [`opts.cachedResponseHeaders`](#opts-cache-response-headers) - response headers stored in cache
 * [`opts.proxy`](#opts-proxy) - Proxy agent
 * [`opts.noProxy`](#opts-no-proxy) - Domain segments to disable proxying for.
 * [`opts.ca, opts.cert, opts.key, opts.strictSSL`](#https-opts)
@@ -254,6 +256,19 @@ fetch('https://registry.npmjs.org/make-fetch-happen', {
 fetch('https://registry.npmjs.org/make-fetch-happen', {
   cache: 'force-cache'
 })
+```
+
+#### <a name="opts-cache-response-headers"></a> `> opts.cacheResponseHeaders`
+
+A list of HTTP response headers to store within the cache and to include in cached
+responses. The default list of stored cached response headers can be obtained
+via `fetch.CACHED_RESPONSE_HEADERS`
+
+```javascript
+fetch('https://registry.npmjs.org/make-fetch-happen', {
+  cachePath: './my-local-cache'
+  cachedResponseHeaders: ['link', ...fetch.CACHED_RESPONSE_HEADERS]
+}) // -> 200-level response will be written to disk
 ```
 
 #### <a name="opts-proxy"></a> `> opts.proxy`
