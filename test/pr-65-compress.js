@@ -50,6 +50,25 @@ t.test('shared cache', async (t) => {
   }
 })
 
+t.test('shared cache, miss due to different accept-encoding', async (t) => {
+  setupNock(t)
+
+  // test conditions share a cache
+  const cachePath = t.testdir()
+
+  for (const acceptEncoding of ['gzip', 'gzip,deflate']) {
+    await t.test(`accept-encoding: ${acceptEncoding}`, async (t) => {
+      await makeRequests(t, {
+        cachePath,
+        compress: true,
+        headers: {
+          'accept-encoding': acceptEncoding,
+        },
+      })
+    })
+  }
+})
+
 function setupNock (t) {
   // both of these nock interceptors use .persist() to make test results easier
   // to interpret across codebase states that pass vs. fail.  the point is to
@@ -60,7 +79,7 @@ function setupNock (t) {
   // responds to non-revalidation requests
   nock(HOST, {
     reqHeaders: {
-      'accept-encoding': 'gzip',
+      'accept-encoding': /gzip/,
     },
     badheaders: ['if-none-match'],
   })
@@ -75,7 +94,7 @@ function setupNock (t) {
   // responds only to revalidation requests
   nock(HOST, {
     reqHeaders: {
-      'accept-encoding': 'gzip',
+      'accept-encoding': /gzip/,
       'if-none-match': '"0xBADCAFE"',
     },
   })
@@ -87,7 +106,7 @@ function setupNock (t) {
 }
 
 async function makeRequests (t, options) {
-  const {cachePath, compress} = options
+  const {cachePath, compress, headers} = options
 
   for (const trial of [1, 2, 3]) {
     await t.test(`request ${trial}`, async (t) => {
@@ -97,6 +116,7 @@ async function makeRequests (t, options) {
         compress,
         headers: {
           'accept-encoding': 'gzip',
+          ...headers,
         },
       })
 
