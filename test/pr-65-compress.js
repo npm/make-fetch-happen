@@ -23,15 +23,20 @@ nock.disableNetConnect()
 t.test('separate caches', async (t) => {
   setupNock(t)
 
-  for (const compress of [false, true]) {
-    await t.test(`{compress: ${compress}}`, async (t) => {
-      // isolate cache to each test condition
-      await makeRequests(t, {
-        cachePath: t.testdir(),
-        compress,
-      })
-    })
-  }
+  // isolate cache to each test condition
+  let cachePath
+
+  t.comment('{compress: false}')
+  cachePath = t.testdir()
+  await assertRequest(t, { cachePath, compress: false }, { status: 'miss', body: CONTENT_GZIP })
+  await assertRequest(t, { cachePath, compress: false }, { status: 'revalidated', body: CONTENT_GZIP })
+  await assertRequest(t, { cachePath, compress: false }, { status: 'revalidated', body: CONTENT_GZIP })
+
+  t.comment('{compress: true}')
+  cachePath = t.testdir()
+  await assertRequest(t, { cachePath, compress: true }, { status: 'miss', body: CONTENT })
+  await assertRequest(t, { cachePath, compress: true }, { status: 'revalidated', body: CONTENT })
+  await assertRequest(t, { cachePath, compress: true }, { status: 'revalidated', body: CONTENT })
 })
 
 t.test('shared cache', async (t) => {
@@ -40,33 +45,33 @@ t.test('shared cache', async (t) => {
   // test conditions share a cache
   const cachePath = t.testdir()
 
-  for (const compress of [false, true]) {
-    await t.test(`{compress: ${compress}}`, async (t) => {
-      await makeRequests(t, {
-        cachePath,
-        compress,
-      })
-    })
-  }
+  t.comment('{compress: false}')
+  await assertRequest(t, { cachePath, compress: false }, { status: 'miss', body: CONTENT_GZIP })
+  await assertRequest(t, { cachePath, compress: false }, { status: 'revalidated', body: CONTENT_GZIP })
+  await assertRequest(t, { cachePath, compress: false }, { status: 'revalidated', body: CONTENT_GZIP })
+
+  t.comment('{compress: true}')
+  await assertRequest(t, { cachePath, compress: true }, { status: 'miss', body: CONTENT })
+  await assertRequest(t, { cachePath, compress: true }, { status: 'revalidated', body: CONTENT })
+  await assertRequest(t, { cachePath, compress: true }, { status: 'revalidated', body: CONTENT })
 })
 
 t.test('shared cache, miss due to different accept-encoding', async (t) => {
   setupNock(t)
 
-  // test conditions share a cache
+  // test conditions share a cache and compress value
   const cachePath = t.testdir()
+  const compress = true
 
-  for (const acceptEncoding of ['gzip', 'gzip,deflate']) {
-    await t.test(`accept-encoding: ${acceptEncoding}`, async (t) => {
-      await makeRequests(t, {
-        cachePath,
-        compress: true,
-        headers: {
-          'accept-encoding': acceptEncoding,
-        },
-      })
-    })
-  }
+  t.comment('{accept-encoding: gzip}')
+  await assertRequest(t, { cachePath, compress, headers: {'accept-encoding': 'gzip'} }, { status: 'miss', body: CONTENT })
+  await assertRequest(t, { cachePath, compress, headers: {'accept-encoding': 'gzip'} }, { status: 'revalidated', body: CONTENT })
+  await assertRequest(t, { cachePath, compress, headers: {'accept-encoding': 'gzip'} }, { status: 'revalidated', body: CONTENT })
+
+  t.comment('{accept-encoding: gzip,deflate}')
+  await assertRequest(t, { cachePath, compress, headers: {'accept-encoding': 'gzip,deflate'} }, { status: 'miss', body: CONTENT })
+  await assertRequest(t, { cachePath, compress, headers: {'accept-encoding': 'gzip,deflate'} }, { status: 'revalidated', body: CONTENT })
+  await assertRequest(t, { cachePath, compress, headers: {'accept-encoding': 'gzip,deflate'} }, { status: 'revalidated', body: CONTENT })
 })
 
 function setupNock (t) {
@@ -105,30 +110,25 @@ function setupNock (t) {
   t.teardown(nock.cleanAll)
 }
 
-async function makeRequests (t, options) {
+async function assertRequest (t, options, expected) {
   const {cachePath, compress, headers} = options
 
-  for (const trial of [1, 2, 3]) {
-    await t.test(`request ${trial}`, async (t) => {
-      const res = await fetch(`${HOST}/test`, {
-        cachePath,
-        cache: 'no-cache',
-        compress,
-        headers: {
-          'accept-encoding': 'gzip',
-          ...headers,
-        },
-      })
+  const res = await fetch(`${HOST}/test`, {
+    cachePath,
+    cache: 'no-cache',
+    compress,
+    headers: {
+      'accept-encoding': 'gzip',
+      ...headers,
+    },
+  })
 
-      const cacheStatus = trial === 1 ? 'miss' : 'revalidated'
+  t.equal(res.status, 200, 'status 200')
+  t.equal(res.headers.get('x-local-cache-status'), expected.status, `cache ${expected.status}`)
+  t.ok(res.headers.has('content-encoding'), 'content-encoding present')
+  t.equal(res.headers.get('content-encoding'), 'gzip', 'content-encoding: gzip (a known lie when {compress: true})')
+  t.equal(res.headers.get('content-type'), 'text/plain', 'content-type: text/plain')
 
-      const buf = await res.buffer()
-      t.same(buf, compress ? CONTENT : CONTENT_GZIP, `content is ${compress ? 'uncompressed' : 'compressed'}`)
-      t.equal(res.status, 200, 'status 200')
-      t.equal(res.headers.get('x-local-cache-status'), cacheStatus, `cache ${cacheStatus}`)
-      t.ok(res.headers.has('content-encoding'), 'content-encoding present')
-      t.equal(res.headers.get('content-encoding'), 'gzip', 'content-encoding: gzip (a known lie when {compress: true})')
-      t.equal(res.headers.get('content-type'), 'text/plain', 'content-type: text/plain')
-    })
-  }
+  const buf = await res.buffer()
+  t.same(buf, expected.body, `content is as expected`)
 }
