@@ -21,7 +21,7 @@ const getHeaders = (content) => ({
 nock.disableNetConnect()
 
 t.test('separate caches', async (t) => {
-  setupNock(t)
+  const {misses, revalidations} = setupNock(t)
 
   // isolate cache to each test condition
   let cachePath
@@ -37,10 +37,13 @@ t.test('separate caches', async (t) => {
   await assertRequest(t, { cachePath, compress: true }, { status: 'miss', body: CONTENT })
   await assertRequest(t, { cachePath, compress: true }, { status: 'revalidated', body: CONTENT })
   await assertRequest(t, { cachePath, compress: true }, { status: 'revalidated', body: CONTENT })
+
+  t.equal(misses(), 2, 'nock intercepted 2 misses')
+  t.equal(revalidations(), 4, 'nock intercepted 4 revalidations')
 })
 
 t.test('shared cache', async (t) => {
-  setupNock(t)
+  const {misses, revalidations} = setupNock(t)
 
   // test conditions share a cache
   const cachePath = t.testdir()
@@ -54,10 +57,13 @@ t.test('shared cache', async (t) => {
   await assertRequest(t, { cachePath, compress: true }, { status: 'miss', body: CONTENT })
   await assertRequest(t, { cachePath, compress: true }, { status: 'revalidated', body: CONTENT })
   await assertRequest(t, { cachePath, compress: true }, { status: 'revalidated', body: CONTENT })
+
+  t.equal(misses(), 2, 'nock intercepted 2 misses')
+  t.equal(revalidations(), 4, 'nock intercepted 4 revalidations')
 })
 
 t.test('shared cache, miss due to different accept-encoding', async (t) => {
-  setupNock(t)
+  const {misses, revalidations} = setupNock(t)
 
   // test conditions share a cache and compress value
   const cachePath = t.testdir()
@@ -72,6 +78,9 @@ t.test('shared cache, miss due to different accept-encoding', async (t) => {
   await assertRequest(t, { cachePath, compress, headers: {'accept-encoding': 'gzip,deflate'} }, { status: 'miss', body: CONTENT })
   await assertRequest(t, { cachePath, compress, headers: {'accept-encoding': 'gzip,deflate'} }, { status: 'revalidated', body: CONTENT })
   await assertRequest(t, { cachePath, compress, headers: {'accept-encoding': 'gzip,deflate'} }, { status: 'revalidated', body: CONTENT })
+
+  t.equal(misses(), 2, 'nock intercepted 2 misses')
+  t.equal(revalidations(), 4, 'nock intercepted 4 revalidations')
 })
 
 function setupNock (t) {
@@ -82,7 +91,7 @@ function setupNock (t) {
   // requests.
   //
   // responds to non-revalidation requests
-  nock(HOST, {
+  const missInterceptor = nock(HOST, {
     reqHeaders: {
       'accept-encoding': /gzip/,
     },
@@ -90,14 +99,15 @@ function setupNock (t) {
   })
     .persist()
     .get('/test')
-    .reply(200, CONTENT_GZIP, {
-      ...getHeaders(CONTENT_GZIP),
-      'content-encoding': 'gzip',
-      etag: '"0xBADCAFE"',
-    })
+
+  missInterceptor.reply(200, CONTENT_GZIP, {
+    ...getHeaders(CONTENT_GZIP),
+    'content-encoding': 'gzip',
+    etag: '"0xBADCAFE"',
+  })
 
   // responds only to revalidation requests
-  nock(HOST, {
+  const revalidationInterceptor = nock(HOST, {
     reqHeaders: {
       'accept-encoding': /gzip/,
       'if-none-match': '"0xBADCAFE"',
@@ -105,9 +115,15 @@ function setupNock (t) {
   })
     .persist()
     .get('/test')
-    .reply(304)
+
+  revalidationInterceptor.reply(304)
 
   t.teardown(nock.cleanAll)
+
+  return {
+    misses: () => missInterceptor.interceptionCounter,
+    revalidations: () => revalidationInterceptor.interceptionCounter,
+  }
 }
 
 async function assertRequest (t, options, expected) {
