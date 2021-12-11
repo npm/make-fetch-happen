@@ -1179,6 +1179,72 @@ t.test('cache deduplicates and appropriately removes null integrity entries from
   t.ok(srv.isDone())
 })
 
+t.test('cache removes entries from previous versions that contain content-encoding: null', async (t) => {
+  // previous versions of make-fetch-happen sometimes stored cache entries with
+  // resHeaders['content-encoding'] === null, which was a bug.  make sure that
+  // newer versions invalidate those entries correctly during compaction.
+  const dir = t.testdir()
+  const reqKey = cacheKey(new Request(`${HOST}/test`))
+
+  // mimic old entry for req with options: {compress: false}, with non-default
+  // accept-encoding, and no content-encoding in response.  new versions would
+  // store options.compress and drop content-encoding.
+  await cacache.index.insert(dir, reqKey, INTEGRITY, {
+    metadata: {
+      url: `${HOST}/test`,
+      reqHeaders: {
+        'accept-encoding': 'gzip',
+      },
+      resHeaders: {
+        'content-encoding': null,
+        'content-type': 'text/plain',
+      },
+    },
+  })
+
+  // mimic old entry for req with options: {compress: true}, with non-default
+  // accept-encoding, and no content-encoding in response.  new versions would
+  // store options.compress.
+  await cacache.index.insert(dir, reqKey, INTEGRITY, {
+    metadata: {
+      url: `${HOST}/test`,
+      reqHeaders: {
+        'accept-encoding': 'gzip',
+      },
+      resHeaders: {
+        'content-type': 'text/plain',
+      },
+    },
+  })
+  const srv = nock(HOST)
+    .get('/test')
+    .reply(200, CONTENT, {
+      ...getHeaders(CONTENT),
+      'content-type': 'text/plain',
+    })
+
+  const res = await fetch(`${HOST}/test`, {
+    cachePath: dir,
+    compress: false,
+    headers: {
+      'accept-encoding': 'gzip',
+    },
+  })
+  t.equal(res.status, 200, 'status is 200 Ok')
+  t.equal(res.headers.get('x-local-cache-status'), 'miss', 'cache miss')
+  t.notOk(res.headers.has('content-encoding'), 'content-encoding is absent')
+  // at this point, the index should be compacted down from 2 to 1 entry
+  const entries = await cacache.index.compact(dir, reqKey, () => false, { validateEntry: () => true })
+  t.equal(entries.length, 1, 'should have one entry')
+  t.notOk('content-encoding' in entries[0].metadata.resHeaders, 'lacks content-encoding in metadata.resHeaders')
+  await res.buffer() // write it to the cache, this appends a second entry
+
+  const entries2 = await cacache.index.compact(dir, reqKey, () => false, { validateEntry: () => true })
+  t.equal(entries2.length, 2, 'should have two entries')
+  t.equal(entries2[0].metadata.options.compress, false, 'has the right compress option')
+  t.ok(srv.isDone())
+})
+
 t.test('revalidate updates headers in the metadata with new values', async (t) => {
   // this is an example of metadata that previous versions of this module
   // may have written to the cache index
