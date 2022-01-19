@@ -64,7 +64,8 @@ t.test('storable()', async (t) => {
   t.equal(CachePolicy.storable(getReq, storeOpts), true, 'get requests are storable')
   t.equal(CachePolicy.storable(headReq, storeOpts), true, 'head requests are storable')
   t.equal(CachePolicy.storable(putReq, storeOpts), false, 'put requests are not storable')
-  t.equal(CachePolicy.storable(getReqNoCache, storeOpts), false, 'cache-control header in the request is respected')
+  t.equal(CachePolicy.storable(getReqNoCache, storeOpts), false,
+    'cache-control header in the request is respected')
 })
 
 t.test('no match, fetches and replies', async (t) => {
@@ -143,7 +144,8 @@ t.test('no match, fetches and replies even when no content-length', async (t) =>
   t.notOk(res.headers.has('content-length'), 'does not have a content-length')
   t.equal(res.headers.get('x-local-cache'), encodeURIComponent(dir), 'has cache dir')
   t.equal(res.headers.get('x-local-cache-key'), encodeURIComponent(reqKey), 'has cache key')
-  t.equal(res.headers.get('x-local-cache-mode'), 'stream', 'should stream store since size is unknown')
+  t.equal(res.headers.get('x-local-cache-mode'), 'stream',
+    'should stream store since size is unknown')
   t.equal(res.headers.get('x-local-cache-status'), 'miss', 'identifies as cache miss')
   t.ok(res.headers.has('x-local-cache-time'), 'has cache time')
   t.equal(res.headers.get('x-foo'), 'something', 'original response has all headers')
@@ -205,9 +207,11 @@ t.test('cache hit, no revalidation', async (t) => {
   t.equal(res.headers.get('content-length'), `${CONTENT.length}`, 'kept content-length')
   t.equal(res.headers.get('x-local-cache'), encodeURIComponent(dir), 'encoded the path')
   t.equal(res.headers.get('x-local-cache-status'), 'hit', 'got a cache hit')
-  t.equal(res.headers.get('x-local-cache-key'), encodeURIComponent(reqKey), 'got the right cache key')
+  t.equal(res.headers.get('x-local-cache-key'), encodeURIComponent(reqKey),
+    'got the right cache key')
   t.equal(res.headers.get('x-local-cache-mode'), 'buffer', 'should buffer read')
-  t.equal(res.headers.get('x-local-cache-hash'), encodeURIComponent(INTEGRITY), 'has the right hash')
+  t.equal(res.headers.get('x-local-cache-hash'), encodeURIComponent(INTEGRITY),
+    'has the right hash')
   // just make sure x-local-cache-time is set, no need to assert its value
   t.ok(res.headers.has('x-local-cache-time'))
 })
@@ -246,8 +250,10 @@ t.test('cache hit, cache mode no-cache 304', async (t) => {
   t.equal(res.headers.get('etag'), '"beefc0ffee"', 'kept the etag')
   t.equal(res.headers.get('x-local-cache'), encodeURIComponent(dir), 'encoded the path')
   t.equal(res.headers.get('x-local-cache-status'), 'revalidated', 'got a cache revalidated')
-  t.equal(res.headers.get('x-local-cache-key'), encodeURIComponent(reqKey), 'got the right cache key')
-  t.equal(res.headers.get('x-local-cache-hash'), encodeURIComponent(INTEGRITY), 'has the right hash')
+  t.equal(res.headers.get('x-local-cache-key'), encodeURIComponent(reqKey),
+    'got the right cache key')
+  t.equal(res.headers.get('x-local-cache-hash'), encodeURIComponent(INTEGRITY),
+    'has the right hash')
   // just make sure x-local-cache-time is set, no need to assert its value
   t.ok(res.headers.has('x-local-cache-time'))
 
@@ -292,7 +298,8 @@ t.test('cache hit, cache mode no-cache 200', async (t) => {
   t.equal(res.headers.get('etag'), '"beefcafe"', 'kept the etag')
   t.equal(res.headers.get('x-local-cache'), encodeURIComponent(dir), 'encoded the path')
   t.equal(res.headers.get('x-local-cache-status'), 'updated', 'got a cache updated')
-  t.equal(res.headers.get('x-local-cache-key'), encodeURIComponent(reqKey), 'got the right cache key')
+  t.equal(res.headers.get('x-local-cache-key'), encodeURIComponent(reqKey),
+    'got the right cache key')
   // just make sure x-local-cache-time is set, no need to assert its value
   t.ok(res.headers.has('x-local-cache-time'))
   t.notOk(res.headers.has('x-local-cache-hash'), 'does not have a hash')
@@ -332,7 +339,8 @@ t.test('cache mode reload', async (t) => {
   t.equal(res.headers.get('etag'), '"beefc0ffee"', 'kept the etag')
   t.equal(res.headers.get('x-local-cache'), encodeURIComponent(dir), 'encoded the path')
   t.equal(res.headers.get('x-local-cache-status'), 'miss', 'got a cache miss')
-  t.equal(res.headers.get('x-local-cache-key'), encodeURIComponent(reqKey), 'got the right cache key')
+  t.equal(res.headers.get('x-local-cache-key'), encodeURIComponent(reqKey),
+    'got the right cache key')
   // just make sure x-local-cache-time is set, no need to assert its value
   t.ok(res.headers.has('x-local-cache-time'))
   t.notOk(res.headers.has('x-local-cache-hash'), 'does not have a hash header')
@@ -375,13 +383,16 @@ t.test('cache hit, stale but mode is only-if-cached', async (t) => {
   t.same(revalidateBuf, CONTENT, 'got the right content')
   t.equal(revalidateRes.status, 200, 'got a 200')
   t.equal(revalidateRes.headers.get('cache-control'), 'max-age=300', 'kept cache-control')
-  t.equal(revalidateRes.headers.get('content-type'), 'application/octet-stream', 'kept content-type')
+  t.equal(revalidateRes.headers.get('content-type'), 'application/octet-stream',
+    'kept content-type')
   t.equal(revalidateRes.headers.get('content-length'), `${CONTENT.length}`, 'kept content-length')
   t.equal(revalidateRes.headers.get('etag'), '"beefc0ffee"', 'kept the etag')
   t.equal(revalidateRes.headers.get('x-local-cache'), encodeURIComponent(dir), 'encoded the path')
   t.equal(revalidateRes.headers.get('x-local-cache-status'), 'stale', 'got a cache stale')
-  t.equal(revalidateRes.headers.get('x-local-cache-key'), encodeURIComponent(reqKey), 'got the right cache key')
-  t.equal(revalidateRes.headers.get('x-local-cache-hash'), encodeURIComponent(INTEGRITY), 'has the right hash')
+  t.equal(revalidateRes.headers.get('x-local-cache-key'), encodeURIComponent(reqKey),
+    'got the right cache key')
+  t.equal(revalidateRes.headers.get('x-local-cache-hash'), encodeURIComponent(INTEGRITY),
+    'has the right hash')
   // just make sure x-local-cache-time is set, no need to assert its value
   t.ok(revalidateRes.headers.has('x-local-cache-time'))
 
@@ -425,13 +436,16 @@ t.test('cache hit, stale but revalidate request fails', async (t) => {
   t.equal(revalidateRes.status, 200, 'got a 200')
   t.equal(revalidateRes.url, `${HOST}/test`, 'has the right url property')
   t.equal(revalidateRes.headers.get('cache-control'), 'max-age=300', 'kept cache-control')
-  t.equal(revalidateRes.headers.get('content-type'), 'application/octet-stream', 'kept content-type')
+  t.equal(revalidateRes.headers.get('content-type'), 'application/octet-stream',
+    'kept content-type')
   t.equal(revalidateRes.headers.get('content-length'), `${CONTENT.length}`, 'kept content-length')
   t.equal(revalidateRes.headers.get('etag'), '"beefc0ffee"', 'kept the etag')
   t.equal(revalidateRes.headers.get('x-local-cache'), encodeURIComponent(dir), 'encoded the path')
   t.equal(revalidateRes.headers.get('x-local-cache-status'), 'stale', 'got a cache stale')
-  t.equal(revalidateRes.headers.get('x-local-cache-key'), encodeURIComponent(reqKey), 'got the right cache key')
-  t.equal(revalidateRes.headers.get('x-local-cache-hash'), encodeURIComponent(INTEGRITY), 'has the right hash')
+  t.equal(revalidateRes.headers.get('x-local-cache-key'), encodeURIComponent(reqKey),
+    'got the right cache key')
+  t.equal(revalidateRes.headers.get('x-local-cache-hash'), encodeURIComponent(INTEGRITY),
+    'has the right hash')
   // just make sure x-local-cache-time is set, no need to assert its value
   t.ok(revalidateRes.headers.has('x-local-cache-time'))
 
@@ -440,42 +454,44 @@ t.test('cache hit, stale but revalidate request fails', async (t) => {
   t.ok(srv.isDone())
 })
 
-t.test('cache hit, stale, revalidate request fails and response has must-revalidate', async (t) => {
+t.test('cache hit, stale, revalidate request fails and response has must-revalidate',
+  async (t) => {
   // rewind time to make cacache put a timestamp in the past
-  const now = Date.now()
-  const realNow = Date.now
-  Date.now = () => {
-    return now - (1000 * 60 * 10)
-  }
-  // restore it in a teardown just in case
-  // this test blows up early
-  t.teardown(() => {
+    const now = Date.now()
+    const realNow = Date.now
+    Date.now = () => {
+      return now - (1000 * 60 * 10)
+    }
+    // restore it in a teardown just in case
+    // this test blows up early
+    t.teardown(() => {
+      Date.now = realNow
+    })
+
+    const srv = nock(HOST)
+      .get('/test')
+      .reply(200, CONTENT, {
+        ...getHeaders(CONTENT),
+        etag: '"beefc0ffee"',
+        'cache-control': 'must-revalidate',
+      })
+      .get('/test')
+      .replyWithError({
+        message: 'failed request',
+        code: 'ECONNRESET',
+      })
+
+    const dir = t.testdir()
+    const initialRes = await fetch(`${HOST}/test`, { cachePath: dir, retry: false })
+    await initialRes.buffer()
+
+    // back to the present
     Date.now = realNow
+
+    await t.rejects(fetch(`${HOST}/test`, { cachePath: dir, retry: false }),
+      { code: 'ECONNRESET' }, 'rejects with error from request')
+    t.ok(srv.isDone())
   })
-
-  const srv = nock(HOST)
-    .get('/test')
-    .reply(200, CONTENT, {
-      ...getHeaders(CONTENT),
-      etag: '"beefc0ffee"',
-      'cache-control': 'must-revalidate',
-    })
-    .get('/test')
-    .replyWithError({
-      message: 'failed request',
-      code: 'ECONNRESET',
-    })
-
-  const dir = t.testdir()
-  const initialRes = await fetch(`${HOST}/test`, { cachePath: dir, retry: false })
-  await initialRes.buffer()
-
-  // back to the present
-  Date.now = realNow
-
-  await t.rejects(fetch(`${HOST}/test`, { cachePath: dir, retry: false }), { code: 'ECONNRESET' }, 'rejects with error from request')
-  t.ok(srv.isDone())
-})
 
 t.test('cache hit, policy requires revalidation', async (t) => {
   // rewind time to make cacache put a timestamp in the past
@@ -520,13 +536,17 @@ t.test('cache hit, policy requires revalidation', async (t) => {
   t.same(revalidateBuf, CONTENT, 'got the right content')
   t.equal(revalidateRes.status, 200, 'got a 200')
   t.equal(revalidateRes.headers.get('cache-control'), 'max-age=300', 'kept cache-control')
-  t.equal(revalidateRes.headers.get('content-type'), 'application/octet-stream', 'kept content-type')
+  t.equal(revalidateRes.headers.get('content-type'), 'application/octet-stream',
+    'kept content-type')
   t.equal(revalidateRes.headers.get('content-length'), `${CONTENT.length}`, 'kept content-length')
   t.equal(revalidateRes.headers.get('etag'), '"beefc0ffee"', 'kept the etag')
   t.equal(revalidateRes.headers.get('x-local-cache'), encodeURIComponent(dir), 'encoded the path')
-  t.equal(revalidateRes.headers.get('x-local-cache-status'), 'revalidated', 'got a cache revalidated')
-  t.equal(revalidateRes.headers.get('x-local-cache-key'), encodeURIComponent(reqKey), 'got the right cache key')
-  t.equal(revalidateRes.headers.get('x-local-cache-hash'), encodeURIComponent(INTEGRITY), 'has the right hash')
+  t.equal(revalidateRes.headers.get('x-local-cache-status'), 'revalidated',
+    'got a cache revalidated')
+  t.equal(revalidateRes.headers.get('x-local-cache-key'), encodeURIComponent(reqKey),
+    'got the right cache key')
+  t.equal(revalidateRes.headers.get('x-local-cache-hash'), encodeURIComponent(INTEGRITY),
+    'has the right hash')
   // just make sure x-local-cache-time is set, no need to assert its value
   t.ok(revalidateRes.headers.has('x-local-cache-time'))
 
@@ -558,8 +578,10 @@ t.test('cached GET is used for HEAD', async (t) => {
   t.equal(res.headers.get('content-length'), `${CONTENT.length}`, 'kept content-length')
   t.equal(res.headers.get('x-local-cache'), encodeURIComponent(dir), 'encoded the path')
   t.equal(res.headers.get('x-local-cache-status'), 'hit', 'got a cache hit')
-  t.equal(res.headers.get('x-local-cache-key'), encodeURIComponent(reqKey), 'got the right cache key')
-  t.equal(res.headers.get('x-local-cache-hash'), encodeURIComponent(INTEGRITY), 'has the right hash')
+  t.equal(res.headers.get('x-local-cache-key'), encodeURIComponent(reqKey),
+    'got the right cache key')
+  t.equal(res.headers.get('x-local-cache-hash'), encodeURIComponent(INTEGRITY),
+    'has the right hash')
   // just make sure x-local-cache-time is set, no need to assert its value
   t.ok(res.headers.has('x-local-cache-time'))
 })
@@ -609,7 +631,8 @@ t.test('caches resulting GET after initial redirect', async (t) => {
   t.equal(res.headers.get('content-length'), `${CONTENT.length}`, 'kept content-length')
   t.equal(res.headers.get('x-local-cache'), encodeURIComponent(dir), 'encoded the path')
   t.equal(res.headers.get('x-local-cache-status'), 'miss', 'got a cache hit')
-  t.equal(res.headers.get('x-local-cache-key'), encodeURIComponent(reqKey), 'got the right cache key')
+  t.equal(res.headers.get('x-local-cache-key'), encodeURIComponent(reqKey),
+    'got the right cache key')
   // just make sure x-local-cache-time is set, no need to assert its value
   t.ok(res.headers.has('x-local-cache-time'))
   t.notOk(res.headers.has('x-local-cache-hash'), 'should not have a hash for initial write')
@@ -624,8 +647,10 @@ t.test('caches resulting GET after initial redirect', async (t) => {
   t.equal(secondRes.headers.get('content-length'), `${CONTENT.length}`, 'kept content-length')
   t.equal(secondRes.headers.get('x-local-cache'), encodeURIComponent(dir), 'encoded the path')
   t.equal(secondRes.headers.get('x-local-cache-status'), 'hit', 'got a cache hit')
-  t.equal(secondRes.headers.get('x-local-cache-key'), encodeURIComponent(reqKey), 'got the right cache key')
-  t.equal(secondRes.headers.get('x-local-cache-hash'), encodeURIComponent(INTEGRITY), 'got the correct hash')
+  t.equal(secondRes.headers.get('x-local-cache-key'), encodeURIComponent(reqKey),
+    'got the right cache key')
+  t.equal(secondRes.headers.get('x-local-cache-hash'), encodeURIComponent(INTEGRITY),
+    'got the correct hash')
   // just make sure x-local-cache-time is set, no need to assert its value
   t.ok(secondRes.headers.has('x-local-cache-time'))
 
@@ -635,7 +660,8 @@ t.test('caches resulting GET after initial redirect', async (t) => {
   t.equal(redirectRes.url, `${HOST}/test`, 'has the right url property')
   t.equal(redirectRes.headers.get('location'), `${HOST}/final`, 'kept the location header')
   t.equal(redirectRes.headers.get('x-local-cache-status'), 'hit', 'cache hit')
-  t.equal(redirectRes.headers.get('x-local-cache-key'), encodeURIComponent(redirectKey), 'has the correct key')
+  t.equal(redirectRes.headers.get('x-local-cache-key'), encodeURIComponent(redirectKey),
+    'has the correct key')
 })
 
 t.test('cache misses when accept header differs', async (t) => {
@@ -681,7 +707,8 @@ t.test('cache misses when accept header differs', async (t) => {
   const plain = await plainRes.buffer()
   t.ok(plainSrv.isDone())
   t.same(plain, CONTENT, 'got the right content')
-  t.equal(plainRes.headers.get('content-type'), 'application/octet-stream', 'got the right content type')
+  t.equal(plainRes.headers.get('content-type'), 'application/octet-stream',
+    'got the right content type')
   t.equal(plainRes.headers.get('x-local-cache-status'), 'miss', 'got a miss status')
 })
 
@@ -744,7 +771,8 @@ t.test('cache hits with the correct content-type', async (t) => {
   const plain = await plainRes.buffer()
   t.ok(plainSrv.isDone())
   t.same(plain, CONTENT, 'got the right content')
-  t.equal(plainRes.headers.get('content-type'), 'application/octet-stream', 'got the right content type')
+  t.equal(plainRes.headers.get('content-type'), 'application/octet-stream',
+    'got the right content type')
   t.equal(plainRes.headers.get('x-local-cache-status'), 'miss', 'got a miss status')
 
   const fooRes = await fetch(`${HOST}/test`, {
@@ -767,7 +795,8 @@ t.test('cache hits with the correct content-type', async (t) => {
   })
   const cachedJson = await cachedJsonRes.json()
   t.same(cachedJson, { some: 'data' }, 'got the right content')
-  t.equal(cachedJsonRes.headers.get('content-type'), 'application/json', 'got the right content type')
+  t.equal(cachedJsonRes.headers.get('content-type'), 'application/json',
+    'got the right content type')
   t.equal(cachedJsonRes.headers.get('x-local-cache-status'), 'hit', 'got a hit status')
 
   const cachedPlainRes = await fetch(`${HOST}/test`, {
@@ -778,7 +807,8 @@ t.test('cache hits with the correct content-type', async (t) => {
   })
   const cachedPlain = await cachedPlainRes.buffer()
   t.same(cachedPlain, CONTENT, 'got the right content')
-  t.equal(cachedPlainRes.headers.get('content-type'), 'application/octet-stream', 'got the right content type')
+  t.equal(cachedPlainRes.headers.get('content-type'), 'application/octet-stream',
+    'got the right content type')
   t.equal(cachedPlainRes.headers.get('x-local-cache-status'), 'hit', 'got a hit status')
 
   const cachedFooRes = await fetch(`${HOST}/test`, {
@@ -789,7 +819,8 @@ t.test('cache hits with the correct content-type', async (t) => {
   })
   const cachedFoo = await cachedFooRes.buffer()
   t.same(cachedFoo, CONTENT, 'got the right content')
-  t.equal(cachedFooRes.headers.get('content-type'), 'application/x-foo', 'got the right content type')
+  t.equal(cachedFooRes.headers.get('content-type'), 'application/x-foo',
+    'got the right content type')
   t.equal(cachedFooRes.headers.get('x-local-cache-status'), 'hit', 'got a miss status')
 })
 
@@ -830,7 +861,8 @@ t.test('large payload switches to streaming mode', async (t) => {
   t.equal(cachedRes.headers.get('content-type'), 'application/octet-stream', 'kept content-stream')
   t.equal(cachedRes.headers.get('content-length'), `${largeContent.length}`, 'kept content-length')
   t.equal(cachedRes.headers.get('x-local-cache'), encodeURIComponent(dir), 'has cache dir')
-  t.equal(cachedRes.headers.get('x-local-cache-hash'), encodeURIComponent(expectedIntegrity), 'hash header is only set when served from cache')
+  t.equal(cachedRes.headers.get('x-local-cache-hash'), encodeURIComponent(expectedIntegrity),
+    'hash header is only set when served from cache')
   t.equal(cachedRes.headers.get('x-local-cache-key'), encodeURIComponent(reqKey), 'has cache key')
   t.equal(cachedRes.headers.get('x-local-cache-mode'), 'stream', 'used a stream to respond')
   t.equal(cachedRes.headers.get('x-local-cache-status'), 'hit', 'identifies as cache hit')
@@ -1114,136 +1146,149 @@ t.test('cache is invalidated by a non-GET/HEAD request to the same url', async (
   t.ok(srv.isDone())
 })
 
-t.test('cache deduplicates and appropriately removes null integrity entries from previous versions', async (t) => {
-  // previous versions of make-fetch-happen naively used cacache, which would append a new entry every
-  // time a request was made that did not match, in addition to that an invalidation in the previous
-  // version would write an entry with a null integrity which cacache interpreted as a deleted entry,
-  // while this current version of make-fetch-happen uses null integrity entries for stored redirects.
-  // this test is meant to ensure that a user who upgrades from an old make-fetch-happen to a new one
-  // keeping the same cache does not get erroneous results, and their indexes are deduplicated correctly.
+t.test(
+  'cache deduplicates and appropriately removes null integrity entries from previous versions',
+  async (t) => {
+    // previous versions of make-fetch-happen naively used cacache, which would
+    // append a new entry every time a request was made that did not match, in
+    // addition to that an invalidation in the previous version would write an
+    // entry with a null integrity which cacache interpreted as a deleted
+    // entry, while this current version of make-fetch-happen uses null
+    // integrity entries for stored redirects.  this test is meant to ensure
+    // that a user who upgrades from an old make-fetch-happen to a new one
+    // keeping the same cache does not get erroneous results, and their indexes
+    // are deduplicated correctly.
 
-  const dir = t.testdir()
-  const reqKey = cacheKey(new Request(`${HOST}/test`))
-  await cacache.index.insert(dir, reqKey, INTEGRITY, {
-    metadata: {
-      url: `${HOST}/test`,
-      reqHeaders: {
-        accept: ['application/json'],
+    const dir = t.testdir()
+    const reqKey = cacheKey(new Request(`${HOST}/test`))
+    await cacache.index.insert(dir, reqKey, INTEGRITY, {
+      metadata: {
+        url: `${HOST}/test`,
+        reqHeaders: {
+          accept: ['application/json'],
+        },
       },
-    },
-  })
-  await cacache.index.insert(dir, reqKey, INTEGRITY, {
-    metadata: {
-      url: `${HOST}/test`,
-      reqHeaders: {
-        accept: ['application/vnd.npm.install-v1+json'],
-      },
-    },
-  })
-  await cacache.index.insert(dir, reqKey, null)
-  await cacache.index.insert(dir, reqKey, INTEGRITY, {
-    metadata: {
-      url: `${HOST}/test`,
-      reqHeaders: {
-        accept: ['application/json'],
-      },
-    },
-  })
-  const srv = nock(HOST)
-    .get('/test')
-    .reply(200, CONTENT, {
-      ...getHeaders(CONTENT),
-      'content-type': 'application/json',
-      etag: '"beef"',
     })
+    await cacache.index.insert(dir, reqKey, INTEGRITY, {
+      metadata: {
+        url: `${HOST}/test`,
+        reqHeaders: {
+          accept: ['application/vnd.npm.install-v1+json'],
+        },
+      },
+    })
+    await cacache.index.insert(dir, reqKey, null)
+    await cacache.index.insert(dir, reqKey, INTEGRITY, {
+      metadata: {
+        url: `${HOST}/test`,
+        reqHeaders: {
+          accept: ['application/json'],
+        },
+      },
+    })
+    const srv = nock(HOST)
+      .get('/test')
+      .reply(200, CONTENT, {
+        ...getHeaders(CONTENT),
+        'content-type': 'application/json',
+        etag: '"beef"',
+      })
 
-  const initialRes = await fetch(`${HOST}/test`, {
-    cachePath: dir,
-    headers: {
-      accept: 'application/json',
-    },
+    const initialRes = await fetch(`${HOST}/test`, {
+      cachePath: dir,
+      headers: {
+        accept: 'application/json',
+      },
+    })
+    t.equal(initialRes.status, 200, 'got a success response')
+    // the status is update because we deduplicated the original responses, found the one that
+    // matches our client's request, and then revalidates it
+    t.equal(initialRes.headers.get('x-local-cache-status'), 'updated', 'identified as an update')
+    t.equal(initialRes.headers.get('content-type'), 'application/json',
+      'got the right content-type')
+    // at this point, the index should be deduplicated down to 2 entries
+    const initialEntries = await cacache.index.compact(dir, reqKey, () => false,
+      { validateEntry: () => true })
+    t.equal(initialEntries.length, 2, 'should have two entries')
+    await initialRes.buffer() // write it to the cache, this appends a third
+
+    const entries = await cacache.index.compact(dir, reqKey, () => false,
+      { validateEntry: () => true })
+    t.equal(entries.length, 3, 'should have three entries')
+    t.equal(entries[0].metadata.reqHeaders.accept, 'application/json',
+      'has the right request header')
+    t.ok(srv.isDone())
   })
-  t.equal(initialRes.status, 200, 'got a success response')
-  // the status is update because we deduplicated the original responses, found the one that
-  // matches our client's request, and then revalidates it
-  t.equal(initialRes.headers.get('x-local-cache-status'), 'updated', 'identified as an update')
-  t.equal(initialRes.headers.get('content-type'), 'application/json', 'got the right content-type')
-  // at this point, the index should be deduplicated down to 2 entries
-  const initialEntries = await cacache.index.compact(dir, reqKey, () => false, { validateEntry: () => true })
-  t.equal(initialEntries.length, 2, 'should have two entries')
-  await initialRes.buffer() // write it to the cache, this appends a third
 
-  const entries = await cacache.index.compact(dir, reqKey, () => false, { validateEntry: () => true })
-  t.equal(entries.length, 3, 'should have three entries')
-  t.equal(entries[0].metadata.reqHeaders.accept, 'application/json', 'has the right request header')
-  t.ok(srv.isDone())
-})
-
-t.test('cache removes entries from previous versions that contain content-encoding: null', async (t) => {
+t.test('cache removes entries from previous versions that contain content-encoding: null',
+  async (t) => {
   // previous versions of make-fetch-happen sometimes stored cache entries with
   // resHeaders['content-encoding'] === null, which was a bug.  make sure that
   // newer versions invalidate those entries correctly during compaction.
-  const dir = t.testdir()
-  const reqKey = cacheKey(new Request(`${HOST}/test`))
+    const dir = t.testdir()
+    const reqKey = cacheKey(new Request(`${HOST}/test`))
 
-  // mimic old entry for req with options: {compress: false}, with non-default
-  // accept-encoding, and no content-encoding in response.  new versions would
-  // store options.compress and drop content-encoding.
-  await cacache.index.insert(dir, reqKey, INTEGRITY, {
-    metadata: {
-      url: `${HOST}/test`,
-      reqHeaders: {
-        'accept-encoding': 'gzip',
+    // mimic old entry for req with options: {compress: false}, with non-default
+    // accept-encoding, and no content-encoding in response.  new versions would
+    // store options.compress and drop content-encoding.
+    await cacache.index.insert(dir, reqKey, INTEGRITY, {
+      metadata: {
+        url: `${HOST}/test`,
+        reqHeaders: {
+          'accept-encoding': 'gzip',
+        },
+        resHeaders: {
+          'content-encoding': null,
+          'content-type': 'text/plain',
+        },
       },
-      resHeaders: {
-        'content-encoding': null,
-        'content-type': 'text/plain',
-      },
-    },
-  })
-
-  // mimic old entry for req with options: {compress: true}, with non-default
-  // accept-encoding, and no content-encoding in response.  new versions would
-  // store options.compress.
-  await cacache.index.insert(dir, reqKey, INTEGRITY, {
-    metadata: {
-      url: `${HOST}/test`,
-      reqHeaders: {
-        'accept-encoding': 'gzip',
-      },
-      resHeaders: {
-        'content-type': 'text/plain',
-      },
-    },
-  })
-  const srv = nock(HOST)
-    .get('/test')
-    .reply(200, CONTENT, {
-      ...getHeaders(CONTENT),
-      'content-type': 'text/plain',
     })
 
-  const res = await fetch(`${HOST}/test`, {
-    cachePath: dir,
-    compress: false,
-    headers: {
-      'accept-encoding': 'gzip',
-    },
-  })
-  t.equal(res.status, 200, 'status is 200 Ok')
-  t.equal(res.headers.get('x-local-cache-status'), 'miss', 'cache miss')
-  t.notOk(res.headers.has('content-encoding'), 'content-encoding is absent')
-  // at this point, the index should be compacted down from 2 to 1 entry
-  const entries = await cacache.index.compact(dir, reqKey, () => false, { validateEntry: () => true })
-  t.equal(entries.length, 1, 'should have one entry')
-  t.notOk('content-encoding' in entries[0].metadata.resHeaders, 'lacks content-encoding in metadata.resHeaders')
-  await res.buffer() // write it to the cache, this appends a second entry
+    // mimic old entry for req with options: {compress: true}, with non-default
+    // accept-encoding, and no content-encoding in response.  new versions would
+    // store options.compress.
+    await cacache.index.insert(dir, reqKey, INTEGRITY, {
+      metadata: {
+        url: `${HOST}/test`,
+        reqHeaders: {
+          'accept-encoding': 'gzip',
+        },
+        resHeaders: {
+          'content-type': 'text/plain',
+        },
+      },
+    })
+    const srv = nock(HOST)
+      .get('/test')
+      .reply(200, CONTENT, {
+        ...getHeaders(CONTENT),
+        'content-type': 'text/plain',
+      })
 
-  const entries2 = await cacache.index.compact(dir, reqKey, () => false, { validateEntry: () => true })
-  t.equal(entries2.length, 2, 'should have two entries')
-  t.equal(entries2[0].metadata.options.compress, false, 'has the right compress option')
-  t.ok(srv.isDone())
-})
+    const res = await fetch(`${HOST}/test`, {
+      cachePath: dir,
+      compress: false,
+      headers: {
+        'accept-encoding': 'gzip',
+      },
+    })
+    t.equal(res.status, 200, 'status is 200 Ok')
+    t.equal(res.headers.get('x-local-cache-status'), 'miss', 'cache miss')
+    t.notOk(res.headers.has('content-encoding'), 'content-encoding is absent')
+    // at this point, the index should be compacted down from 2 to 1 entry
+    const entries =
+    await cacache.index.compact(dir, reqKey, () => false, { validateEntry: () => true })
+    t.equal(entries.length, 1, 'should have one entry')
+    t.notOk('content-encoding' in entries[0].metadata.resHeaders,
+      'lacks content-encoding in metadata.resHeaders')
+    await res.buffer() // write it to the cache, this appends a second entry
+
+    const entries2 =
+    await cacache.index.compact(dir, reqKey, () => false, { validateEntry: () => true })
+    t.equal(entries2.length, 2, 'should have two entries')
+    t.equal(entries2[0].metadata.options.compress, false, 'has the right compress option')
+    t.ok(srv.isDone())
+  })
 
 t.test('revalidate updates headers in the metadata with new values', async (t) => {
   // this is an example of metadata that previous versions of this module
@@ -1267,11 +1312,15 @@ t.test('revalidate updates headers in the metadata with new values', async (t) =
   const reqKey = cacheKey(new Request(`${HOST}/test`))
   await cacache.put(dir, reqKey, CONTENT, { metadata })
 
-  const beforeEntries = await cacache.index.compact(dir, reqKey, () => false, { validateEntry: () => true })
+  const beforeEntries =
+    await cacache.index.compact(dir, reqKey, () => false, { validateEntry: () => true })
   t.equal(beforeEntries.length, 1, 'has one entry')
-  t.equal(beforeEntries[0].metadata.reqHeaders['user-agent'], 'should not be here, but does not break matching', 'initial entry has user-agent')
-  t.notOk(beforeEntries[0].metadata.resHeaders['cache-control'], 'initial entry does not have cache-control')
-  t.equal(beforeEntries[0].metadata.resHeaders['content-type'], 'text/plain', 'initial entry has a content-type')
+  t.equal(beforeEntries[0].metadata.reqHeaders['user-agent'],
+    'should not be here, but does not break matching', 'initial entry has user-agent')
+  t.notOk(beforeEntries[0].metadata.resHeaders['cache-control'],
+    'initial entry does not have cache-control')
+  t.equal(beforeEntries[0].metadata.resHeaders['content-type'], 'text/plain',
+    'initial entry has a content-type')
 
   // NOTE: the body must be undefined, not null, otherwise nock
   // will add an implicit content-type of application/json
@@ -1287,16 +1336,22 @@ t.test('revalidate updates headers in the metadata with new values', async (t) =
 
   const revalidateRes = await fetch(`${HOST}/test`, { cachePath: dir })
   t.equal(revalidateRes.status, 200, 'got a success status')
-  t.equal(revalidateRes.headers.get('x-local-cache-status'), 'revalidated', 'identifies as revalidated')
-  t.equal(revalidateRes.headers.get('content-type'), 'text/plain', 'got the content-type in the response')
+  t.equal(revalidateRes.headers.get('x-local-cache-status'), 'revalidated',
+    'identifies as revalidated')
+  t.equal(revalidateRes.headers.get('content-type'), 'text/plain',
+    'got the content-type in the response')
   await revalidateRes.buffer()
   t.ok(srv.isDone())
 
-  const afterEntries = await cacache.index.compact(dir, reqKey, () => false, { validateEntry: () => true })
+  const afterEntries =
+    await cacache.index.compact(dir, reqKey, () => false, { validateEntry: () => true })
   t.equal(afterEntries.length, 2, 'has two entries')
-  t.equal(afterEntries[0].metadata.resHeaders['cache-control'], 'max-age=300', 'now has cache-control header')
-  t.equal(afterEntries[0].metadata.resHeaders['content-type'], 'text/plain', 'new index entry kept the content-type')
-  t.notOk(afterEntries[0].metadata.reqHeaders['user-agent'], 'no longer has a user-agent in reqHeaders')
+  t.equal(afterEntries[0].metadata.resHeaders['cache-control'], 'max-age=300',
+    'now has cache-control header')
+  t.equal(afterEntries[0].metadata.resHeaders['content-type'], 'text/plain',
+    'new index entry kept the content-type')
+  t.notOk(afterEntries[0].metadata.reqHeaders['user-agent'],
+    'no longer has a user-agent in reqHeaders')
 })
 
 t.test('EINTEGRITY errors streaming from cache propagate to response body', async (t) => {
@@ -1320,7 +1375,8 @@ t.test('EINTEGRITY errors streaming from cache propagate to response body', asyn
   t.equal(res.headers.get('x-local-cache-status'), 'miss', 'identifies as cache miss')
 
   const hexIntegrity = ssri.fromData(largeContent).hexDigest()
-  const cachedContent = join(dir, 'content-v2', 'sha512', hexIntegrity.slice(0, 2), hexIntegrity.slice(2, 4), hexIntegrity.slice(4))
+  const cachedContent = join(dir, 'content-v2', 'sha512', hexIntegrity.slice(0, 2),
+    hexIntegrity.slice(2, 4), hexIntegrity.slice(4))
   t.ok(fs.existsSync(cachedContent), 'cache file is present')
   // delete the real content, and write garbage in its place
   fs.unlinkSync(cachedContent)
@@ -1336,7 +1392,8 @@ t.test('EINTEGRITY errors streaming from cache propagate to response body', asyn
   const verifyRes = await fetch(`${HOST}/test`, { cachePath: dir })
   t.equal(verifyRes.status, 200, 'got success status')
   t.equal(verifyRes.headers.get('x-local-cache-mode'), 'stream', 'used a stream to respond')
-  t.equal(verifyRes.headers.get('x-local-cache-status'), 'miss', 'cache miss because index was removed')
+  t.equal(verifyRes.headers.get('x-local-cache-status'), 'miss',
+    'cache miss because index was removed')
   await verifyRes.buffer()
   t.ok(srv.isDone(), 'req is fulfilled')
 })
@@ -1355,7 +1412,8 @@ t.test('EINTEGRITY errors reading from cache propagate to response body', async 
   await res.buffer() // drain it immediately so it stores to the cache
 
   const hexIntegrity = ssri.fromData(CONTENT).hexDigest()
-  const cachedContent = join(dir, 'content-v2', 'sha512', hexIntegrity.slice(0, 2), hexIntegrity.slice(2, 4), hexIntegrity.slice(4))
+  const cachedContent = join(dir, 'content-v2', 'sha512', hexIntegrity.slice(0, 2),
+    hexIntegrity.slice(2, 4), hexIntegrity.slice(4))
   t.ok(fs.existsSync(cachedContent), 'cache file is present')
   // delete the real content, and write garbage in its place
   fs.unlinkSync(cachedContent)
@@ -1370,7 +1428,8 @@ t.test('EINTEGRITY errors reading from cache propagate to response body', async 
   const verifyRes = await fetch(`${HOST}/test`, { cachePath: dir })
   t.equal(verifyRes.status, 200, 'got success status')
   t.equal(verifyRes.headers.get('x-local-cache-mode'), 'buffer', 'used a buffer to respond')
-  t.equal(verifyRes.headers.get('x-local-cache-status'), 'miss', 'cache miss because index was removed')
+  t.equal(verifyRes.headers.get('x-local-cache-status'), 'miss',
+    'cache miss because index was removed')
   await verifyRes.buffer()
   t.ok(srv.isDone(), 'req has fulfilled')
 })
@@ -1392,7 +1451,8 @@ t.test('ENOENT errors streaming from cache propagate to response body', async (t
   await res.buffer()
 
   const hexIntegrity = ssri.fromData(largeContent).hexDigest()
-  const cachedContent = join(dir, 'content-v2', 'sha512', hexIntegrity.slice(0, 2), hexIntegrity.slice(2, 4), hexIntegrity.slice(4))
+  const cachedContent = join(dir, 'content-v2', 'sha512', hexIntegrity.slice(0, 2),
+    hexIntegrity.slice(2, 4), hexIntegrity.slice(4))
   t.ok(fs.existsSync(cachedContent), 'cache file is present')
   // delete the content entirely
   fs.unlinkSync(cachedContent)
@@ -1424,7 +1484,8 @@ t.test('ENOENT errors reading from cache propagate to response body', async (t) 
   await res.buffer()
 
   const hexIntegrity = ssri.fromData(CONTENT).hexDigest()
-  const cachedContent = join(dir, 'content-v2', 'sha512', hexIntegrity.slice(0, 2), hexIntegrity.slice(2, 4), hexIntegrity.slice(4))
+  const cachedContent = join(dir, 'content-v2', 'sha512', hexIntegrity.slice(0, 2),
+    hexIntegrity.slice(2, 4), hexIntegrity.slice(4))
   t.ok(fs.existsSync(cachedContent), 'cache file is present')
   // delete the content entirely
   fs.unlinkSync(cachedContent)
@@ -1472,7 +1533,8 @@ t.test('generic errors streaming from cache propagate to response body', async (
   t.ok(srv.isDone(), 'req has fulfilled')
 
   const hexIntegrity = ssri.fromData(largeContent).hexDigest()
-  const cachedContent = join(dir, 'content-v2', 'sha512', hexIntegrity.slice(0, 2), hexIntegrity.slice(2, 4), hexIntegrity.slice(4))
+  const cachedContent = join(dir, 'content-v2', 'sha512', hexIntegrity.slice(0, 2),
+    hexIntegrity.slice(2, 4), hexIntegrity.slice(4))
   t.ok(fs.existsSync(cachedContent), 'cache file is present')
 
   const cachedRes = await fetch(`${HOST}/test`, { cachePath: dir })
@@ -1506,7 +1568,8 @@ t.test('generic errors reading from cache propagate to response body', async (t)
   t.ok(srv.isDone(), 'req has fulfilled')
 
   const hexIntegrity = ssri.fromData(CONTENT).hexDigest()
-  const cachedContent = join(dir, 'content-v2', 'sha512', hexIntegrity.slice(0, 2), hexIntegrity.slice(2, 4), hexIntegrity.slice(4))
+  const cachedContent = join(dir, 'content-v2', 'sha512', hexIntegrity.slice(0, 2),
+    hexIntegrity.slice(2, 4), hexIntegrity.slice(4))
   t.ok(fs.existsSync(cachedContent), 'cache file is present')
 
   const cachedRes = await fetch(`${HOST}/test`, { cachePath: dir })

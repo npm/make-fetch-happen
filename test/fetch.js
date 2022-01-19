@@ -548,6 +548,7 @@ t.test('handles 15 concurrent requests', async (t) => {
 })
 
 t.test('handle integrity options', async (t) => {
+  /* eslint-disable-next-line max-len */
   const integrity = 'sha512-MJ7MSJwS1utMxA9QyQLytNDtd+5RGnx6m808qG1M2G+YndNbxf9JlnDaNCVbRbDP2DDoH2Bdz33FVC6TrpzXbw=='
   const data = 'hello world'
 
@@ -591,6 +592,7 @@ t.test('handle integrity options', async (t) => {
       .get('/integrity')
       .reply(200, data)
 
+    /* eslint-disable-next-line max-len */
     const badIntegrity = 'sha512-MJ7MSJwS1utMxA9QyQLytNDtd+5RGnx6m808qG1M2G+YndNbxf9JlnDaNCVbRbDP2DDoH2Bdz33FVC6TrpzXJJ=='
 
     const res = await fetch(`${HOST}/integrity`, { integrity: badIntegrity })

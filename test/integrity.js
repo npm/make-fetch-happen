@@ -82,12 +82,14 @@ t.test('picks the "best" algorithm', async (t) => {
   t.same(goodBuf, CONTENT, 'data passed integrity check')
 
   const badRes = await safetch(`${HOST}/bad`)
-  await t.rejects(() => badRes.buffer(), { code: 'EINTEGRITY' }, 'content validated with either sha256 or sha384 (likely the latter)')
+  await t.rejects(() => badRes.buffer(), { code: 'EINTEGRITY' },
+    'content validated with either sha256 or sha384 (likely the latter)')
 
   // invalidate sha384. sha256 is still valid, in theory
   integrity.sha384[0].digest = 'pwnt'
   const bad384Res = await safetch(`${HOST}/good`)
-  await t.rejects(() => bad384Res.buffer(), { code: 'EINTEGRITY' }, 'strongest algorithm (sha384) treated as authoritative -- sha256 not used')
+  await t.rejects(() => bad384Res.buffer(), { code: 'EINTEGRITY' },
+    'strongest algorithm (sha384) treated as authoritative -- sha256 not used')
 
   // remove bad sha384 altogether. sha256 remains valid
   delete integrity.sha384

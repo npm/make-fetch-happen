@@ -387,9 +387,3 @@ fetch('https://malicious-registry.org/make-fetch-happen/-/make-fetch-happen-1.0.
   integrity: 'sha1-o47j7zAYnedYFn1dF/fR9OV3z8Q='
 }) // Error: EINTEGRITY
 ```
-
-### <a name="wow"></a> Message From Our Sponsors
-
-![](stop.gif)
-
-![](happening.gif)

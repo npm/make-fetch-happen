@@ -170,7 +170,8 @@ test('get proxy uri', async t => {
   }), false, 'no proxy for uri in no_proxy environ')
 
   delete process.env.https_proxy
-  t.strictSame(getProxyUri('https://foo.com/bar', {}), null, 'no https proxy without https_proxy env')
+  t.strictSame(getProxyUri('https://foo.com/bar', {}), null,
+    'no https proxy without https_proxy env')
   t.strictSame(getProxyUri('http://foo.com/bar', {}), new url.URL(hp), 'http proxy for http')
 })
 
