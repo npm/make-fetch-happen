@@ -1179,88 +1179,49 @@ t.test('cache deduplicates and appropriately removes null integrity entries from
   t.ok(srv.isDone())
 })
 
-t.test('revalidate updates headers in the metadata with new values', async (t) => {
-  // this is an example of metadata that previous versions of this module
-  // may have written to the cache index
-  const metadata = {
-    url: `${HOST}/test`,
-    reqHeaders: {
-      // this represents request headers that this release of make-fetch-happen
-      // does not care about, and will not store in the index
-      'user-agent': 'should not be here, but does not break matching',
-    },
-    resHeaders: {
-      // note there is no cache-control in the old entry
-      etag: '"beef"',
-      date: new Date().toISOString(),
-      'content-type': 'text/plain',
-    },
-  }
-
+t.test('cache removes entries from previous versions that contain content-encoding: null', async (t) => {
+  // previous versions of make-fetch-happen sometimes stored cache entries with
+  // resHeaders['content-encoding'] === null, which was a bug.  make sure that
+  // newer versions invalidate those entries correctly during compaction.
   const dir = t.testdir()
   const reqKey = cacheKey(new Request(`${HOST}/test`))
-  await cacache.put(dir, reqKey, CONTENT, { metadata })
 
-  const beforeEntries = await cacache.index.compact(dir, reqKey, () => false, { validateEntry: () => true })
-  t.equal(beforeEntries.length, 1, 'has one entry')
-  t.equal(beforeEntries[0].metadata.reqHeaders['user-agent'], 'should not be here, but does not break matching', 'initial entry has user-agent')
-  t.notOk(beforeEntries[0].metadata.resHeaders['cache-control'], 'initial entry does not have cache-control')
-  t.equal(beforeEntries[0].metadata.resHeaders['content-type'], 'text/plain', 'initial entry has a content-type')
+  // mimic old entry for req with options: {compress: false}, with non-default
+  // accept-encoding, and no content-encoding in response.  new versions would
+  // store options.compress and drop content-encoding.
+  await cacache.index.insert(dir, reqKey, INTEGRITY, {
+    metadata: {
+      url: `${HOST}/test`,
+      reqHeaders: {
+        'accept-encoding': 'gzip',
+      },
+      resHeaders: {
+        'content-encoding': null,
+        'content-type': 'text/plain',
+      },
+    },
+  })
 
-  // NOTE: the body must be undefined, not null, otherwise nock
-  // will add an implicit content-type of application/json
+  // mimic old entry for req with options: {compress: true}, with non-default
+  // accept-encoding, and no content-encoding in response.  new versions would
+  // store options.compress.
+  await cacache.index.insert(dir, reqKey, INTEGRITY, {
+    metadata: {
+      url: `${HOST}/test`,
+      reqHeaders: {
+        'accept-encoding': 'gzip',
+      },
+      resHeaders: {
+        'content-type': 'text/plain',
+      },
+    },
+  })
   const srv = nock(HOST)
-    .matchHeader('if-none-match', '"beef"')
-    .get('/test')
-    .reply(304, undefined, {
-      // note the 304 does not include a content-type
-      date: new Date().toISOString(),
-      etag: '"beef"',
-      'cache-control': 'max-age=300',
-    })
-
-  const revalidateRes = await fetch(`${HOST}/test`, { cachePath: dir })
-  t.equal(revalidateRes.status, 200, 'got a success status')
-  t.equal(revalidateRes.headers.get('x-local-cache-status'), 'revalidated', 'identifies as revalidated')
-  t.equal(revalidateRes.headers.get('content-type'), 'text/plain', 'got the content-type in the response')
-  await revalidateRes.buffer()
-  t.ok(srv.isDone())
-
-  const afterEntries = await cacache.index.compact(dir, reqKey, () => false, { validateEntry: () => true })
-  t.equal(afterEntries.length, 2, 'has two entries')
-  t.equal(afterEntries[0].metadata.resHeaders['cache-control'], 'max-age=300', 'now has cache-control header')
-  t.equal(afterEntries[0].metadata.resHeaders['content-type'], 'text/plain', 'new index entry kept the content-type')
-  t.notOk(afterEntries[0].metadata.reqHeaders['user-agent'], 'no longer has a user-agent in reqHeaders')
-})
-
-t.test('keeps encoding headers when compress is disabled', async (t) => {
-  const gzippedContent = zlib.gzipSync(CONTENT)
-  const srv = nock(HOST)
-    .get('/test')
-    .reply(200, gzippedContent, {
-      ...getHeaders(gzippedContent),
-      etag: '"c0ffee"',
-      'content-encoding': 'gzip',
-    })
     .get('/test')
     .reply(200, CONTENT, {
       ...getHeaders(CONTENT),
-      etag: '"c0ffee"',
+      'content-type': 'text/plain',
     })
-
-  const dir = t.testdir()
-  const cacheRes = await fetch(`${HOST}/test`, {
-    cachePath: dir,
-    compress: false,
-    headers: {
-      'accept-encoding': 'gzip',
-    },
-  })
-  const cacheBuf = await cacheRes.buffer()
-  t.same(cacheBuf, gzippedContent, 'returned the gzipped content')
-  t.equal(cacheRes.status, 200, 'got a success response')
-  t.equal(cacheRes.headers.get('x-local-cache-status'), 'miss', 'got a cache miss')
-  t.equal(cacheRes.headers.get('content-encoding'), 'gzip', 'kept content-encoding')
 
   const res = await fetch(`${HOST}/test`, {
     cachePath: dir,
@@ -1269,309 +1230,18 @@ t.test('keeps encoding headers when compress is disabled', async (t) => {
       'accept-encoding': 'gzip',
     },
   })
-  const buf = await res.buffer()
-  t.same(buf, gzippedContent, 'returned the gzipped content')
-  t.equal(res.status, 200, 'got a success response')
-  t.equal(res.headers.get('x-local-cache-status'), 'hit', 'got a cache hit')
-  t.equal(res.headers.get('content-encoding'), 'gzip', 'kept content-encoding')
-
-  const reqKey = cacheKey(new Request(`${HOST}/test`))
-  const entries = await cacache.index.compact(dir, reqKey, () => false)
-  t.equal(entries.length, 1, 'cache has one entry')
-  t.equal(entries[0].metadata.reqHeaders['accept-encoding'], 'gzip', 'kept the request header')
-  t.equal(entries[0].metadata.resHeaders['content-encoding'], 'gzip', 'kept the response header')
-
-  const compressRes = await fetch(`${HOST}/test`, { cachePath: dir })
-  const compressBuf = await compressRes.buffer()
-  t.same(compressBuf, CONTENT, 'got the expected content')
-  t.equal(compressRes.status, 200, 'got a success')
-  t.equal(compressRes.headers.get('x-local-cache-status'), 'miss', 'got a cache miss')
-  t.notOk(compressRes.headers.has('content-encoding'), 'did not get a content-encoding header')
-
-  const newEntries = await cacache.index.compact(dir, reqKey, () => false)
-  t.equal(newEntries.length, 2, 'cache now has two entries')
-  t.ok(srv.isDone())
-})
-
-t.test('handles vary header correctly', async (t) => {
-  const enContent = Buffer.from('hello')
-  const esContent = Buffer.from('hola')
-
-  const enSrv = nock(HOST, {
-    reqHeaders: {
-      'accept-language': 'en',
-    },
-  })
-    .get('/test')
-    .reply(200, enContent, {
-      ...getHeaders(enContent),
-      etag: '"beef"',
-      'content-language': 'en',
-      vary: 'accept-language',
-    })
-
-  const esSrv = nock(HOST, {
-    reqHeaders: {
-      'accept-language': 'es',
-    },
-  })
-    .get('/test')
-    .reply(200, esContent, {
-      ...getHeaders(esContent),
-      etag: '"cafe"',
-      'content-language': 'es',
-      vary: 'accept-language',
-    })
-
-  const dir = t.testdir()
-  const enInitialRes = await fetch(`${HOST}/test`, {
-    cachePath: dir,
-    headers: {
-      'accept-language': 'en',
-    },
-  })
-  t.equal(enInitialRes.status, 200, 'got a success status')
-  t.equal(enInitialRes.headers.get('x-local-cache-status'), 'miss', 'got a cache miss')
-  t.equal(enInitialRes.headers.get('content-language'), 'en', 'kept content-language')
-  const enInitialBuf = await enInitialRes.buffer()
-  t.same(enInitialBuf, enContent, 'got the right content')
-  t.ok(enSrv.isDone())
-
-  const esInitialRes = await fetch(`${HOST}/test`, {
-    cachePath: dir,
-    headers: {
-      'accept-language': 'es',
-    },
-  })
-  t.equal(esInitialRes.status, 200, 'got a success status')
-  t.equal(esInitialRes.headers.get('x-local-cache-status'), 'miss', 'got a cache miss')
-  t.equal(esInitialRes.headers.get('content-language'), 'es', 'kept content-language')
-  const esInitialBuf = await esInitialRes.buffer()
-  t.same(esInitialBuf, esContent, 'got the right content')
-  t.ok(esSrv.isDone())
-
-  const enCachedRes = await fetch(`${HOST}/test`, {
-    cachePath: dir,
-    headers: {
-      'accept-language': 'en',
-    },
-  })
-  t.equal(enCachedRes.status, 200, 'got success status')
-  t.equal(enCachedRes.headers.get('x-local-cache-status'), 'hit', 'got a cache hit')
-  t.equal(enCachedRes.headers.get('content-language'), 'en', 'got the right content-language')
-  const enCachedBuf = await enCachedRes.buffer()
-  t.same(enCachedBuf, enContent, 'got the right content')
-
-  const esCachedRes = await fetch(`${HOST}/test`, {
-    cachePath: dir,
-    headers: {
-      'accept-language': 'es',
-    },
-  })
-  t.equal(esCachedRes.status, 200, 'got success status')
-  t.equal(esCachedRes.headers.get('x-local-cache-status'), 'hit', 'got a cache hit')
-  t.equal(esCachedRes.headers.get('content-language'), 'es', 'got the right content-language')
-  const esCachedBuf = await esCachedRes.buffer()
-  t.same(esCachedBuf, esContent, 'got the right content')
-})
-
-t.test('cache misses when urls match but host header differs', async (t) => {
-  const srv = nock(HOST)
-    .get('/test')
-    .twice()
-    .reply(200, CONTENT, {
-      ...getHeaders(CONTENT),
-      etag: '"beef"',
-    })
-
-  const dir = t.testdir()
-  const reqKey = cacheKey(new Request(`${HOST}/test`))
-  const initialRes = await fetch(`${HOST}/test`, {
-    cachePath: dir,
-    headers: {
-      host: 'foo.bar:443',
-    },
-  })
-  t.equal(initialRes.status, 200, 'got a 200')
-  t.equal(initialRes.headers.get('x-local-cache-status'), 'miss', 'got a cache miss')
-  const initialBuf = await initialRes.buffer()
-  t.same(initialBuf, CONTENT, 'got the right content')
-
-  const secondRes = await fetch(`${HOST}/test`, {
-    cachePath: dir,
-    headers: {
-      host: 'bar.baz:443',
-    },
-  })
-  t.equal(secondRes.status, 200, 'got a 200')
-  t.equal(secondRes.headers.get('x-local-cache-status'), 'miss', 'got a cache miss')
-  const secondBuf = await secondRes.buffer()
-  t.same(secondBuf, CONTENT, 'got the right content')
-
-  const entries = await cacache.index.compact(dir, reqKey, () => false)
-  t.equal(entries.length, 2, 'should have two entries')
-  // entries are newest first
-  t.equal(entries[0].metadata.reqHeaders.host, 'bar.baz:443', 'host header was saved')
-  t.equal(entries[1].metadata.reqHeaders.host, 'foo.bar:443', 'host header was saved')
-
-  t.ok(srv.isDone())
-})
-
-t.test('vary headers in response correctly store the request headers in cache', async (t) => {
-  const srv = nock(HOST)
-    .get('/star')
-    .reply(200, CONTENT, {
-      ...getHeaders(CONTENT),
-      vary: '*',
-    })
-    .get('/foo')
-    .reply(200, CONTENT, {
-      ...getHeaders(CONTENT),
-      vary: 'x-foo',
-    })
-
-  const dir = t.testdir()
-
-  const starKey = cacheKey(new Request(`${HOST}/star`))
-  const starRes = await fetch(`${HOST}/star`, {
-    cachePath: dir,
-    headers: {
-      'x-foo': 'bar',
-    },
-  })
-  t.equal(starRes.status, 200, 'got success response')
-  t.equal(starRes.headers.get('x-local-cache-status'), 'miss', 'cache misses')
-  const starBuf = await starRes.buffer()
-  t.same(starBuf, CONTENT, 'got the correct content')
-
-  const starEntries = await cacache.index.compact(dir, starKey, () => false)
-  t.equal(starEntries.length, 1, 'has one entry')
-  t.equal(starEntries[0].metadata.reqHeaders['x-foo'], undefined, 'did not keep x-foo')
-
-  const fooKey = cacheKey(new Request(`${HOST}/foo`))
-  const fooRes = await fetch(`${HOST}/foo`, {
-    cachePath: dir,
-    headers: {
-      'x-foo': 'bar',
-    },
-  })
-  t.equal(fooRes.status, 200, 'got success response')
-  t.equal(fooRes.headers.get('x-local-cache-status'), 'miss', 'cache misses')
-  const fooBuf = await fooRes.buffer()
-  t.same(fooBuf, CONTENT, 'got the correct content')
-
-  const fooEntries = await cacache.index.compact(dir, fooKey, () => false)
-  t.equal(fooEntries.length, 1, 'has one entry')
-  t.equal(fooEntries[0].metadata.reqHeaders['x-foo'], 'bar', 'did keep x-foo')
-  t.ok(srv.isDone())
-})
-
-t.test('cache is invalidated by a non-GET/HEAD request to the same url', async (t) => {
-  const srv = nock(HOST)
-    .get('/test')
-    .twice()
-    .reply(200, CONTENT, {
-      ...getHeaders(CONTENT),
-      etag: '"beef"',
-    })
-    .post('/test')
-    .reply(201)
-
-  const dir = t.testdir()
-  const initialRes = await fetch(`${HOST}/test`, {
-    cachePath: dir,
-  })
-  t.equal(initialRes.status, 200, 'got a success response')
-  t.equal(initialRes.headers.get('x-local-cache-status'), 'miss', 'was a cache miss')
-  await initialRes.buffer() // consume the buffer so the cache stores it
-
-  // first request should've cached, this proves it
-  const verifyRes = await fetch(`${HOST}/test`, {
-    cachePath: dir,
-  })
-  t.equal(verifyRes.status, 200, 'got a success response')
-  t.equal(verifyRes.headers.get('x-local-cache-status'), 'hit', 'was a cache hit')
-
-  // the POST request invalidates the url entirely
-  const postRes = await fetch(`${HOST}/test`, {
-    method: 'POST',
-    body: null,
-    cachePath: dir,
-  })
-  t.equal(postRes.status, 201, 'got the right response')
-
-  // now this fetch will be a miss
-  const afterRes = await fetch(`${HOST}/test`, {
-    cachePath: dir,
-  })
-  t.equal(afterRes.status, 200, 'got a success response')
-  t.equal(afterRes.headers.get('x-local-cache-status'), 'miss', 'back to a cache miss')
-  await afterRes.buffer()
-  t.ok(srv.isDone())
-})
-
-t.test('cache deduplicates and appropriately removes null integrity entries from previous versions', async (t) => {
-  // previous versions of make-fetch-happen naively used cacache, which would append a new entry every
-  // time a request was made that did not match, in addition to that an invalidation in the previous
-  // version would write an entry with a null integrity which cacache interpreted as a deleted entry,
-  // while this current version of make-fetch-happen uses null integrity entries for stored redirects.
-  // this test is meant to ensure that a user who upgrades from an old make-fetch-happen to a new one
-  // keeping the same cache does not get erroneous results, and their indexes are deduplicated correctly.
-
-  const dir = t.testdir()
-  const reqKey = cacheKey(new Request(`${HOST}/test`))
-  await cacache.index.insert(dir, reqKey, INTEGRITY, {
-    metadata: {
-      url: `${HOST}/test`,
-      reqHeaders: {
-        accept: ['application/json'],
-      },
-    },
-  })
-  await cacache.index.insert(dir, reqKey, INTEGRITY, {
-    metadata: {
-      url: `${HOST}/test`,
-      reqHeaders: {
-        accept: ['application/vnd.npm.install-v1+json'],
-      },
-    },
-  })
-  await cacache.index.insert(dir, reqKey, null)
-  await cacache.index.insert(dir, reqKey, INTEGRITY, {
-    metadata: {
-      url: `${HOST}/test`,
-      reqHeaders: {
-        accept: ['application/json'],
-      },
-    },
-  })
-  const srv = nock(HOST)
-    .get('/test')
-    .reply(200, CONTENT, {
-      ...getHeaders(CONTENT),
-      'content-type': 'application/json',
-      etag: '"beef"',
-    })
-
-  const initialRes = await fetch(`${HOST}/test`, {
-    cachePath: dir,
-    headers: {
-      accept: 'application/json',
-    },
-  })
-  t.equal(initialRes.status, 200, 'got a success response')
-  // the status is update because we deduplicated the original responses, found the one that
-  // matches our client's request, and then revalidates it
-  t.equal(initialRes.headers.get('x-local-cache-status'), 'updated', 'identified as an update')
-  t.equal(initialRes.headers.get('content-type'), 'application/json', 'got the right content-type')
-  // at this point, the index should be deduplicated down to 2 entries
-  const initialEntries = await cacache.index.compact(dir, reqKey, () => false, { validateEntry: () => true })
-  t.equal(initialEntries.length, 2, 'should have two entries')
-  await initialRes.buffer() // write it to the cache, this appends a third
-
+  t.equal(res.status, 200, 'status is 200 Ok')
+  t.equal(res.headers.get('x-local-cache-status'), 'miss', 'cache miss')
+  t.notOk(res.headers.has('content-encoding'), 'content-encoding is absent')
+  // at this point, the index should be compacted down from 2 to 1 entry
   const entries = await cacache.index.compact(dir, reqKey, () => false, { validateEntry: () => true })
-  t.equal(entries.length, 3, 'should have three entries')
-  t.equal(entries[0].metadata.reqHeaders.accept, 'application/json', 'has the right request header')
+  t.equal(entries.length, 1, 'should have one entry')
+  t.notOk('content-encoding' in entries[0].metadata.resHeaders, 'lacks content-encoding in metadata.resHeaders')
+  await res.buffer() // write it to the cache, this appends a second entry
+
+  const entries2 = await cacache.index.compact(dir, reqKey, () => false, { validateEntry: () => true })
+  t.equal(entries2.length, 2, 'should have two entries')
+  t.equal(entries2[0].metadata.options.compress, false, 'has the right compress option')
   t.ok(srv.isDone())
 })
 
