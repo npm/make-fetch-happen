@@ -1,6 +1,6 @@
 'use strict'
 
-const { basename, join, sep } = require('path')
+const { join } = require('path')
 const { Readable } = require('stream')
 const cacache = require('cacache')
 const fs = require('fs')
@@ -33,18 +33,6 @@ const getHeaders = (content) => ({
 
 nock.disableNetConnect()
 t.beforeEach(() => nock.cleanAll())
-
-t.test('policy preload', async (t) => {
-  // see comments at the top of lib/cache/policy.js
-  const loadedModules = Object.keys(require.cache)
-    .filter(key => key.includes(`${sep}negotiator${sep}`) && !key.endsWith('index.js'))
-    .map(key => basename(key, '.js'))
-
-  t.ok(loadedModules.includes('charset'), 'preloaded charset.js')
-  t.ok(loadedModules.includes('encoding'), 'preloaded encoding.js')
-  t.ok(loadedModules.includes('language'), 'preloaded language.js')
-  t.ok(loadedModules.includes('mediaType'), 'preloaded mediaType.js')
-})
 
 t.test('storable()', async (t) => {
   const storeOpts = configureOptions({ cachePath: './foo' })
