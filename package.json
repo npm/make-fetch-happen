@@ -59,7 +59,7 @@
     "require-inject": "^1.4.2",
     "rimraf": "^3.0.2",
     "safe-buffer": "^5.2.1",
-    "standard-version": "^9.3.0",
+    "standard-version": "^9.3.2",
     "tap": "^15.0.9"
   },
   "engines": {
