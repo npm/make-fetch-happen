@@ -1,7 +1,6 @@
 'use strict'
 
-const test = require('tap').test
-const requireInject = require('require-inject')
+const t = require('tap')
 
 const http = require('http')
 const https = require('https')
@@ -10,7 +9,7 @@ const MockHttp = mockHttpAgent('http')
 
 MockHttp.HttpsAgent = mockHttpAgent('https')
 
-const agent = requireInject.installGlobally('../lib/agent.js', {
+const agent = t.mock('../lib/agent.js', {
   'is-lambda': true,
   agentkeepalive: MockHttp,
   'https-proxy-agent': mockHttpAgent('https-proxy'),
@@ -33,7 +32,7 @@ const OPTS = {
   timeout: 5,
 }
 
-test('extracts process env variables', async (t) => {
+t.test('extracts process env variables', async (t) => {
   process.env = { TEST_ENV: 'test', ANOTHER_ENV: 'no' }
 
   t.same(agent.getProcessEnv('test_ENV'), 'test', 'extracts single env')
@@ -45,15 +44,15 @@ test('extracts process env variables', async (t) => {
   )
 })
 
-test('global http agent when lambda', async (t) => {
+t.test('global http agent when lambda', async (t) => {
   t.same(agent('http://foo.com/bar', OPTS), http.globalAgent)
 })
 
-test('global https agent when lambda', async (t) => {
+t.test('global https agent when lambda', async (t) => {
   t.same(agent('https://foo.com/bar', OPTS), https.globalAgent)
 })
 
-test('all expected options passed down to proxy agent', async (t) => {
+t.test('all expected options passed down to proxy agent', async (t) => {
   const opts = Object.assign({
     proxy: 'https://user:pass@my.proxy:1234/foo',
   }, OPTS)

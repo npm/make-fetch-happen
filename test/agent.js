@@ -1,12 +1,11 @@
 'use strict'
 
-const { test } = require('tap')
-const requireInject = require('require-inject')
+const t = require('tap')
 const url = require('url')
 
 const MockHttp = mockHttpAgent('http')
 MockHttp.HttpsAgent = mockHttpAgent('https')
-const agent = requireInject.installGlobally('../lib/agent.js', {
+const agent = t.mock('../lib/agent.js', {
   agentkeepalive: MockHttp,
   'https-proxy-agent': mockHttpAgent('https-proxy'),
   'http-proxy-agent': mockHttpAgent('http-proxy'),
@@ -19,7 +18,7 @@ function mockHttpAgent (type) {
   }
 }
 
-test('extracts process env variables', async t => {
+t.test('extracts process env variables', async t => {
   process.env = { TEST_ENV: 'test', ANOTHER_ENV: 'no' }
 
   t.equal(agent.getProcessEnv(''), undefined, 'no env name returns undefined')
@@ -43,11 +42,11 @@ const OPTS = {
   timeout: 5,
 }
 
-test('agent: false returns false', async t => {
+t.test('agent: false returns false', async t => {
   t.equal(agent({ url: 'http://x.com' }, { ...OPTS, agent: false }), false)
 })
 
-test('all expected options passed down to HttpAgent', async t => {
+t.test('all expected options passed down to HttpAgent', async t => {
   t.same(agent('http://foo.com/bar', OPTS), {
     __type: 'http',
     maxSockets: 5,
@@ -56,7 +55,7 @@ test('all expected options passed down to HttpAgent', async t => {
   }, 'only expected options passed to HttpAgent')
 })
 
-test('timeout 0 keeps timeout 0', async t => {
+t.test('timeout 0 keeps timeout 0', async t => {
   t.same(agent('http://foo.com/bar', { ...OPTS, timeout: 0 }), {
     __type: 'http',
     maxSockets: 5,
@@ -65,7 +64,7 @@ test('timeout 0 keeps timeout 0', async t => {
   }, 'only expected options passed to HttpAgent')
 })
 
-test('no max sockets gets 15 max sockets', async t => {
+t.test('no max sockets gets 15 max sockets', async t => {
   t.same(agent('http://foo.com/bar', { ...OPTS, maxSockets: undefined }), {
     __type: 'http',
     maxSockets: 15,
@@ -74,7 +73,7 @@ test('no max sockets gets 15 max sockets', async t => {
   }, 'only expected options passed to HttpAgent')
 })
 
-test('no timeout gets timeout 0', async t => {
+t.test('no timeout gets timeout 0', async t => {
   t.same(agent('http://foo.com/bar', { ...OPTS, timeout: undefined }), {
     __type: 'http',
     maxSockets: 5,
@@ -83,7 +82,7 @@ test('no timeout gets timeout 0', async t => {
   }, 'only expected options passed to HttpAgent')
 })
 
-test('all expected options passed down to HttpsAgent', async t => {
+t.test('all expected options passed down to HttpsAgent', async t => {
   t.same(agent('https://foo.com/bar', OPTS), {
     __type: 'https',
     ca: 'ca',
@@ -96,7 +95,7 @@ test('all expected options passed down to HttpsAgent', async t => {
   }, 'only expected options passed to HttpsAgent')
 })
 
-test('all expected options passed down to proxy agent', async t => {
+t.test('all expected options passed down to proxy agent', async t => {
   const opts = Object.assign({
     proxy: 'https://user:pass@my.proxy:1234/foo',
   }, OPTS)
@@ -117,7 +116,7 @@ test('all expected options passed down to proxy agent', async t => {
   }, 'only expected options passed to https proxy')
 })
 
-test('all expected options passed down to proxy agent, username only', async t => {
+t.test('all expected options passed down to proxy agent, username only', async t => {
   const opts = Object.assign({
     proxy: 'https://user-no-pass@my.proxy:1234/foo',
     // bust the cache
@@ -139,7 +138,7 @@ test('all expected options passed down to proxy agent, username only', async t =
   }, 'only expected options passed to https proxy')
 })
 
-test('get proxy uri', async t => {
+t.test('get proxy uri', async t => {
   const { getProxyUri } = agent
   const { httpProxy, httpsProxy, noProxy } = process.env
   t.teardown(() => {
@@ -175,7 +174,7 @@ test('get proxy uri', async t => {
   t.strictSame(getProxyUri('http://foo.com/bar', {}), new url.URL(hp), 'http proxy for http')
 })
 
-test('get proxy agent', async t => {
+t.test('get proxy agent', async t => {
   const { getProxy } = agent
   const OPTS = {
     ca: 'ca',
