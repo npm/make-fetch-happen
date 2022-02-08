@@ -48,7 +48,7 @@
     "negotiator": "^0.6.3",
     "promise-retry": "^2.0.1",
     "socks-proxy-agent": "^6.1.1",
-    "ssri": "^8.0.0"
+    "ssri": "^8.0.1"
   },
   "devDependencies": {
     "@npmcli/template-oss": "^2.7.1",
