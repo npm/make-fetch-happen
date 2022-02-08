@@ -17,7 +17,8 @@
     "lint": "eslint '**/*.js'",
     "lintfix": "npm run lint -- --fix",
     "postlint": "npm-template-check",
-    "snap": "tap"
+    "snap": "tap",
+    "template-copy": "npm-template-copy --force"
   },
   "repository": "https://github.com/npm/make-fetch-happen",
   "keywords": [
@@ -50,7 +51,7 @@
     "ssri": "^8.0.0"
   },
   "devDependencies": {
-    "@npmcli/template-oss": "^2.5.1",
+    "@npmcli/template-oss": "^2.7.1",
     "eslint": "^8.7.0",
     "mkdirp": "^1.0.4",
     "nock": "^13.0.11",
@@ -70,6 +71,6 @@
     "check-coverage": true
   },
   "templateOSS": {
-    "version": "2.5.1"
+    "version": "2.7.1"
   }
 }
