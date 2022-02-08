@@ -54,7 +54,7 @@
     "@npmcli/template-oss": "^2.7.1",
     "eslint": "^8.7.0",
     "mkdirp": "^1.0.4",
-    "nock": "^13.0.11",
+    "nock": "^13.2.4",
     "npmlog": "^6.0.0",
     "require-inject": "^1.4.2",
     "rimraf": "^3.0.2",
