@@ -1,5 +1,12 @@
 # Changelog
 
+### [10.0.2](https://www.github.com/npm/make-fetch-happen/compare/v10.0.1...v10.0.2) (2022-02-10)
+
+
+### Dependencies
+
+* update lru-cache requirement from ^7.3.0 to ^7.3.1 ([6ca02ad](https://www.github.com/npm/make-fetch-happen/commit/6ca02ad504a7eaf62e81cf170cd5e947ef79584d))
+
 ### [10.0.1](https://www.github.com/npm/make-fetch-happen/compare/v10.0.0...v10.0.1) (2022-02-09)
 
 
