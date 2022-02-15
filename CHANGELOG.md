@@ -1,5 +1,12 @@
 # Changelog
 
+### [10.0.3](https://www.github.com/npm/make-fetch-happen/compare/v10.0.2...v10.0.3) (2022-02-15)
+
+
+### Bug Fixes
+
+* set agentkeepalive freeSocketTimeout back to 15 seconds ([#100](https://www.github.com/npm/make-fetch-happen/issues/100)) ([3371abf](https://www.github.com/npm/make-fetch-happen/commit/3371abf9e342d75bdc063b346bdefedd573f55a9))
+
 ### [10.0.2](https://www.github.com/npm/make-fetch-happen/compare/v10.0.1...v10.0.2) (2022-02-10)
 
 
