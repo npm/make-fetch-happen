@@ -52,6 +52,7 @@ t.test('all expected options passed down to HttpAgent', async t => {
     maxSockets: 5,
     localAddress: 'localAddress',
     timeout: 6,
+    freeSocketTimeout: 15000,
   }, 'only expected options passed to HttpAgent')
 })
 
@@ -61,6 +62,7 @@ t.test('timeout 0 keeps timeout 0', async t => {
     maxSockets: 5,
     localAddress: 'localAddress',
     timeout: 0,
+    freeSocketTimeout: 15000,
   }, 'only expected options passed to HttpAgent')
 })
 
@@ -70,6 +72,7 @@ t.test('no max sockets gets 15 max sockets', async t => {
     maxSockets: 15,
     localAddress: 'localAddress',
     timeout: 6,
+    freeSocketTimeout: 15000,
   }, 'only expected options passed to HttpAgent')
 })
 
@@ -79,6 +82,7 @@ t.test('no timeout gets timeout 0', async t => {
     maxSockets: 5,
     localAddress: 'localAddress',
     timeout: 0,
+    freeSocketTimeout: 15000,
   }, 'only expected options passed to HttpAgent')
 })
 
@@ -92,6 +96,7 @@ t.test('all expected options passed down to HttpsAgent', async t => {
     localAddress: 'localAddress',
     rejectUnauthorized: 'strictSSL',
     timeout: 6,
+    freeSocketTimeout: 15000,
   }, 'only expected options passed to HttpsAgent')
 })
 
