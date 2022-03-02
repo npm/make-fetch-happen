@@ -1,5 +1,14 @@
 # Changelog
 
+### [10.0.4](https://www.github.com/npm/make-fetch-happen/compare/v10.0.3...v10.0.4) (2022-03-02)
+
+
+### Dependencies
+
+* bump minipass-fetch from 1.4.1 to 2.0.1 ([#108](https://www.github.com/npm/make-fetch-happen/issues/108)) ([0257b63](https://www.github.com/npm/make-fetch-happen/commit/0257b637dde5831c9a9f1f652282d7818bebfa4a))
+* update agentkeepalive requirement from ^4.2.0 to ^4.2.1 ([#102](https://www.github.com/npm/make-fetch-happen/issues/102)) ([0252efc](https://www.github.com/npm/make-fetch-happen/commit/0252efcb934c2b3d95af366d79b26d74aa477ca9))
+* update lru-cache requirement from ^7.3.1 to ^7.4.0 ([#103](https://www.github.com/npm/make-fetch-happen/issues/103)) ([140ff64](https://www.github.com/npm/make-fetch-happen/commit/140ff64e90962ba5b8f7be7ef39446a669cfe572))
+
 ### [10.0.3](https://www.github.com/npm/make-fetch-happen/compare/v10.0.2...v10.0.3) (2022-02-15)
 
 
