@@ -51,7 +51,7 @@
     "ssri": "^8.0.1"
   },
   "devDependencies": {
-    "@npmcli/template-oss": "^2.8.1",
+    "@npmcli/template-oss": "^2.9.2",
     "eslint": "^8.10.0",
     "mkdirp": "^1.0.4",
     "nock": "^13.2.4",
