@@ -353,6 +353,7 @@ t.test('get proxy agent', async t => {
 
   t.throws(() => getProxy(new url.URL('gopher://proxy.local'), OPTS, false), {
     message: 'unsupported proxy protocol: \'gopher:\'',
+    code: 'EUNSUPPORTEDPROXY',
     url: 'gopher://proxy.local',
   })
 })
