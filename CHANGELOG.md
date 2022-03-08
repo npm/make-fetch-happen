@@ -1,5 +1,18 @@
 # Changelog
 
+### [10.0.5](https://www.github.com/npm/make-fetch-happen/compare/v10.0.4...v10.0.5) (2022-03-07)
+
+
+### Bug Fixes
+
+* add code property to unsupported proxy url error ([#112](https://www.github.com/npm/make-fetch-happen/issues/112)) ([569a613](https://www.github.com/npm/make-fetch-happen/commit/569a6136b0ded34edd5de3584f518233fc720fcd))
+
+
+### Dependencies
+
+* update lru-cache requirement from ^7.4.0 to ^7.4.1 ([#113](https://www.github.com/npm/make-fetch-happen/issues/113)) ([b7f3e28](https://www.github.com/npm/make-fetch-happen/commit/b7f3e28f07c0e023dc6b616f61957fc49b3fdd2c))
+* update minipass-fetch requirement from ^2.0.1 to ^2.0.2 ([#109](https://www.github.com/npm/make-fetch-happen/issues/109)) ([4a9892a](https://www.github.com/npm/make-fetch-happen/commit/4a9892a0fbf79965ed272d9bc5422c4525e7a990))
+
 ### [10.0.4](https://www.github.com/npm/make-fetch-happen/compare/v10.0.3...v10.0.4) (2022-03-02)
 
 
