@@ -1,5 +1,17 @@
 # Changelog
 
+### [10.0.6](https://www.github.com/npm/make-fetch-happen/compare/v10.0.5...v10.0.6) (2022-03-14)
+
+
+### Dependencies
+
+* bump cacache from 15.3.0 to 16.0.0 ([#121](https://www.github.com/npm/make-fetch-happen/issues/121)) ([de032e9](https://www.github.com/npm/make-fetch-happen/commit/de032e9018c459ee7acd76448ed198040beb3418))
+* update lru-cache requirement from ^7.4.1 to ^7.4.2 ([#115](https://www.github.com/npm/make-fetch-happen/issues/115)) ([a3f4ba9](https://www.github.com/npm/make-fetch-happen/commit/a3f4ba975247f31a803be9afd95fc652e4043cc6))
+* update lru-cache requirement from ^7.4.2 to ^7.4.4 ([#117](https://www.github.com/npm/make-fetch-happen/issues/117)) ([24a7ddd](https://www.github.com/npm/make-fetch-happen/commit/24a7ddd3a6970cc9b0d92807c9db002fcb53a913))
+* update lru-cache requirement from ^7.4.4 to ^7.5.0 ([#119](https://www.github.com/npm/make-fetch-happen/issues/119)) ([5ef3bb3](https://www.github.com/npm/make-fetch-happen/commit/5ef3bb38b4fd122d5ffc012420e94a623a3d300d))
+* update lru-cache requirement from ^7.5.0 to ^7.5.1 ([#120](https://www.github.com/npm/make-fetch-happen/issues/120)) ([8c5db07](https://www.github.com/npm/make-fetch-happen/commit/8c5db07f31f422de646026d7fb437bc4a6233473))
+* update minipass-fetch requirement from ^2.0.2 to ^2.0.3 ([#114](https://www.github.com/npm/make-fetch-happen/issues/114)) ([bc71014](https://www.github.com/npm/make-fetch-happen/commit/bc71014c485a6963d8b6f5d8a3af793465bf9b39))
+
 ### [10.0.5](https://www.github.com/npm/make-fetch-happen/compare/v10.0.4...v10.0.5) (2022-03-07)
 
 
