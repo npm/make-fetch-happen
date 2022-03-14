@@ -52,7 +52,7 @@
   },
   "devDependencies": {
     "@npmcli/template-oss": "^2.9.2",
-    "eslint": "^8.10.0",
+    "eslint": "^8.11.0",
     "mkdirp": "^1.0.4",
     "nock": "^13.2.4",
     "rimraf": "^3.0.2",
