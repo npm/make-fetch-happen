@@ -34,7 +34,7 @@
   "license": "ISC",
   "dependencies": {
     "agentkeepalive": "^4.2.1",
-    "cacache": "^16.0.1",
+    "cacache": "^16.0.2",
     "http-cache-semantics": "^4.1.0",
     "http-proxy-agent": "^5.0.0",
     "https-proxy-agent": "^5.0.0",
