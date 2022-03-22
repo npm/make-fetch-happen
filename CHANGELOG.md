@@ -1,5 +1,14 @@
 # Changelog
 
+### [10.0.7](https://www.github.com/npm/make-fetch-happen/compare/v10.0.6...v10.0.7) (2022-03-22)
+
+
+### Dependencies
+
+* update cacache requirement from ^16.0.0 to ^16.0.1 ([#122](https://www.github.com/npm/make-fetch-happen/issues/122)) ([cb3873c](https://www.github.com/npm/make-fetch-happen/commit/cb3873cbe774e182d954c601af35c022783a5d5c))
+* update cacache requirement from ^16.0.1 to ^16.0.2 ([#127](https://www.github.com/npm/make-fetch-happen/issues/127)) ([44fe6ce](https://www.github.com/npm/make-fetch-happen/commit/44fe6ce8c9326b181913564e4808fce7df6f589b))
+* update lru-cache requirement from ^7.5.1 to ^7.7.1 ([#128](https://www.github.com/npm/make-fetch-happen/issues/128)) ([eb6e7b6](https://www.github.com/npm/make-fetch-happen/commit/eb6e7b657d0b9da6d1063d2ff3d9f08b3827c017))
+
 ### [10.0.6](https://www.github.com/npm/make-fetch-happen/compare/v10.0.5...v10.0.6) (2022-03-14)
 
 
