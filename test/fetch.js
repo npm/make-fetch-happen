@@ -87,7 +87,7 @@ t.test('calls opts.onRetry', async t => {
       retry: {
         retries: 1,
       },
-      onRetry: (res) => {
+      onRetry: () => {
         calledOnRetry = true
         retryNotification++
       },
@@ -236,7 +236,7 @@ t.test('supports redirect logic', async t => {
       .get('/redirect')
       .reply(301)
 
-    const err = await fetch(`${HOST}/redirect`).catch(err => err)
+    const err = await fetch(`${HOST}/redirect`).catch(reqErr => reqErr)
     t.type(err, FetchError)
     t.equal(err.code, 'EINVALIDREDIRECT')
     t.ok(srv.isDone())

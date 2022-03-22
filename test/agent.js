@@ -181,7 +181,7 @@ t.test('get proxy uri', async t => {
 
 t.test('get proxy agent', async t => {
   const { getProxy } = agent
-  const OPTS = {
+  const PROXY_OPTS = {
     ca: 'ca',
     cert: 'cert',
     keyu: 'key',
@@ -191,7 +191,7 @@ t.test('get proxy agent', async t => {
     rejectUnauthorized: true,
   }
 
-  t.strictSame(getProxy(new url.URL('http://proxy.local:443/'), OPTS, true), {
+  t.strictSame(getProxy(new url.URL('http://proxy.local:443/'), PROXY_OPTS, true), {
     host: 'proxy.local',
     port: '443',
     protocol: 'http:',
@@ -207,7 +207,7 @@ t.test('get proxy agent', async t => {
     __type: 'https-proxy',
   }, 'http proxy url, for https request')
 
-  t.strictSame(getProxy(new url.URL('https://proxy.local:443/'), OPTS, true), {
+  t.strictSame(getProxy(new url.URL('https://proxy.local:443/'), PROXY_OPTS, true), {
     host: 'proxy.local',
     port: '',
     protocol: 'https:',
@@ -223,7 +223,7 @@ t.test('get proxy agent', async t => {
     __type: 'https-proxy',
   }, 'https proxy url, for https request')
 
-  t.strictSame(getProxy(new url.URL('socks://proxy.local:443/'), OPTS, true), {
+  t.strictSame(getProxy(new url.URL('socks://proxy.local:443/'), PROXY_OPTS, true), {
     host: 'proxy.local',
     port: '443',
     protocol: 'socks:',
@@ -239,7 +239,7 @@ t.test('get proxy agent', async t => {
     __type: 'socks-proxy',
   }, 'socks proxy url, for https request')
 
-  t.strictSame(getProxy(new url.URL('http://proxy.local:443/'), OPTS, false), {
+  t.strictSame(getProxy(new url.URL('http://proxy.local:443/'), PROXY_OPTS, false), {
     host: 'proxy.local',
     port: '443',
     protocol: 'http:',
@@ -255,7 +255,7 @@ t.test('get proxy agent', async t => {
     __type: 'http-proxy',
   }, 'http proxy url, for http request')
 
-  t.strictSame(getProxy(new url.URL('https://proxy.local:443/'), OPTS, false), {
+  t.strictSame(getProxy(new url.URL('https://proxy.local:443/'), PROXY_OPTS, false), {
     host: 'proxy.local',
     port: '',
     protocol: 'https:',
@@ -271,7 +271,7 @@ t.test('get proxy agent', async t => {
     __type: 'http-proxy',
   }, 'https proxy url, for http request')
 
-  t.strictSame(getProxy(new url.URL('socks://proxy.local:443/'), OPTS, false), {
+  t.strictSame(getProxy(new url.URL('socks://proxy.local:443/'), PROXY_OPTS, false), {
     host: 'proxy.local',
     port: '443',
     protocol: 'socks:',
@@ -287,7 +287,7 @@ t.test('get proxy agent', async t => {
     __type: 'socks-proxy',
   }, 'socks proxy url, for http request')
 
-  t.strictSame(getProxy(new url.URL('http://user:pass@proxy.local:443/'), OPTS, false), {
+  t.strictSame(getProxy(new url.URL('http://user:pass@proxy.local:443/'), PROXY_OPTS, false), {
     host: 'proxy.local',
     port: '443',
     protocol: 'http:',
@@ -303,7 +303,7 @@ t.test('get proxy agent', async t => {
     __type: 'http-proxy',
   }, 'http proxy url, for http request')
 
-  t.strictSame(getProxy(new url.URL('http://user@proxy.local:443/'), OPTS, false), {
+  t.strictSame(getProxy(new url.URL('http://user@proxy.local:443/'), PROXY_OPTS, false), {
     host: 'proxy.local',
     port: '443',
     protocol: 'http:',
@@ -319,7 +319,7 @@ t.test('get proxy agent', async t => {
     __type: 'http-proxy',
   }, 'http proxy url, for http request')
 
-  t.strictSame(getProxy(new url.URL('http://user%231:pass@proxy.local:443/'), OPTS, false), {
+  t.strictSame(getProxy(new url.URL('http://user%231:pass@proxy.local:443/'), PROXY_OPTS, false), {
     host: 'proxy.local',
     port: '443',
     protocol: 'http:',
@@ -335,23 +335,25 @@ t.test('get proxy agent', async t => {
     __type: 'http-proxy',
   }, 'http proxy url, for http request')
 
-  t.strictSame(getProxy(new url.URL('http://user%231:pass%231@proxy.local:443/'), OPTS, false), {
-    host: 'proxy.local',
-    port: '443',
-    protocol: 'http:',
-    path: '/',
-    auth: 'user#1:pass#1',
-    ca: 'ca',
-    cert: 'cert',
-    key: undefined,
-    timeout: 2,
-    localAddress: 'local address',
-    maxSockets: 3,
-    rejectUnauthorized: true,
-    __type: 'http-proxy',
-  }, 'http proxy url, for http request')
+  t.strictSame(
+    getProxy(new url.URL('http://user%231:pass%231@proxy.local:443/'), PROXY_OPTS, false),
+    {
+      host: 'proxy.local',
+      port: '443',
+      protocol: 'http:',
+      path: '/',
+      auth: 'user#1:pass#1',
+      ca: 'ca',
+      cert: 'cert',
+      key: undefined,
+      timeout: 2,
+      localAddress: 'local address',
+      maxSockets: 3,
+      rejectUnauthorized: true,
+      __type: 'http-proxy',
+    }, 'http proxy url, for http request')
 
-  t.throws(() => getProxy(new url.URL('gopher://proxy.local'), OPTS, false), {
+  t.throws(() => getProxy(new url.URL('gopher://proxy.local'), PROXY_OPTS, false), {
     message: 'unsupported proxy protocol: \'gopher:\'',
     code: 'EUNSUPPORTEDPROXY',
     url: 'gopher://proxy.local',
