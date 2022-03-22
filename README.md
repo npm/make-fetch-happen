@@ -29,6 +29,7 @@ pooling, proxies, retries, [and more](#features)!
     * [`opts.retry`](#opts-retry)
     * [`opts.onRetry`](#opts-onretry)
     * [`opts.integrity`](#opts-integrity)
+    * [`opts.dns`](#opts-dns)
 * [Message From Our Sponsors](#wow)
 
 ### Example
@@ -67,6 +68,7 @@ fetch('https://registry.npmjs.org/make-fetch-happen').then(res => {
 * Transparent gzip and deflate support
 * [Subresource Integrity](https://developer.mozilla.org/en-US/docs/Web/Security/Subresource_Integrity) support
 * Literally punches nazis
+* Built in DNS cache
 * (PENDING) Range request caching and resuming
 
 ### Contributing
@@ -146,6 +148,7 @@ make-fetch-happen augments the `minipass-fetch` API with additional features ava
 * [`opts.retry`](#opts-retry) - Request retry settings
 * [`opts.onRetry`](#opts-onretry) - a function called whenever a retry is attempted
 * [`opts.integrity`](#opts-integrity) - [Subresource Integrity](https://developer.mozilla.org/en-US/docs/Web/Security/Subresource_Integrity) metadata.
+* [`opts.dns`](#opts-dns) - DNS cache options
 
 #### <a name="opts-cache-path"></a> `> opts.cachePath`
 
@@ -387,3 +390,12 @@ fetch('https://malicious-registry.org/make-fetch-happen/-/make-fetch-happen-1.0.
   integrity: 'sha1-o47j7zAYnedYFn1dF/fR9OV3z8Q='
 }) // Error: EINTEGRITY
 ```
+
+#### <a name="opts-dns"></a> `> opts.dns`
+
+An object that provides options for the built-in DNS cache. The following options are available:
+
+Note: Due to limitations in the current proxy agent implementation, users of proxies will not benefit from the DNS cache.
+
+* `ttl`: Milliseconds to keep cached DNS responses for. Defaults to `5 * 60 * 1000` (5 minutes)
+* `lookup`: A custom lookup function, see [`dns.lookup()`](https://nodejs.org/api/dns.html#dnslookuphostname-options-callback) for implementation details. Defaults to `require('dns').lookup`.
