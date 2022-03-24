@@ -47,7 +47,7 @@ t.test('agent: false returns false', async t => {
 })
 
 t.test('all expected options passed down to HttpAgent', async t => {
-  t.same(agent('http://foo.com/bar', OPTS), {
+  t.match(agent('http://foo.com/bar', OPTS), {
     __type: 'http',
     maxSockets: 5,
     localAddress: 'localAddress',
@@ -57,7 +57,7 @@ t.test('all expected options passed down to HttpAgent', async t => {
 })
 
 t.test('timeout 0 keeps timeout 0', async t => {
-  t.same(agent('http://foo.com/bar', { ...OPTS, timeout: 0 }), {
+  t.match(agent('http://foo.com/bar', { ...OPTS, timeout: 0 }), {
     __type: 'http',
     maxSockets: 5,
     localAddress: 'localAddress',
@@ -67,7 +67,7 @@ t.test('timeout 0 keeps timeout 0', async t => {
 })
 
 t.test('no max sockets gets 15 max sockets', async t => {
-  t.same(agent('http://foo.com/bar', { ...OPTS, maxSockets: undefined }), {
+  t.match(agent('http://foo.com/bar', { ...OPTS, maxSockets: undefined }), {
     __type: 'http',
     maxSockets: 15,
     localAddress: 'localAddress',
@@ -77,7 +77,7 @@ t.test('no max sockets gets 15 max sockets', async t => {
 })
 
 t.test('no timeout gets timeout 0', async t => {
-  t.same(agent('http://foo.com/bar', { ...OPTS, timeout: undefined }), {
+  t.match(agent('http://foo.com/bar', { ...OPTS, timeout: undefined }), {
     __type: 'http',
     maxSockets: 5,
     localAddress: 'localAddress',
@@ -87,7 +87,7 @@ t.test('no timeout gets timeout 0', async t => {
 })
 
 t.test('all expected options passed down to HttpsAgent', async t => {
-  t.same(agent('https://foo.com/bar', OPTS), {
+  t.match(agent('https://foo.com/bar', OPTS), {
     __type: 'https',
     ca: 'ca',
     cert: 'cert',

@@ -1,40 +1,67 @@
 'use strict'
-
+const dns = require('dns')
 const configureOptions = require('../lib/options.js')
 const { test } = require('tap')
+
+const defaultDns = { ttl: 5 * 60 * 1000, lookup: dns.lookup }
 
 test('configure options', async (t) => {
   test('supplied with no value', async (t) => {
     const opts = configureOptions()
-    const expectedObject =
-      { method: 'GET', retry: { retries: 0 }, cache: 'default', rejectUnauthorized: true }
+    const expectedObject = {
+      method: 'GET',
+      retry: { retries: 0 },
+      cache: 'default',
+      rejectUnauthorized: true,
+      dns: defaultDns,
+    }
     t.same(opts, expectedObject, 'should return default opts')
   })
 
   test('supplied with empty object', async (t) => {
     const opts = configureOptions({})
-    const expectedObject =
-      { method: 'GET', retry: { retries: 0 }, cache: 'default', rejectUnauthorized: true }
+    const expectedObject = {
+      method: 'GET',
+      retry: { retries: 0 },
+      cache: 'default',
+      rejectUnauthorized: true,
+      dns: defaultDns,
+    }
     t.same(opts, expectedObject, 'should return default opts')
   })
 
   test('changes method to upper case', async (t) => {
     const actualOpts = { method: 'post' }
     const opts = configureOptions(actualOpts)
-    const expectedObject =
-      { method: 'POST', retry: { retries: 0 }, cache: 'default', rejectUnauthorized: true }
+    const expectedObject = {
+      method: 'POST',
+      retry: { retries: 0 },
+      cache: 'default',
+      rejectUnauthorized: true,
+      dns: defaultDns,
+    }
     t.same(opts, expectedObject, 'should return upper cased method')
   })
 
   test('copies strictSSL to rejectUnauthorized', async (t) => {
     const trueOpts = configureOptions({ strictSSL: true })
-    const trueExpectedObject =
-      { method: 'GET', retry: { retries: 0 }, cache: 'default', rejectUnauthorized: true }
+    const trueExpectedObject = {
+      method: 'GET',
+      retry: { retries: 0 },
+      cache: 'default',
+      rejectUnauthorized: true,
+      dns: defaultDns,
+    }
     t.same(trueOpts, trueExpectedObject, 'should return default opts and copy strictSSL')
 
     const falseOpts = configureOptions({ strictSSL: false })
-    const falseExpectedObject =
-      { method: 'GET', retry: { retries: 0 }, cache: 'default', rejectUnauthorized: false }
+    const falseExpectedObject = {
+      method: 'GET',
+      retry: { retries: 0 },
+      cache: 'default',
+      rejectUnauthorized: false,
+      dns: defaultDns,
+    }
     t.same(falseOpts, falseExpectedObject, 'should return default opts and copy strictSSL')
 
     const undefinedOpts = configureOptions({ strictSSL: undefined })
@@ -50,44 +77,111 @@ test('configure options', async (t) => {
       'should treat strictSSL: null as true just like tls.connect')
   })
 
+  test('should set dns property correctly', async (t) => {
+    t.test('no property given', async (t) => {
+      const actualOpts = { method: 'GET' }
+      const opts = configureOptions(actualOpts)
+      const expectedObject = {
+        method: 'GET',
+        retry: { retries: 0 },
+        cache: 'default',
+        rejectUnauthorized: true,
+        dns: defaultDns,
+      }
+      t.same(opts, expectedObject, 'should return default retry property')
+    })
+
+    t.test('ttl property given', async (t) => {
+      const actualOpts = { method: 'GET', dns: { ttl: 100 } }
+      const opts = configureOptions(actualOpts)
+      const expectedObject = {
+        method: 'GET',
+        retry: { retries: 0 },
+        cache: 'default',
+        rejectUnauthorized: true,
+        dns: { ...defaultDns, ttl: 100 },
+      }
+      t.same(opts, expectedObject, 'should extend default dns with custom ttl')
+    })
+
+    t.test('lookup property given', async (t) => {
+      const lookup = () => {}
+      const actualOpts = { method: 'GET', dns: { lookup } }
+      const opts = configureOptions(actualOpts)
+      const expectedObject = {
+        method: 'GET',
+        retry: { retries: 0 },
+        cache: 'default',
+        rejectUnauthorized: true,
+        dns: { ...defaultDns, lookup },
+      }
+      t.same(opts, expectedObject, 'should extend default dns with custom lookup')
+    })
+  })
+
   test('should set retry property correctly', async (t) => {
     t.test('no property given', async (t) => {
       const actualOpts = { method: 'GET' }
       const opts = configureOptions(actualOpts)
-      const expectedObject =
-        { method: 'GET', retry: { retries: 0 }, cache: 'default', rejectUnauthorized: true }
+      const expectedObject = {
+        method: 'GET',
+        retry: { retries: 0 },
+        cache: 'default',
+        rejectUnauthorized: true,
+        dns: defaultDns,
+      }
       t.same(opts, expectedObject, 'should return default retry property')
     })
 
     t.test('invalid property give', async (t) => {
       const actualOpts = { method: 'GET', retry: 'one' }
       const opts = configureOptions(actualOpts)
-      const expectedObject =
-        { method: 'GET', retry: { retries: 0 }, cache: 'default', rejectUnauthorized: true }
+      const expectedObject = {
+        method: 'GET',
+        retry: { retries: 0 },
+        cache: 'default',
+        rejectUnauthorized: true,
+        dns: defaultDns,
+      }
       t.same(opts, expectedObject, 'should return default retry property')
     })
 
     t.test('number value for retry given', async (t) => {
       const actualOpts = { method: 'GET', retry: 10 }
       const opts = configureOptions(actualOpts)
-      const expectedObject =
-        { method: 'GET', retry: { retries: 10 }, cache: 'default', rejectUnauthorized: true }
+      const expectedObject = {
+        method: 'GET',
+        retry: { retries: 10 },
+        cache: 'default',
+        rejectUnauthorized: true,
+        dns: defaultDns,
+      }
       t.same(opts, expectedObject, 'should set retry value, if number')
     })
 
     t.test('string number value for retry given', async (t) => {
       const actualOpts = { method: 'GET', retry: '10' }
       const opts = configureOptions(actualOpts)
-      const expectedObject =
-        { method: 'GET', retry: { retries: 10 }, cache: 'default', rejectUnauthorized: true }
+      const expectedObject = {
+        method: 'GET',
+        retry: { retries: 10 },
+        cache: 'default',
+        rejectUnauthorized: true,
+        dns: defaultDns,
+      }
       t.same(opts, expectedObject, 'should set retry value')
     })
 
     t.test('truthy value for retry given', async (t) => {
       const actualOpts = { method: 'GET', retry: {} }
       const opts = configureOptions(actualOpts)
-      const expectedObject =
-        { method: 'GET', retry: { retries: 0 }, cache: 'default', rejectUnauthorized: true }
+      const expectedObject = {
+        method: 'GET',
+        retry: { retries: 0 },
+        cache: 'default',
+        rejectUnauthorized: true,
+        dns: defaultDns,
+      }
       t.same(opts, expectedObject, 'should return default retry property')
     })
   })
@@ -101,6 +195,7 @@ test('configure options', async (t) => {
         rejectUnauthorized: true,
         retry: { retries: 0 },
         cache: 'default',
+        dns: defaultDns,
       }
       t.same(opts, expectedObject, 'should set the default cache')
     })
@@ -113,6 +208,7 @@ test('configure options', async (t) => {
         rejectUnauthorized: true,
         retry: { retries: 0 },
         cache: 'something',
+        dns: defaultDns,
       }
       t.same(opts, expectedObject, 'should keep the provided cache')
     })
