@@ -1,5 +1,17 @@
 # Changelog
 
+### [10.1.1](https://github.com/npm/make-fetch-happen/compare/v10.1.0...v10.1.1) (2022-03-29)
+
+
+### Bug Fixes
+
+* default verbatim to undefined ([#135](https://github.com/npm/make-fetch-happen/issues/135)) ([be0cf6a](https://github.com/npm/make-fetch-happen/commit/be0cf6a15949c0511b40ed086aeab29fb86c2259))
+
+
+### Documentation
+
+* remove mention of custom cache provider ([#136](https://github.com/npm/make-fetch-happen/issues/136)) ([a7f1b55](https://github.com/npm/make-fetch-happen/commit/a7f1b554bc0072a1545d96f316e252ec52e81b23))
+
 ## [10.1.0](https://github.com/npm/make-fetch-happen/compare/v10.0.6...v10.1.0) (2022-03-24)
 
 
