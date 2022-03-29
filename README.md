@@ -184,45 +184,6 @@ fetch('https://registry.npmjs.org/make-fetch-happen', {
 }) // -> 200-level response will be written to disk
 ```
 
-A possible (minimal) implementation for `MyCustomRedisCache`:
-
-```javascript
-const bluebird = require('bluebird')
-const redis = require("redis")
-bluebird.promisifyAll(redis.RedisClient.prototype)
-class MyCustomRedisCache {
-  constructor (opts) {
-    this.redis = redis.createClient(opts)
-  }
-  match (req) {
-    return this.redis.getAsync(req.url).then(res => {
-      if (res) {
-        const parsed = JSON.parse(res)
-        return new fetch.Response(parsed.body, {
-          url: req.url,
-          headers: parsed.headers,
-          status: 200
-        })
-      }
-    })
-  }
-  put (req, res) {
-    return res.buffer().then(body => {
-      return this.redis.setAsync(req.url, JSON.stringify({
-        body: body,
-        headers: res.headers.raw()
-      }))
-    }).then(() => {
-      // return the response itself
-      return res
-    })
-  }
-  'delete' (req) {
-    return this.redis.unlinkAsync(req.url)
-  }
-}
-```
-
 #### <a name="opts-cache"></a> `> opts.cache`
 
 This option follows the standard `fetch` API cache option. This option will do nothing if [`opts.cachePath`](#opts-cache-path) is null. The following values are accepted (as strings):
