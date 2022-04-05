@@ -1,5 +1,12 @@
 # Changelog
 
+### [10.1.2](https://github.com/npm/make-fetch-happen/compare/v10.1.1...v10.1.2) (2022-04-05)
+
+
+### Dependencies
+
+* bump ssri from 8.0.1 to 9.0.0 ([#139](https://github.com/npm/make-fetch-happen/issues/139)) ([f91a1cc](https://github.com/npm/make-fetch-happen/commit/f91a1ccd0ea2821a3686b4b8ffd3fad47c2aeabd))
+
 ### [10.1.1](https://github.com/npm/make-fetch-happen/compare/v10.1.0...v10.1.1) (2022-03-29)
 
 
