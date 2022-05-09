@@ -1,5 +1,12 @@
 # Changelog
 
+### [10.1.3](https://github.com/npm/make-fetch-happen/compare/v10.1.2...v10.1.3) (2022-05-09)
+
+
+### Bug Fixes
+
+* make `defaults` chaining actually work ([#144](https://github.com/npm/make-fetch-happen/issues/144)) ([aa71e81](https://github.com/npm/make-fetch-happen/commit/aa71e817c71968f547f4d1756b1faf92db7b79ec))
+
 ### [10.1.2](https://github.com/npm/make-fetch-happen/compare/v10.1.1...v10.1.2) (2022-04-05)
 
 
