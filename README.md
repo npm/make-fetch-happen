@@ -160,7 +160,7 @@ The default cache manager also adds the following headers to cached responses:
 
 * `X-Local-Cache`: Path to the cache the content was found in
 * `X-Local-Cache-Key`: Unique cache entry key for this response
-* `X-Local-Cache-Mode`: Either `stream` or `buffer` to indicate how the response was read from cacache
+* `X-Local-Cache-Mode`: Always `stream` to indicate how the response was read from cacache
 * `X-Local-Cache-Hash`: Specific integrity hash for the cached entry
 * `X-Local-Cache-Status`: One of `miss`, `hit`, `stale`, `revalidated`, `updated`, or `skip` to signal how the response was created
 * `X-Local-Cache-Time`: UTCString of the cache insertion time for the entry
