@@ -38,5 +38,5 @@ t.test('cacheable request with invalid integrity', async t => {
   await t.rejects(res.json(), { code: 'EINTEGRITY' })
   t.ok(req.isDone())
   const dir = await readdir(cache)
-  t.same(dir, [], 'did not write to cache')
+  t.same(dir, ['tmp'], 'did not write to cache, only temp')
 })
