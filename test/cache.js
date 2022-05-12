@@ -75,7 +75,7 @@ t.test('no match, fetches and replies', async (t) => {
   t.equal(res.headers.get('content-length'), `${CONTENT.length}`, 'kept content-length')
   t.equal(res.headers.get('x-local-cache'), encodeURIComponent(dir), 'has cache dir')
   t.equal(res.headers.get('x-local-cache-key'), encodeURIComponent(reqKey), 'has cache key')
-  t.equal(res.headers.get('x-local-cache-mode'), 'buffer', 'should buffer store')
+  t.equal(res.headers.get('x-local-cache-mode'), 'stream', 'should stream store')
   t.equal(res.headers.get('x-local-cache-status'), 'miss', 'identifies as cache miss')
   t.ok(res.headers.has('x-local-cache-time'), 'has cache time')
   t.equal(res.headers.get('x-foo'), 'something', 'original response has all headers')
@@ -197,7 +197,7 @@ t.test('cache hit, no revalidation', async (t) => {
   t.equal(res.headers.get('x-local-cache-status'), 'hit', 'got a cache hit')
   t.equal(res.headers.get('x-local-cache-key'), encodeURIComponent(reqKey),
     'got the right cache key')
-  t.equal(res.headers.get('x-local-cache-mode'), 'buffer', 'should buffer read')
+  t.equal(res.headers.get('x-local-cache-mode'), 'stream', 'should stream read')
   t.equal(res.headers.get('x-local-cache-hash'), encodeURIComponent(INTEGRITY),
     'has the right hash')
   // just make sure x-local-cache-time is set, no need to assert its value
@@ -1386,42 +1386,6 @@ t.test('EINTEGRITY errors streaming from cache propagate to response body', asyn
   t.ok(srv.isDone(), 'req is fulfilled')
 })
 
-t.test('EINTEGRITY errors reading from cache propagate to response body', async (t) => {
-  const srv = nock(HOST)
-    .get('/test')
-    .twice()
-    .reply(200, CONTENT, {
-      ...getHeaders(CONTENT),
-      etag: '"beefc0ffee"',
-    })
-
-  const dir = t.testdir()
-  const res = await fetch(`${HOST}/test`, { cachePath: dir })
-  await res.buffer() // drain it immediately so it stores to the cache
-
-  const hexIntegrity = ssri.fromData(CONTENT).hexDigest()
-  const cachedContent = join(dir, 'content-v2', 'sha512', hexIntegrity.slice(0, 2),
-    hexIntegrity.slice(2, 4), hexIntegrity.slice(4))
-  t.ok(fs.existsSync(cachedContent), 'cache file is present')
-  // delete the real content, and write garbage in its place
-  fs.unlinkSync(cachedContent)
-  fs.writeFileSync(cachedContent, 'invalid data', { flag: 'wx' })
-
-  const cachedRes = await fetch(`${HOST}/test`, { cachePath: dir })
-  t.equal(cachedRes.status, 200, 'got a success response')
-  t.equal(cachedRes.headers.get('x-local-cache-status'), 'hit', 'got a cache hit')
-  await t.rejects(cachedRes.buffer(), { code: 'EINTEGRITY' }, 'consuming payload rejects')
-
-  t.notOk(fs.existsSync(cachedContent), 'cached content was removed')
-  const verifyRes = await fetch(`${HOST}/test`, { cachePath: dir })
-  t.equal(verifyRes.status, 200, 'got success status')
-  t.equal(verifyRes.headers.get('x-local-cache-mode'), 'buffer', 'used a buffer to respond')
-  t.equal(verifyRes.headers.get('x-local-cache-status'), 'miss',
-    'cache miss because index was removed')
-  await verifyRes.buffer()
-  t.ok(srv.isDone(), 'req has fulfilled')
-})
-
 t.test('ENOENT errors streaming from cache propagate to response body', async (t) => {
   const desiredSize = 5 * 1024 * 1024 // 5MB, currently hard coded in lib/cache/entry.js
   const count = Math.ceil(desiredSize / CONTENT.length) + 1
@@ -1456,39 +1420,6 @@ t.test('ENOENT errors streaming from cache propagate to response body', async (t
   await verifyRes.buffer()
 
   t.ok(srv.isDone(), 'req has fulfilled')
-})
-
-t.test('ENOENT errors reading from cache propagate to response body', async (t) => {
-  const srv = nock(HOST)
-    .get('/test')
-    .twice()
-    .reply(200, CONTENT, {
-      ...getHeaders(CONTENT),
-      etag: '"beef"',
-    })
-
-  const dir = t.testdir()
-  const res = await fetch(`${HOST}/test`, { cachePath: dir })
-  await res.buffer()
-
-  const hexIntegrity = ssri.fromData(CONTENT).hexDigest()
-  const cachedContent = join(dir, 'content-v2', 'sha512', hexIntegrity.slice(0, 2),
-    hexIntegrity.slice(2, 4), hexIntegrity.slice(4))
-  t.ok(fs.existsSync(cachedContent), 'cache file is present')
-  // delete the content entirely
-  fs.unlinkSync(cachedContent)
-
-  const cachedRes = await fetch(`${HOST}/test`, { cachePath: dir })
-  t.equal(cachedRes.status, 200, 'got a success response')
-  t.equal(cachedRes.headers.get('x-local-cache-status'), 'hit', 'still returns as a hit')
-  await t.rejects(cachedRes.buffer(), { code: 'ENOENT' }, 'body rejects with ENOENT')
-
-  const verifyRes = await fetch(`${HOST}/test`, { cachePath: dir })
-  t.equal(verifyRes.headers.get('x-local-cache-status'), 'miss', 'went back to a cache miss')
-  t.equal(verifyRes.headers.get('x-local-cache-mode'), 'buffer', 'used a buffer to respond')
-  await verifyRes.buffer()
-
-  t.ok(srv.isDone())
 })
 
 t.test('generic errors streaming from cache propagate to response body', async (t) => {
@@ -1530,39 +1461,4 @@ t.test('generic errors streaming from cache propagate to response body', async (
   t.equal(cachedRes.headers.get('x-local-cache-status'), 'hit', 'got a cache hit')
   t.equal(cachedRes.headers.get('x-local-cache-mode'), 'stream', 'was a streaming response')
   await t.rejects(cachedRes.buffer(), { message: 'broken stream' }, 'consuming payload rejects')
-})
-
-t.test('generic errors reading from cache propagate to response body', async (t) => {
-  const srv = nock(HOST)
-    .get('/test')
-    .reply(200, CONTENT, {
-      ...getHeaders(CONTENT),
-      etag: '"beefc0ffee"',
-    })
-
-  // hijack cacache.get.byDigest
-  const realGet = cacache.get.byDigest
-  t.teardown(() => {
-    cacache.get.byDigest = realGet
-  })
-  cacache.get.byDigest = (cachePath, integrity) => {
-    return Promise.reject(new Error('broken read'))
-  }
-
-  const dir = t.testdir()
-  const res = await fetch(`${HOST}/test`, { cachePath: dir })
-  await res.buffer() // drain it immediately so it stores to the cache
-
-  t.ok(srv.isDone(), 'req has fulfilled')
-
-  const hexIntegrity = ssri.fromData(CONTENT).hexDigest()
-  const cachedContent = join(dir, 'content-v2', 'sha512', hexIntegrity.slice(0, 2),
-    hexIntegrity.slice(2, 4), hexIntegrity.slice(4))
-  t.ok(fs.existsSync(cachedContent), 'cache file is present')
-
-  const cachedRes = await fetch(`${HOST}/test`, { cachePath: dir })
-  t.equal(cachedRes.status, 200, 'got a success response')
-  t.equal(cachedRes.headers.get('x-local-cache-status'), 'hit', 'got a cache hit')
-  t.equal(cachedRes.headers.get('x-local-cache-mode'), 'buffer', 'used a buffered response')
-  await t.rejects(cachedRes.buffer(), { message: 'broken read' }, 'consuming payload rejects')
 })
