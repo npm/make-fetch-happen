@@ -2,6 +2,7 @@ const nock = require('nock')
 const t = require('tap')
 const util = require('util')
 const readdir = util.promisify(require('fs').readdir)
+const rimraf = util.promisify(require('rimraf'))
 
 const fetch = require('../')
 nock.disableNetConnect()
@@ -39,4 +40,7 @@ t.test('cacheable request with invalid integrity', async t => {
   t.ok(req.isDone())
   const dir = await readdir(cache)
   t.same(dir, ['tmp'], 'did not write to cache, only temp')
+  // there is a weird race condition in windows where tap's testdir cleanup may throw
+  // this extra rimraf here within the test is meant to try to avoid that
+  await rimraf(cache)
 })
