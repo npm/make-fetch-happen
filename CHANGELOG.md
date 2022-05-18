@@ -1,5 +1,15 @@
 # Changelog
 
+### [10.1.4](https://github.com/npm/make-fetch-happen/compare/v10.1.3...v10.1.4) (2022-05-18)
+
+
+### Bug Fixes
+
+* **docs:** remove reference to unsupported feature ([#153](https://github.com/npm/make-fetch-happen/issues/153)) ([1d454f1](https://github.com/npm/make-fetch-happen/commit/1d454f11877267e1f80a9cc42f8f249fe6ec887f)), closes [#147](https://github.com/npm/make-fetch-happen/issues/147)
+* pass expected integrity to cacache ([a88213e](https://github.com/npm/make-fetch-happen/commit/a88213e6a5e3a74c746d326488e2e6e056a2df54))
+* pass integrityEmitter to cacache to avoid a redundant integrity stream ([ae62c21](https://github.com/npm/make-fetch-happen/commit/ae62c21c70d2004bbaa967ae2b722890b4283cbb))
+* remove in-memory buffering in favor of full time streaming ([ec2db21](https://github.com/npm/make-fetch-happen/commit/ec2db214e4d54a8ba81a4315b4b3f21e71181069))
+
 ### [10.1.3](https://github.com/npm/make-fetch-happen/compare/v10.1.2...v10.1.3) (2022-05-09)
 
 
