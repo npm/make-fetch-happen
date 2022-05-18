@@ -63,7 +63,6 @@ fetch('https://registry.npmjs.org/make-fetch-happen').then(res => {
 * Cache-fallback automatic "offline mode"
 * Proxy support (http, https, socks, socks4, socks5)
 * Built-in request caching following full HTTP caching rules (`Cache-Control`, `ETag`, `304`s, cache fallback on error, etc).
-* Customize cache storage with any [Cache API](https://developer.mozilla.org/en-US/docs/Web/API/Cache)-compliant `Cache` instance. Cache to Redis!
 * Node.js Stream support
 * Transparent gzip and deflate support
 * [Subresource Integrity](https://developer.mozilla.org/en-US/docs/Web/Security/Subresource_Integrity) support
