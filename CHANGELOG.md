@@ -1,5 +1,12 @@
 # Changelog
 
+### [10.1.5](https://github.com/npm/make-fetch-happen/compare/v10.1.4...v10.1.5) (2022-05-19)
+
+
+### Bug Fixes
+
+* cache integrity and size events so late listeners still get them ([#154](https://github.com/npm/make-fetch-happen/issues/154)) ([8c78584](https://github.com/npm/make-fetch-happen/commit/8c7858490aa5dc40e13d1c2580b5937836111a5b))
+
 ### [10.1.4](https://github.com/npm/make-fetch-happen/compare/v10.1.3...v10.1.4) (2022-05-18)
 
 
