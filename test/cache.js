@@ -1462,3 +1462,72 @@ t.test('generic errors streaming from cache propagate to response body', async (
   t.equal(cachedRes.headers.get('x-local-cache-mode'), 'stream', 'was a streaming response')
   await t.rejects(cachedRes.buffer(), { message: 'broken stream' }, 'consuming payload rejects')
 })
+
+t.test('can write content as sha1', async (t) => {
+  const SHA1_INTEGRITY = ssri.fromData(CONTENT, { algorithms: ['sha1'] }).toString()
+  const srv = nock(HOST)
+    .get('/test')
+    .reply(200, CONTENT, {
+      ...getHeaders(CONTENT),
+      'x-foo': 'something',
+    })
+
+  const reqKey = cacheKey(new Request(`${HOST}/test`))
+  const dir = t.testdir()
+  const res = await fetch(`${HOST}/test`, {
+    cachePath: dir,
+    algorithms: ['sha1'],
+    integrity: SHA1_INTEGRITY,
+  })
+  t.ok(srv.isDone(), 'req is fulfilled')
+  t.equal(res.status, 200)
+  t.equal(res.url, `${HOST}/test`, 'has a url property matching the request')
+  t.equal(res.headers.get('cache-control'), 'max-age=300', 'kept cache-control')
+  t.equal(res.headers.get('content-type'), 'application/octet-stream', 'kept content-stream')
+  t.equal(res.headers.get('content-length'), `${CONTENT.length}`, 'kept content-length')
+  t.equal(res.headers.get('x-local-cache'), encodeURIComponent(dir), 'has cache dir')
+  t.equal(res.headers.get('x-local-cache-key'), encodeURIComponent(reqKey), 'has cache key')
+  t.equal(res.headers.get('x-local-cache-mode'), 'stream', 'should stream store')
+  t.equal(res.headers.get('x-local-cache-status'), 'miss', 'identifies as cache miss')
+  t.ok(res.headers.has('x-local-cache-time'), 'has cache time')
+  t.equal(res.headers.get('x-foo'), 'something', 'original response has all headers')
+  t.notOk(res.headers.has('x-local-cache-hash'), 'hash header is only set when served from cache')
+
+  const dirBeforeRead = await readdir(dir)
+  t.same(dirBeforeRead, [], 'should not write to the cache yet')
+
+  const buf = await res.buffer()
+  t.same(buf, CONTENT, 'got the correct content')
+  const dirAfterRead = await readdir(dir)
+  // note: if the content version changes this test will have to be touched
+  // since it asserts the presence of the sha1 directory specifically
+  t.ok(dirAfterRead.includes('content-v2'), 'cache has content-v2 after consuming the body')
+  const contentDir = await readdir(join(dir, 'content-v2'))
+  t.ok(contentDir.includes('sha1'), 'content was written as sha1')
+
+  // compact with a function that always returns false
+  // results in a list of all entries in the index
+  const entries = await cacache.index.compact(dir, reqKey, () => false)
+  t.equal(entries.length, 1, 'should only have one entry')
+  const entry = entries[0]
+  t.equal(entry.integrity, SHA1_INTEGRITY, 'integrity matches')
+  t.equal(entry.metadata.url, `${HOST}/test`, 'url matches')
+  t.same(entry.metadata.reqHeaders, {}, 'metadata has no request headers as none are relevant')
+  t.same(entry.metadata.resHeaders, {
+    'content-type': res.headers.get('content-type'),
+    'cache-control': res.headers.get('cache-control'),
+    date: res.headers.get('date'),
+  }, 'resHeaders has only the relevant headers for caching')
+
+  // send a second request and make sure it's a cache hit
+  // note: there is no nock for this. it's expected to be read from cache
+  const secondRes = await fetch(`${HOST}/test`, {
+    cachePath: dir,
+    algorithms: ['sha1'],
+    integrity: SHA1_INTEGRITY,
+  })
+  t.equal(secondRes.status, 200)
+  t.equal(secondRes.headers.get('x-local-cache-status'), 'hit', 'identifies as cache hit')
+  const secondBuf = await secondRes.buffer()
+  t.same(secondBuf, CONTENT, 'got the right content')
+})
