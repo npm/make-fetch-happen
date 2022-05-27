@@ -1,5 +1,12 @@
 # Changelog
 
+### [10.1.6](https://github.com/npm/make-fetch-happen/compare/v10.1.5...v10.1.6) (2022-05-27)
+
+
+### Bug Fixes
+
+* respect given algorithms instead of always using sha512 ([#156](https://github.com/npm/make-fetch-happen/issues/156)) ([9baa806](https://github.com/npm/make-fetch-happen/commit/9baa8065f32a89ebd49eb59258462c209a68f142))
+
 ### [10.1.5](https://github.com/npm/make-fetch-happen/compare/v10.1.4...v10.1.5) (2022-05-19)
 
 
