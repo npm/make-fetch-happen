@@ -1,5 +1,17 @@
 # Changelog
 
+### [10.1.7](https://github.com/npm/make-fetch-happen/compare/v10.1.6...v10.1.7) (2022-06-01)
+
+
+### Bug Fixes
+
+* use hostname for socks agent ([#159](https://github.com/npm/make-fetch-happen/issues/159)) ([331f9cb](https://github.com/npm/make-fetch-happen/commit/331f9cb273584da452994c6d9ce3e36df2bafb03))
+
+
+### Dependencies
+
+* bump socks-proxy-agent from 6.2.1 to 7.0.0 ([#158](https://github.com/npm/make-fetch-happen/issues/158)) ([63ed403](https://github.com/npm/make-fetch-happen/commit/63ed40395ea2c34313575b42e083a428b506fd88))
+
 ### [10.1.6](https://github.com/npm/make-fetch-happen/compare/v10.1.5...v10.1.6) (2022-05-27)
 
 
