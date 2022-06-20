@@ -9,7 +9,7 @@ const agent = t.mock('../lib/agent.js', {
   agentkeepalive: MockHttp,
   'https-proxy-agent': mockHttpAgent('https-proxy'),
   'http-proxy-agent': mockHttpAgent('http-proxy'),
-  'socks-proxy-agent': mockHttpAgent('socks-proxy'),
+  'socks-proxy-agent': { SocksProxyAgent: mockHttpAgent('socks-proxy') },
 })
 
 function mockHttpAgent (type) {
