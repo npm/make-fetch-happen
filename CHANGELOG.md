@@ -1,5 +1,12 @@
 # Changelog
 
+## [10.1.8](https://github.com/npm/make-fetch-happen/compare/v10.1.7...v10.1.8) (2022-06-20)
+
+
+### Bug Fixes
+
+* TypeError: SocksProxyAgent is not a constructor ([#161](https://github.com/npm/make-fetch-happen/issues/161)) ([4ae4864](https://github.com/npm/make-fetch-happen/commit/4ae48640b091f4f64ad4c52037c147b1dfd83f04))
+
 ### [10.1.7](https://github.com/npm/make-fetch-happen/compare/v10.1.6...v10.1.7) (2022-06-01)
 
 
