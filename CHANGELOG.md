@@ -1,5 +1,12 @@
 # Changelog
 
+## [10.2.0](https://github.com/npm/make-fetch-happen/compare/v10.1.8...v10.2.0) (2022-07-19)
+
+
+### Features
+
+* store link header ([#164](https://github.com/npm/make-fetch-happen/issues/164)) ([dae6384](https://github.com/npm/make-fetch-happen/commit/dae6384a7f20c541708804b08ce233d14d592613))
+
 ## [10.1.8](https://github.com/npm/make-fetch-happen/compare/v10.1.7...v10.1.8) (2022-06-20)
 
 
