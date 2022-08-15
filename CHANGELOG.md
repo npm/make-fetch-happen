@@ -1,5 +1,12 @@
 # Changelog
 
+## [10.2.1](https://github.com/npm/make-fetch-happen/compare/v10.2.0...v10.2.1) (2022-08-15)
+
+
+### Bug Fixes
+
+* linting ([#166](https://github.com/npm/make-fetch-happen/issues/166)) ([e9a2a51](https://github.com/npm/make-fetch-happen/commit/e9a2a51e6d72e75802a73fe3b2b0e84753cc202a))
+
 ## [10.2.0](https://github.com/npm/make-fetch-happen/compare/v10.1.8...v10.2.0) (2022-07-19)
 
 
