@@ -495,16 +495,14 @@ t.test('supports proxy configurations', { skip: true }, async (t) => {
   }).listen(9854).on('error', err => {
     throw err
   })
-  fetch('http://npm.im/make-fetch-happen', {
+  const res = await fetch('http://npm.im/make-fetch-happen', {
     proxy: 'http://localhost:9854',
     retry: {
       retries: 0,
     },
-  }).then(res => {
-    return res.buffer()
-  }).then(buf => {
-    t.same(buf, CONTENT, 'request succeeded')
   })
+  const buf = await res.buffer()
+  t.same(buf, CONTENT, 'request succeeded')
 })
 
 t.test('supports custom agent config', async (t) => {
@@ -558,31 +556,17 @@ t.test('handle integrity options', async (t) => {
       .twice()
       .reply(200, data)
 
-    const firstFetch = fetch(`${HOST}/integrity`, { integrity })
-      .then((res) => {
-        t.equal(res.status, 200, 'successful status code')
-        t.ok(Minipass.isStream(res.body), 'body is a stream')
-        return res.buffer()
-      })
-      .then((buf) => {
-        t.same(buf.toString(), data, 'request succeeded')
-      })
+    const firstRes = await fetch(`${HOST}/integrity`, { integrity })
+    t.equal(firstRes.status, 200, 'successful status code')
+    t.ok(Minipass.isStream(firstRes.body), 'body is a stream')
+    const firstBuf = await firstRes.buffer()
+    t.same(firstBuf.toString(), data, 'request succeeded')
 
-    // 100% branch coverage
-    const secondFetch = fetch(`${HOST}/integrity`, { integrity })
-      .then((res) => {
-        t.equal(res.status, 200, 'successful status code')
-        t.ok(Minipass.isStream(res.body), 'body is a stream')
-        return res.buffer()
-      })
-      .then((buf) => {
-        t.same(buf.toString(), data, 'request succeeded')
-      })
-
-    await Promise.resolve()
-      .then(() => firstFetch)
-      .then(() => secondFetch)
-
+    const secondRes = await fetch(`${HOST}/integrity`, { integrity })
+    t.equal(secondRes.status, 200, 'successful status code')
+    t.ok(Minipass.isStream(secondRes.body), 'body is a stream')
+    const secondBuf = await secondRes.buffer()
+    t.same(secondBuf.toString(), data, 'request succeeded')
     t.ok(srv.isDone())
   })
 
