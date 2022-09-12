@@ -321,14 +321,14 @@ fetch('http://one-more.site.com', {
 
 #### <a name="opts-onretry"></a> `> opts.onRetry`
 
-A function called whenever a retry is attempted.
+A function called with the response or error which caused the retry whenever one is attempted.
 
 ##### Example
 
 ```javascript
 fetch('https://flaky.site.com', {
-  onRetry() {
-    console.log('we will retry!')
+  onRetry(cause) {
+    console.log('we will retry because of', cause)
   }
 })
 ```
