@@ -1,5 +1,24 @@
 # Changelog
 
+## [11.0.0](https://github.com/npm/make-fetch-happen/compare/v10.2.1...v11.0.0) (2022-10-13)
+
+### ⚠️ BREAKING CHANGES
+
+* this module no longer attempts to change file ownership automatically
+* `make-fetch-happen` is now compatible with the following semver range for node: `^14.17.0 || ^16.13.0 || >=18.0.0`
+
+### Features
+
+* [`c293053`](https://github.com/npm/make-fetch-happen/commit/c2930534bcf65907c4968ba5600d41910862fba5) [#177](https://github.com/npm/make-fetch-happen/pull/177) postinstall for dependabot template-oss PR (@lukekarrys)
+
+### Documentation
+
+* [`d63de44`](https://github.com/npm/make-fetch-happen/commit/d63de4427ecadcc1c5a688564df8449ca182aafd) [#173](https://github.com/npm/make-fetch-happen/pull/173) document cause argument to onRetry (#173) (@jmpage)
+
+### Dependencies
+
+* [`33d972a`](https://github.com/npm/make-fetch-happen/commit/33d972a81517c6817b39dd9c8adf9bfa7cf78391) [#184](https://github.com/npm/make-fetch-happen/pull/184) bump cacache from 16.1.3 to 17.0.0 (#184)
+
 ## [10.2.1](https://github.com/npm/make-fetch-happen/compare/v10.2.0...v10.2.1) (2022-08-15)
 
 
