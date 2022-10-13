@@ -1,5 +1,6 @@
 'use strict'
 
+const { join } = require('path')
 const nock = require('nock')
 const t = require('tap')
 const zlib = require('zlib')
@@ -24,10 +25,13 @@ t.test('separate caches', async (t) => {
   const { misses, revalidations } = setupNock(t)
 
   // isolate cache to each test condition
-  let cachePath
+  const cacheRoot = t.testdir({
+    compress: {},
+    noCompress: {},
+  })
 
   t.comment('{compress: false}')
-  cachePath = t.testdir()
+  let cachePath = join(cacheRoot, 'noCompress')
   await assertRequest(t, { cachePath, compress: false },
     { status: 'miss', body: CONTENT_GZIP })
   await assertRequest(t, { cachePath, compress: false },
@@ -36,7 +40,7 @@ t.test('separate caches', async (t) => {
     { status: 'revalidated', body: CONTENT_GZIP })
 
   t.comment('{compress: true}')
-  cachePath = t.testdir()
+  cachePath = join(cacheRoot, 'compress')
   await assertRequest(t, { cachePath, compress: true }, { status: 'miss', body: CONTENT })
   await assertRequest(t, { cachePath, compress: true }, { status: 'revalidated', body: CONTENT })
   await assertRequest(t, { cachePath, compress: true }, { status: 'revalidated', body: CONTENT })
