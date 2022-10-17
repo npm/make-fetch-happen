@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.0.1](https://github.com/npm/make-fetch-happen/compare/v11.0.0...v11.0.1) (2022-10-17)
+
+### Dependencies
+
+* [`ebd86b2`](https://github.com/npm/make-fetch-happen/commit/ebd86b27813fde64cdeb1997857735dba7a25f85) [#186](https://github.com/npm/make-fetch-happen/pull/186) bump minipass-fetch from 2.1.2 to 3.0.0
+* [`9c16d84`](https://github.com/npm/make-fetch-happen/commit/9c16d84c10dddada3a1d0aeb74ad7b77220dd7eb) [#187](https://github.com/npm/make-fetch-happen/pull/187) bump ssri from 9.0.1 to 10.0.0
+
 ## [11.0.0](https://github.com/npm/make-fetch-happen/compare/v10.2.1...v11.0.0) (2022-10-13)
 
 ### ⚠️ BREAKING CHANGES
