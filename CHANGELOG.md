@@ -1,5 +1,11 @@
 # Changelog
 
+## [11.0.2](https://github.com/npm/make-fetch-happen/compare/v11.0.1...v11.0.2) (2022-12-07)
+
+### Dependencies
+
+* [`77018ff`](https://github.com/npm/make-fetch-happen/commit/77018ff5c7ceeeda92e7d62435c4a6214e966a99) [#194](https://github.com/npm/make-fetch-happen/pull/194) bump minipass from 3.3.6 to 4.0.0
+
 ## [11.0.1](https://github.com/npm/make-fetch-happen/compare/v11.0.0...v11.0.1) (2022-10-17)
 
 ### Dependencies
