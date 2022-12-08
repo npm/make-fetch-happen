@@ -56,19 +56,16 @@ t.test('all expected options passed down to proxy agent', async (t) => {
   const opts = Object.assign({
     proxy: 'https://user:pass@my.proxy:1234/foo',
   }, OPTS)
-  t.same(agent('https://foo.com/bar', opts), {
-    __type: 'https-proxy',
-    host: 'my.proxy',
-    port: '1234',
-    protocol: 'https:',
-    path: '/foo',
-    auth: 'user:pass',
-    ca: 'ca',
-    cert: 'cert',
-    key: 'key',
-    maxSockets: 5,
-    localAddress: 'localAddress',
-    rejectUnauthorized: 'strictSSL',
-    timeout: 6,
+  t.match(agent('https://foo.com/bar', opts), {
+    options: {
+      proxy: opts.proxy,
+      ca: 'ca',
+      cert: 'cert',
+      key: 'key',
+      maxSockets: 5,
+      localAddress: 'localAddress',
+      rejectUnauthorized: 'strictSSL',
+      timeout: 6,
+    },
   }, 'only expected options passed to https proxy')
 })
