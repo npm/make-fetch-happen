@@ -41,7 +41,6 @@
     "is-lambda": "^1.0.1",
     "lru-cache": "^7.7.1",
     "minipass": "^4.0.0",
-    "minipass-collect": "^1.0.2",
     "minipass-fetch": "^3.0.0",
     "minipass-flush": "^1.0.5",
     "minipass-pipeline": "^1.2.4",
@@ -53,9 +52,7 @@
   "devDependencies": {
     "@npmcli/eslint-config": "^4.0.0",
     "@npmcli/template-oss": "4.11.3",
-    "mkdirp": "^1.0.4",
     "nock": "^13.2.4",
-    "rimraf": "^3.0.2",
     "safe-buffer": "^5.2.1",
     "standard-version": "^9.3.2",
     "tap": "^16.0.0"
