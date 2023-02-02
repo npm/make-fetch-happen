@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.0.3](https://github.com/npm/make-fetch-happen/compare/v11.0.2...v11.0.3) (2023-02-02)
+
+### Dependencies
+
+* [`fb01043`](https://github.com/npm/make-fetch-happen/commit/fb0104335a2101e4f21721457e80b59a8300017e) [#212](https://github.com/npm/make-fetch-happen/pull/212) remove unused dependencies (#212)
+* [`5807162`](https://github.com/npm/make-fetch-happen/commit/58071621daa6d7e1cb28a61fc06df531baf440f3) [#210](https://github.com/npm/make-fetch-happen/pull/210) `http-cache-semantics@4.1.1` (#210)
+
 ## [11.0.2](https://github.com/npm/make-fetch-happen/compare/v11.0.1...v11.0.2) (2022-12-07)
 
 ### Dependencies
