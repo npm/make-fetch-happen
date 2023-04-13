@@ -14,6 +14,7 @@ test('configure options', async (t) => {
       cache: 'default',
       rejectUnauthorized: true,
       dns: defaultDns,
+      cacheAdditionalHeaders: [],
     }
     t.same(opts, expectedObject, 'should return default opts')
   })
@@ -26,6 +27,7 @@ test('configure options', async (t) => {
       cache: 'default',
       rejectUnauthorized: true,
       dns: defaultDns,
+      cacheAdditionalHeaders: [],
     }
     t.same(opts, expectedObject, 'should return default opts')
   })
@@ -39,6 +41,7 @@ test('configure options', async (t) => {
       cache: 'default',
       rejectUnauthorized: true,
       dns: defaultDns,
+      cacheAdditionalHeaders: [],
     }
     t.same(opts, expectedObject, 'should return upper cased method')
   })
@@ -51,6 +54,7 @@ test('configure options', async (t) => {
       cache: 'default',
       rejectUnauthorized: true,
       dns: defaultDns,
+      cacheAdditionalHeaders: [],
     }
     t.same(trueOpts, trueExpectedObject, 'should return default opts and copy strictSSL')
 
@@ -61,6 +65,7 @@ test('configure options', async (t) => {
       cache: 'default',
       rejectUnauthorized: false,
       dns: defaultDns,
+      cacheAdditionalHeaders: [],
     }
     t.same(falseOpts, falseExpectedObject, 'should return default opts and copy strictSSL')
 
@@ -87,6 +92,7 @@ test('configure options', async (t) => {
         cache: 'default',
         rejectUnauthorized: true,
         dns: defaultDns,
+        cacheAdditionalHeaders: [],
       }
       t.same(opts, expectedObject, 'should return default retry property')
     })
@@ -100,6 +106,7 @@ test('configure options', async (t) => {
         cache: 'default',
         rejectUnauthorized: true,
         dns: { ...defaultDns, ttl: 100 },
+        cacheAdditionalHeaders: [],
       }
       t.same(opts, expectedObject, 'should extend default dns with custom ttl')
     })
@@ -114,6 +121,7 @@ test('configure options', async (t) => {
         cache: 'default',
         rejectUnauthorized: true,
         dns: { ...defaultDns, lookup },
+        cacheAdditionalHeaders: [],
       }
       t.same(opts, expectedObject, 'should extend default dns with custom lookup')
     })
@@ -129,6 +137,7 @@ test('configure options', async (t) => {
         cache: 'default',
         rejectUnauthorized: true,
         dns: defaultDns,
+        cacheAdditionalHeaders: [],
       }
       t.same(opts, expectedObject, 'should return default retry property')
     })
@@ -142,6 +151,7 @@ test('configure options', async (t) => {
         cache: 'default',
         rejectUnauthorized: true,
         dns: defaultDns,
+        cacheAdditionalHeaders: [],
       }
       t.same(opts, expectedObject, 'should return default retry property')
     })
@@ -155,6 +165,7 @@ test('configure options', async (t) => {
         cache: 'default',
         rejectUnauthorized: true,
         dns: defaultDns,
+        cacheAdditionalHeaders: [],
       }
       t.same(opts, expectedObject, 'should set retry value, if number')
     })
@@ -168,6 +179,7 @@ test('configure options', async (t) => {
         cache: 'default',
         rejectUnauthorized: true,
         dns: defaultDns,
+        cacheAdditionalHeaders: [],
       }
       t.same(opts, expectedObject, 'should set retry value')
     })
@@ -181,6 +193,7 @@ test('configure options', async (t) => {
         cache: 'default',
         rejectUnauthorized: true,
         dns: defaultDns,
+        cacheAdditionalHeaders: [],
       }
       t.same(opts, expectedObject, 'should return default retry property')
     })
@@ -196,6 +209,7 @@ test('configure options', async (t) => {
         retry: { retries: 0 },
         cache: 'default',
         dns: defaultDns,
+        cacheAdditionalHeaders: [],
       }
       t.same(opts, expectedObject, 'should set the default cache')
     })
@@ -209,6 +223,7 @@ test('configure options', async (t) => {
         retry: { retries: 0 },
         cache: 'something',
         dns: defaultDns,
+        cacheAdditionalHeaders: [],
       }
       t.same(opts, expectedObject, 'should keep the provided cache')
     })
@@ -222,6 +237,7 @@ test('configure options', async (t) => {
         retry: { retries: 0 },
         cache: 'default',
         cachePath: './foo',
+        cacheAdditionalHeaders: [],
       }
       t.match(opts, expectedObject)
     })
@@ -236,6 +252,7 @@ test('configure options', async (t) => {
         cache: 'default',
         cachePath: './foo',
         cacheManager: './foo',
+        cacheAdditionalHeaders: [],
       }
       t.match(opts, expectedObject)
     })
@@ -248,6 +265,7 @@ test('configure options', async (t) => {
         rejectUnauthorized: true,
         retry: { retries: 0 },
         cache: 'no-store',
+        cacheAdditionalHeaders: [],
       }
       t.match(opts, expectedObject)
     })
