@@ -1,5 +1,11 @@
 # Changelog
 
+## [11.1.0](https://github.com/npm/make-fetch-happen/compare/v11.0.3...v11.1.0) (2023-04-13)
+
+### Features
+
+* [`cca9da0`](https://github.com/npm/make-fetch-happen/commit/cca9da0af76b5900a9c480967769df91bca2570d) [#225](https://github.com/npm/make-fetch-happen/pull/225) add support for caching additional headers (#225) (@nlf)
+
 ## [11.0.3](https://github.com/npm/make-fetch-happen/compare/v11.0.2...v11.0.3) (2023-02-02)
 
 ### Dependencies
