@@ -22,6 +22,7 @@ pooling, proxies, retries, [and more](#features)!
   * [`make-fetch-happen` options](#extra-options)
     * [`opts.cachePath`](#opts-cache-path)
     * [`opts.cache`](#opts-cache)
+    * [`opts.cacheAdditionalHeaders`](#opts-cache-additional-headers)
     * [`opts.proxy`](#opts-proxy)
     * [`opts.noProxy`](#opts-no-proxy)
     * [`opts.ca, opts.cert, opts.key`](#https-opts)
@@ -139,6 +140,7 @@ make-fetch-happen augments the `minipass-fetch` API with additional features ava
 
 * [`opts.cachePath`](#opts-cache-path) - Cache target to read/write
 * [`opts.cache`](#opts-cache) - `fetch` cache mode. Controls cache *behavior*.
+* [`opts.cacheAdditionalHeaders`](#opts-cache-additional-headers) - Store additional headers in the cache
 * [`opts.proxy`](#opts-proxy) - Proxy agent
 * [`opts.noProxy`](#opts-no-proxy) - Domain segments to disable proxying for.
 * [`opts.ca, opts.cert, opts.key, opts.strictSSL`](#https-opts)
@@ -216,6 +218,34 @@ fetch('https://registry.npmjs.org/make-fetch-happen', {
 // Will use any local data, even if stale. Otherwise, will hit network.
 fetch('https://registry.npmjs.org/make-fetch-happen', {
   cache: 'force-cache'
+})
+```
+
+#### <a name="opts-cache-additional-headers"></a> `> opts.cacheAdditionalHeaders`
+
+The following headers are always stored in the cache when present:
+
+- `cache-control`
+- `content-encoding`
+- `content-language`
+- `content-type`
+- `date`
+- `etag`
+- `expires`
+- `last-modified`
+- `link`
+- `location`
+- `pragma`
+- `vary`
+
+This option allows a user to store additional custom headers in the cache.
+
+
+##### Example
+
+```javascript
+fetch('https://registry.npmjs.org/make-fetch-happen', {
+  cacheAdditionalHeaders: ['my-custom-header'],
 })
 ```
 

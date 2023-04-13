@@ -166,6 +166,59 @@ t.test('no match, fetches and replies even when no content-length', async (t) =>
   }, 'resHeaders has only the relevant headers for caching')
 })
 
+t.test('no matches, can store additional headers', async (t) => {
+  const srv = nock(HOST)
+    .get('/test')
+    .reply(200, CONTENT, {
+      ...getHeaders(CONTENT),
+      'x-foo': 'something',
+    })
+
+  const reqKey = cacheKey(new Request(`${HOST}/test`))
+  const dir = t.testdir()
+  const res = await fetch(`${HOST}/test`, { cachePath: dir, cacheAdditionalHeaders: ['x-foo'] })
+  t.ok(srv.isDone(), 'req is fulfilled')
+  t.equal(res.status, 200)
+  t.equal(res.url, `${HOST}/test`, 'has a url property matching the request')
+  t.equal(res.headers.get('cache-control'), 'max-age=300', 'kept cache-control')
+  t.equal(res.headers.get('content-type'), 'application/octet-stream', 'kept content-stream')
+  t.equal(res.headers.get('content-length'), `${CONTENT.length}`, 'kept content-length')
+  t.equal(res.headers.get('x-local-cache'), encodeURIComponent(dir), 'has cache dir')
+  t.equal(res.headers.get('x-local-cache-key'), encodeURIComponent(reqKey), 'has cache key')
+  t.equal(res.headers.get('x-local-cache-mode'), 'stream', 'should stream store')
+  t.equal(res.headers.get('x-local-cache-status'), 'miss', 'identifies as cache miss')
+  t.ok(res.headers.has('x-local-cache-time'), 'has cache time')
+  t.equal(res.headers.get('x-foo'), 'something', 'original response has all headers')
+  t.notOk(res.headers.has('x-local-cache-hash'), 'hash header is only set when served from cache')
+
+  const dirBeforeRead = await readdir(dir)
+  t.same(dirBeforeRead, [], 'should not write to the cache yet')
+
+  const buf = await res.buffer()
+  t.same(buf, CONTENT, 'got the correct content')
+  const dirAfterRead = await readdir(dir)
+  // note, this does not make any assumptions about what directories
+  // are in the cache, only that there is something there. this is so
+  // our tests do not have to change if cacache version bumps its content
+  // and/or index directories
+  t.ok(dirAfterRead.length > 0, 'cache has data after consuming the body')
+
+  // compact with a function that always returns false
+  // results in a list of all entries in the index
+  const entries = await cacache.index.compact(dir, reqKey, () => false)
+  t.equal(entries.length, 1, 'should only have one entry')
+  const entry = entries[0]
+  t.equal(entry.integrity, INTEGRITY, 'integrity matches')
+  t.equal(entry.metadata.url, `${HOST}/test`, 'url matches')
+  t.same(entry.metadata.reqHeaders, {}, 'metadata has no request headers as none are relevant')
+  t.same(entry.metadata.resHeaders, {
+    'content-type': res.headers.get('content-type'),
+    'cache-control': res.headers.get('cache-control'),
+    date: res.headers.get('date'),
+    'x-foo': 'something',
+  }, 'resHeaders has the relevant headers for caching and our additional header')
+})
+
 t.test('no matches, cache mode only-if-cached rejects', async (t) => {
   const dir = t.testdir()
 
@@ -193,6 +246,48 @@ t.test('cache hit, no revalidation', async (t) => {
   t.equal(res.headers.get('cache-control'), 'max-age=300', 'kept cache-control')
   t.equal(res.headers.get('content-type'), 'application/octet-stream', 'kept content-type')
   t.equal(res.headers.get('content-length'), `${CONTENT.length}`, 'kept content-length')
+  t.equal(res.headers.get('x-local-cache'), encodeURIComponent(dir), 'encoded the path')
+  t.equal(res.headers.get('x-local-cache-status'), 'hit', 'got a cache hit')
+  t.equal(res.headers.get('x-local-cache-key'), encodeURIComponent(reqKey),
+    'got the right cache key')
+  t.equal(res.headers.get('x-local-cache-mode'), 'stream', 'should stream read')
+  t.equal(res.headers.get('x-local-cache-hash'), encodeURIComponent(INTEGRITY),
+    'has the right hash')
+  // just make sure x-local-cache-time is set, no need to assert its value
+  t.ok(res.headers.has('x-local-cache-time'))
+})
+
+t.test('cache hit, no revalidation, responds with additional headers', async (t) => {
+  const srv = nock(HOST)
+    .get('/test')
+    .reply(200, CONTENT, {
+      ...getHeaders(CONTENT),
+      'x-foo': 'something',
+    })
+
+  const dir = t.testdir()
+  const reqKey = cacheKey(new Request(`${HOST}/test`))
+  const cacheRes = await fetch(`${HOST}/test`, {
+    cachePath: dir,
+    retry: false,
+    cacheAdditionalHeaders: ['x-foo'],
+  })
+  await cacheRes.buffer() // drain it immediately so it stores to the cache
+  t.ok(srv.isDone(), 'req has fulfilled')
+
+  const res = await fetch(`${HOST}/test`, {
+    cachePath: dir,
+    retry: false,
+    cacheAdditionalHeaders: ['x-foo'],
+  })
+  const buf = await res.buffer()
+  t.same(buf, CONTENT, 'got the right content')
+  t.equal(res.status, 200, 'got a 200')
+  t.equal(res.url, `${HOST}/test`, 'has the right url')
+  t.equal(res.headers.get('cache-control'), 'max-age=300', 'kept cache-control')
+  t.equal(res.headers.get('content-type'), 'application/octet-stream', 'kept content-type')
+  t.equal(res.headers.get('content-length'), `${CONTENT.length}`, 'kept content-length')
+  t.equal(res.headers.get('x-foo'), 'something', 'kept the additional x-foo header')
   t.equal(res.headers.get('x-local-cache'), encodeURIComponent(dir), 'encoded the path')
   t.equal(res.headers.get('x-local-cache-status'), 'hit', 'got a cache hit')
   t.equal(res.headers.get('x-local-cache-key'), encodeURIComponent(reqKey),
@@ -1293,6 +1388,7 @@ t.test('revalidate updates headers in the metadata with new values', async (t) =
       etag: '"beef"',
       date: new Date().toISOString(),
       'content-type': 'text/plain',
+      'x-foo': 'something',
     },
   }
 
@@ -1309,6 +1405,8 @@ t.test('revalidate updates headers in the metadata with new values', async (t) =
     'initial entry does not have cache-control')
   t.equal(beforeEntries[0].metadata.resHeaders['content-type'], 'text/plain',
     'initial entry has a content-type')
+  t.equal(beforeEntries[0].metadata.resHeaders['x-foo'], 'something',
+    'initial entry has x-foo')
 
   // NOTE: the body must be undefined, not null, otherwise nock
   // will add an implicit content-type of application/json
@@ -1320,14 +1418,22 @@ t.test('revalidate updates headers in the metadata with new values', async (t) =
       date: new Date().toISOString(),
       etag: '"beef"',
       'cache-control': 'max-age=300',
+      'x-bar': 'anything',
     })
 
-  const revalidateRes = await fetch(`${HOST}/test`, { cachePath: dir })
+  const revalidateRes = await fetch(`${HOST}/test`, {
+    cachePath: dir,
+    cacheAdditionalHeaders: ['x-foo', 'x-bar'],
+  })
   t.equal(revalidateRes.status, 200, 'got a success status')
   t.equal(revalidateRes.headers.get('x-local-cache-status'), 'revalidated',
     'identifies as revalidated')
   t.equal(revalidateRes.headers.get('content-type'), 'text/plain',
     'got the content-type in the response')
+  t.equal(revalidateRes.headers.get('x-foo'), 'something',
+    'got the cached x-foo in the response')
+  t.equal(revalidateRes.headers.get('x-bar'), 'anything',
+    'got the new x-bar header')
   await revalidateRes.buffer()
   t.ok(srv.isDone())
 
@@ -1338,6 +1444,10 @@ t.test('revalidate updates headers in the metadata with new values', async (t) =
     'now has cache-control header')
   t.equal(afterEntries[0].metadata.resHeaders['content-type'], 'text/plain',
     'new index entry kept the content-type')
+  t.equal(afterEntries[0].metadata.resHeaders['x-foo'], 'something',
+    'kept the x-foo header')
+  t.equal(afterEntries[0].metadata.resHeaders['x-bar'], 'anything',
+    'stored the new x-bar header')
   t.notOk(afterEntries[0].metadata.reqHeaders['user-agent'],
     'no longer has a user-agent in reqHeaders')
 })
