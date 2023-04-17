@@ -39,7 +39,7 @@
     "http-proxy-agent": "^5.0.0",
     "https-proxy-agent": "^5.0.0",
     "is-lambda": "^1.0.1",
-    "lru-cache": "^7.7.1",
+    "lru-cache": "^9.0.3",
     "minipass": "^4.0.0",
     "minipass-fetch": "^3.0.0",
     "minipass-flush": "^1.0.5",
