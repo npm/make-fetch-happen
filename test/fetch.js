@@ -1,6 +1,6 @@
 'use strict'
 
-const Minipass = require('minipass')
+const { Minipass } = require('minipass')
 const t = require('tap')
 const nock = require('nock')
 const fetch = require('../lib/index.js')
