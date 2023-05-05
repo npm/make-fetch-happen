@@ -46,7 +46,7 @@
     "minipass-pipeline": "^1.2.4",
     "negotiator": "^0.6.3",
     "promise-retry": "^2.0.1",
-    "socks-proxy-agent": "^7.0.0",
+    "socks-proxy-agent": "^8.0.0",
     "ssri": "^10.0.0"
   },
   "devDependencies": {
