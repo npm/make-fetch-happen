@@ -1,5 +1,34 @@
 # Changelog
 
+## [12.0.0](https://github.com/npm/make-fetch-happen/compare/v11.1.1...v12.0.0) (2023-07-27)
+
+### ⚠️ BREAKING CHANGES
+
+* support for node 14 has been removed
+* this changes the underlying http agents to those provided by `@npmcli/agent`.  Backwards compatibility should be fully implemented but due to the scope of this change it was made a breaking change out of an abundance of caution.
+
+### Features
+
+* [`7c25367`](https://github.com/npm/make-fetch-happen/commit/7c25367d95c5a0853b4b1e93c13456ac1cfc493d) [#255](https://github.com/npm/make-fetch-happen/pull/255) move to @npmcli/agent (@wraithgar)
+
+### Bug Fixes
+
+* [`3059b28`](https://github.com/npm/make-fetch-happen/commit/3059b286be9884f0d2f83f5b57314e924c07c57d) [#259](https://github.com/npm/make-fetch-happen/pull/259) drop node14 support (#259) (@wraithgar)
+
+### Documentation
+
+* [`efd1e2f`](https://github.com/npm/make-fetch-happen/commit/efd1e2f02a38e7f39fe291503546f1be92ad0fa7) [#255](https://github.com/npm/make-fetch-happen/pull/255) update readme (@wraithgar)
+
+### Dependencies
+
+* [`5318d23`](https://github.com/npm/make-fetch-happen/commit/5318d239280b951479877badd81868411d71f19f) [#253](https://github.com/npm/make-fetch-happen/pull/253) bump minipass from 5.0.0 to 7.0.2 (#253)
+* [`5493550`](https://github.com/npm/make-fetch-happen/commit/5493550d841cc2b182deae6717c010d9fb445002) [#255](https://github.com/npm/make-fetch-happen/pull/255) remove lru-cache
+* [`193b901`](https://github.com/npm/make-fetch-happen/commit/193b901f69adb8497f932beaeb60bff1fe0a94b5) [#255](https://github.com/npm/make-fetch-happen/pull/255) remove socks-proxy-agent
+* [`fc35622`](https://github.com/npm/make-fetch-happen/commit/fc356228b1127e65f3c5c27f4e2b1dc26167298a) [#255](https://github.com/npm/make-fetch-happen/pull/255) remove agentkeepalive
+* [`e78fcdf`](https://github.com/npm/make-fetch-happen/commit/e78fcdf507938806dffcd4ce82c0f9373e589b29) [#255](https://github.com/npm/make-fetch-happen/pull/255) remove https-proxy-agent
+* [`a4089a0`](https://github.com/npm/make-fetch-happen/commit/a4089a0946476d5ea2624130d0fcf6da5b99d730) [#255](https://github.com/npm/make-fetch-happen/pull/255) remove http-proxy-agent
+* [`92c3226`](https://github.com/npm/make-fetch-happen/commit/92c32269646e531e86a0b1b7efe96596506ef563) [#255](https://github.com/npm/make-fetch-happen/pull/255) add @npmcli/agent
+
 ## [11.1.1](https://github.com/npm/make-fetch-happen/compare/v11.1.0...v11.1.1) (2023-04-27)
 
 ### Dependencies
