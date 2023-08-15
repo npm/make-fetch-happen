@@ -33,7 +33,7 @@
   "author": "GitHub Inc.",
   "license": "ISC",
   "dependencies": {
-    "@npmcli/agent": "^1.1.0",
+    "@npmcli/agent": "^2.0.0",
     "cacache": "^18.0.0",
     "http-cache-semantics": "^4.1.1",
     "is-lambda": "^1.0.1",
