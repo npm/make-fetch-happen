@@ -1,5 +1,20 @@
 # Changelog
 
+## [13.0.0](https://github.com/npm/make-fetch-happen/compare/v12.0.0...v13.0.0) (2023-08-15)
+
+### ⚠️ BREAKING CHANGES
+
+* support for node <=16.13 has been removed
+
+### Bug Fixes
+
+* [`fb1c716`](https://github.com/npm/make-fetch-happen/commit/fb1c716ccca310d2cf989be3b89e924bce369bab) [#262](https://github.com/npm/make-fetch-happen/pull/262) drop node 16.13.x support (@lukekarrys)
+
+### Dependencies
+
+* [`41295dc`](https://github.com/npm/make-fetch-happen/commit/41295dcb76b0bc5e0a953b2f64dd8b7cd63e0c29) [#264](https://github.com/npm/make-fetch-happen/pull/264) bump @npmcli/agent from 1.1.0 to 2.0.0
+* [`4875556`](https://github.com/npm/make-fetch-happen/commit/4875556e51814bc84971240ae58a0cddc740db2b) [#261](https://github.com/npm/make-fetch-happen/pull/261) bump cacache from 17.1.4 to 18.0.0
+
 ## [12.0.0](https://github.com/npm/make-fetch-happen/compare/v11.1.1...v12.0.0) (2023-07-27)
 
 ### ⚠️ BREAKING CHANGES
