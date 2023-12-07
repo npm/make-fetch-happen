@@ -13,28 +13,12 @@ t.test('catches error for inaccessible cache', async t => {
   })
   const req = nock('http://localhost')
     .get('/foo')
-    .reply(() => {
-      const data = Buffer.from('text')
-      return [
-        200,
-        data,
-        {
-          'cache-control': 'max-age=432000',
-          'accept-ranges': 'bytes',
-          etag: '"a2177e7d2ad8d263e6c38e6fe8dd6f79"',
-          'last-modified': 'Sat, 26 May 2018 16:03:07 GMT',
-          vary: 'Accept-Encoding',
-          connection: 'close',
-          'content-length': data.length,
-          'content-type': 'application/json',
-        },
-      ]
-    })
+    .reply(() => [200, Buffer.from('text')])
 
   const res = await fetch('http://localhost/foo', {
     cachePath: path.resolve(cache, 'file'),
   })
 
-  await t.rejects(res.json(), { code: 'ENOTDIR' })
+  await t.rejects(res.text(), { code: 'ENOTDIR' })
   t.ok(req.isDone())
 })
