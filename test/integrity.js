@@ -4,7 +4,6 @@ const nock = require('nock')
 const ssri = require('ssri')
 const t = require('tap')
 const zlib = require('zlib')
-const { once } = require('events')
 
 const CACHE = t.testdir()
 const CONTENT = Buffer.from('hello, world!', 'utf8')
@@ -149,6 +148,7 @@ t.test('checks integrity on cache fetch too', async (t) => {
   // t.same(goodBuf, CONTENT, 'good content passed scrutiny 👍🏼')
 
   // const badRes1 = await safetch(`${HOST}/test`)
+  // eslint-disable-next-line max-len
   // await t.rejects(() => badRes1.buffer(), { code: 'EINTEGRITY' }, 'cached content failed checksum')
 
   const badRes2 = await safetch(`${HOST}/test`, {
