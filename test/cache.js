@@ -1548,7 +1548,7 @@ t.test('generic errors streaming from cache propagate to response body', async (
   t.teardown(() => {
     cacache.get.stream.byDigest = realGet
   })
-  cacache.get.stream.byDigest = (cachePath, integrity) => {
+  cacache.get.stream.byDigest = () => {
     const stream = new Readable({ read: () => {} })
     setImmediate(() => {
       stream.emit('error', new Error('broken stream'))

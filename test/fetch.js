@@ -106,7 +106,7 @@ t.test('calls opts.onRetry', async t => {
     t.strictSame(logs, [
       'http',
       'fetch',
-      'GET https://make-fetch-happen.npm/test-onretry failed with 500, retrying',
+      'GET https://make-fetch-happen.npm/test-onretry attempt 1 failed with 500',
     ])
     t.ok(srv.isDone())
   })
@@ -152,7 +152,7 @@ t.test('calls opts.onRetry', async t => {
     t.strictSame(logs, [
       'http',
       'fetch',
-      'GET https://make-fetch-happen.npm/catch-retry failed with ECONNRESET, retrying',
+      'GET https://make-fetch-happen.npm/catch-retry attempt 1 failed with ECONNRESET',
     ])
     t.ok(srv.isDone())
   })
@@ -382,7 +382,7 @@ t.test('supports passthrough of options on redirect', async (t) => {
     .get('/test')
     .matchHeader('x-test', 'test')
     .reply(200, CONTENT, {
-      'test-header': (req, res, body) => {
+      'test-header': (req) => {
         t.ok(req.headers['x-test'].length)
         t.equal(req.headers['x-test'][0], 'test', 'headers from redriect')
         return 'truthy'

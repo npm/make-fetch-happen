@@ -1,12 +1,12 @@
 'use strict'
 const dns = require('dns')
 const configureOptions = require('../lib/options.js')
-const { test } = require('tap')
+const t = require('tap')
 
 const defaultDns = { ttl: 5 * 60 * 1000, lookup: dns.lookup }
 
-test('configure options', async (t) => {
-  test('supplied with no value', async (t) => {
+t.test('configure options', async (t) => {
+  t.test('supplied with no value', async (t) => {
     const opts = configureOptions()
     const expectedObject = {
       method: 'GET',
@@ -19,7 +19,7 @@ test('configure options', async (t) => {
     t.same(opts, expectedObject, 'should return default opts')
   })
 
-  test('supplied with empty object', async (t) => {
+  t.test('supplied with empty object', async (t) => {
     const opts = configureOptions({})
     const expectedObject = {
       method: 'GET',
@@ -32,7 +32,7 @@ test('configure options', async (t) => {
     t.same(opts, expectedObject, 'should return default opts')
   })
 
-  test('changes method to upper case', async (t) => {
+  t.test('changes method to upper case', async (t) => {
     const actualOpts = { method: 'post' }
     const opts = configureOptions(actualOpts)
     const expectedObject = {
@@ -46,7 +46,7 @@ test('configure options', async (t) => {
     t.same(opts, expectedObject, 'should return upper cased method')
   })
 
-  test('copies strictSSL to rejectUnauthorized', async (t) => {
+  t.test('copies strictSSL to rejectUnauthorized', async (t) => {
     const trueOpts = configureOptions({ strictSSL: true })
     const trueExpectedObject = {
       method: 'GET',
@@ -82,7 +82,7 @@ test('configure options', async (t) => {
       'should treat strictSSL: null as true just like tls.connect')
   })
 
-  test('should set dns property correctly', async (t) => {
+  t.test('should set dns property correctly', async (t) => {
     t.test('no property given', async (t) => {
       const actualOpts = { method: 'GET' }
       const opts = configureOptions(actualOpts)
@@ -127,7 +127,7 @@ test('configure options', async (t) => {
     })
   })
 
-  test('should set retry property correctly', async (t) => {
+  t.test('should set retry property correctly', async (t) => {
     t.test('no property given', async (t) => {
       const actualOpts = { method: 'GET' }
       const opts = configureOptions(actualOpts)
@@ -199,7 +199,7 @@ test('configure options', async (t) => {
     })
   })
 
-  test('configures cache correctly', async (t) => {
+  t.test('configures cache correctly', async (t) => {
     t.test('supplied with no values', async (t) => {
       const actualOpts = {}
       const opts = configureOptions(actualOpts)
