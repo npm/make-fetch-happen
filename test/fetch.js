@@ -74,6 +74,14 @@ t.test('500-level responses not thrown', async t => {
 
 t.test('calls opts.onRetry', async t => {
   t.test('when request is retriable', async (t) => {
+    const logs = []
+    const logHandler = (...logparams) => {
+      logs.push(...logparams)
+    }
+    process.on('log', logHandler)
+    t.teardown(() => {
+      process.off('log', logHandler)
+    })
     const srv = nock(HOST)
       .get('/test-onretry')
       .reply(500)
@@ -95,10 +103,23 @@ t.test('calls opts.onRetry', async t => {
     t.same(res.headers.get('x-fetch-attempts'), '2', 'set the appropriate header')
     t.equal(calledOnRetry, true, 'should have called onRetry')
     t.equal(retryNotification, 1, 'should have called method once')
+    t.strictSame(logs, [
+      'http',
+      'fetch',
+      'GET https://make-fetch-happen.npm/test-onretry attempt 1 failed with 500',
+    ])
     t.ok(srv.isDone())
   })
 
   t.test('when request is retriable; and caught', async (t) => {
+    const logs = []
+    const logHandler = (...logparams) => {
+      logs.push(...logparams)
+    }
+    process.on('log', logHandler)
+    t.teardown(() => {
+      process.off('log', logHandler)
+    })
     const srv = nock(HOST)
       .get('/catch-retry')
       .replyWithError({
@@ -128,6 +149,11 @@ t.test('calls opts.onRetry', async t => {
     t.equal(calledOnRetry, true, 'should have called onRetry')
     const buf = await res.buffer()
     t.same(buf, CONTENT, 'request succeeded')
+    t.strictSame(logs, [
+      'http',
+      'fetch',
+      'GET https://make-fetch-happen.npm/catch-retry attempt 1 failed with ECONNRESET',
+    ])
     t.ok(srv.isDone())
   })
 
@@ -356,7 +382,7 @@ t.test('supports passthrough of options on redirect', async (t) => {
     .get('/test')
     .matchHeader('x-test', 'test')
     .reply(200, CONTENT, {
-      'test-header': (req, res, body) => {
+      'test-header': (req) => {
         t.ok(req.headers['x-test'].length)
         t.equal(req.headers['x-test'][0], 'test', 'headers from redriect')
         return 'truthy'
