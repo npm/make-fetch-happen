@@ -1,5 +1,18 @@
 # Changelog
 
+## [13.0.1](https://github.com/npm/make-fetch-happen/compare/v13.0.0...v13.0.1) (2024-04-30)
+
+### Bug Fixes
+
+* [`66018e3`](https://github.com/npm/make-fetch-happen/commit/66018e300fe39f3d3485d444a0c1fd80984c5d7d) log errors on retry (@wraithgar)
+* [`ed73ef5`](https://github.com/npm/make-fetch-happen/commit/ed73ef528397a574df711e24238aaf7954512e55) [#288](https://github.com/npm/make-fetch-happen/pull/288) always catch and emit cache write errors in promise (#288) (@lukekarrys)
+
+### Chores
+
+* [`9e1329c`](https://github.com/npm/make-fetch-happen/commit/9e1329c8c8a81495d58dc0da7d233142008c7d98) [#292](https://github.com/npm/make-fetch-happen/pull/292) fix linting in tests (@lukekarrys)
+* [`4756bda`](https://github.com/npm/make-fetch-happen/commit/4756bda3e4d40e449b99b2d964fc59bebda76941) [#292](https://github.com/npm/make-fetch-happen/pull/292) postinstall for dependabot template-oss PR (@lukekarrys)
+* [`91df666`](https://github.com/npm/make-fetch-happen/commit/91df666381e17c750dc4b0c6b33bf25c6b39aa7a) [#292](https://github.com/npm/make-fetch-happen/pull/292) bump @npmcli/template-oss from 4.21.3 to 4.21.4 (@dependabot[bot])
+
 ## [13.0.0](https://github.com/npm/make-fetch-happen/compare/v12.0.0...v13.0.0) (2023-08-15)
 
 ### ⚠️ BREAKING CHANGES

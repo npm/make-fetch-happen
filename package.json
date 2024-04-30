@@ -1,6 +1,6 @@
 {
   "name": "make-fetch-happen",
-  "version": "13.0.0",
+  "version": "13.0.1",
   "description": "Opinionated, caching, retrying fetch client",
   "main": "lib/index.js",
   "files": [
