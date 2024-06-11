@@ -1,5 +1,16 @@
 # Changelog
 
+## [13.0.2](https://github.com/npm/make-fetch-happen/compare/v13.0.1...v13.0.2) (2024-06-11)
+
+### Dependencies
+
+* [`d255fcb`](https://github.com/npm/make-fetch-happen/commit/d255fcbaac5b04bccbb7b1c697162b4d9b3334c7) [#299](https://github.com/npm/make-fetch-happen/pull/299) remove is-lambda dependency (#299)
+
+### Chores
+
+* [`58dc7ef`](https://github.com/npm/make-fetch-happen/commit/58dc7ef5e468d38798afca61f0e1ab1652ba6447) [#295](https://github.com/npm/make-fetch-happen/pull/295) bump @npmcli/template-oss to 4.22.0 (@lukekarrys)
+* [`672a31e`](https://github.com/npm/make-fetch-happen/commit/672a31eb3725f566ac6efe234d00a564dd986bb7) [#295](https://github.com/npm/make-fetch-happen/pull/295) postinstall for dependabot template-oss PR (@lukekarrys)
+
 ## [13.0.1](https://github.com/npm/make-fetch-happen/compare/v13.0.0...v13.0.1) (2024-04-30)
 
 ### Bug Fixes
