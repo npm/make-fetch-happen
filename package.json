@@ -41,7 +41,7 @@
     "minipass-flush": "^1.0.5",
     "minipass-pipeline": "^1.2.4",
     "negotiator": "^0.6.3",
-    "proc-log": "^4.2.0",
+    "proc-log": "^5.0.0",
     "promise-retry": "^2.0.1",
     "ssri": "^10.0.0"
   },
