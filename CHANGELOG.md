@@ -1,5 +1,23 @@
 # Changelog
 
+## [14.0.0](https://github.com/npm/make-fetch-happen/compare/v13.0.1...v14.0.0) (2024-09-26)
+### ⚠️ BREAKING CHANGES
+* `make-fetch-happen` now supports node `^18.17.0 || >=20.5.0`
+### Bug Fixes
+* [`a1beba7`](https://github.com/npm/make-fetch-happen/commit/a1beba7f775f27349203078790e53d103a365d61) [#318](https://github.com/npm/make-fetch-happen/pull/318) align to npm 10 node engine range (@reggi)
+### Dependencies
+* [`aa5d07a`](https://github.com/npm/make-fetch-happen/commit/aa5d07a27a82d3cef9839f07bd957a21ba6dcdd2) [#318](https://github.com/npm/make-fetch-happen/pull/318) `ssri@12.0.0`
+* [`0113d1f`](https://github.com/npm/make-fetch-happen/commit/0113d1f1908fb4bf3acba9ac3264561f0870e52a) [#318](https://github.com/npm/make-fetch-happen/pull/318) `proc-log@5.0.0`
+* [`f0db136`](https://github.com/npm/make-fetch-happen/commit/f0db136979225cd72e36f45bed41dc261780d105) [#318](https://github.com/npm/make-fetch-happen/pull/318) `minipass-fetch@4.0.0`
+* [`be3558d`](https://github.com/npm/make-fetch-happen/commit/be3558d0033d918e2bf48dde80e8b7a94d467531) [#318](https://github.com/npm/make-fetch-happen/pull/318) `@npmcli/agent@3.0.0`
+* [`d255fcb`](https://github.com/npm/make-fetch-happen/commit/d255fcbaac5b04bccbb7b1c697162b4d9b3334c7) [#299](https://github.com/npm/make-fetch-happen/pull/299) remove is-lambda dependency (#299)
+### Chores
+* [`30ee575`](https://github.com/npm/make-fetch-happen/commit/30ee575a9330f25d41cfd4c4bf9cb44d1395117a) [#318](https://github.com/npm/make-fetch-happen/pull/318) run template-oss-apply (@reggi)
+* [`253f3b9`](https://github.com/npm/make-fetch-happen/commit/253f3b9be576a80df96e60fe99e92cf6c1596e22) [#309](https://github.com/npm/make-fetch-happen/pull/309) bump @npmcli/eslint-config from 4.0.5 to 5.0.0 (@dependabot[bot])
+* [`58dc7ef`](https://github.com/npm/make-fetch-happen/commit/58dc7ef5e468d38798afca61f0e1ab1652ba6447) [#295](https://github.com/npm/make-fetch-happen/pull/295) bump @npmcli/template-oss to 4.22.0 (@lukekarrys)
+* [`f51f1de`](https://github.com/npm/make-fetch-happen/commit/f51f1dee37486eedaad4ce471a3aa1a83cec6335) [#311](https://github.com/npm/make-fetch-happen/pull/311) postinstall for dependabot template-oss PR (@hashtagchris)
+* [`381750e`](https://github.com/npm/make-fetch-happen/commit/381750edf8e35ef3669269142cedcd6e5ef2b3be) [#311](https://github.com/npm/make-fetch-happen/pull/311) bump @npmcli/template-oss from 4.23.1 to 4.23.3 (@dependabot[bot])
+
 ## [13.0.1](https://github.com/npm/make-fetch-happen/compare/v13.0.0...v13.0.1) (2024-04-30)
 
 ### Bug Fixes
