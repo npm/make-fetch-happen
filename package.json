@@ -34,7 +34,7 @@
   "license": "ISC",
   "dependencies": {
     "@npmcli/agent": "^3.0.0",
-    "cacache": "^18.0.0",
+    "cacache": "^19.0.0",
     "http-cache-semantics": "^4.1.1",
     "minipass": "^7.0.2",
     "minipass-fetch": "^4.0.0",
