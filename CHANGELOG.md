@@ -1,5 +1,9 @@
 # Changelog
 
+## [14.0.1](https://github.com/npm/make-fetch-happen/compare/v14.0.0...v14.0.1) (2024-10-02)
+### Dependencies
+* [`5eae0b6`](https://github.com/npm/make-fetch-happen/commit/5eae0b6331b8e893add029ae443fe0330e3f30ff) [#321](https://github.com/npm/make-fetch-happen/pull/321) bump `cacache@19.0.1`
+
 ## [14.0.0](https://github.com/npm/make-fetch-happen/compare/v13.0.1...v14.0.0) (2024-09-26)
 ### ⚠️ BREAKING CHANGES
 * `make-fetch-happen` now supports node `^18.17.0 || >=20.5.0`
