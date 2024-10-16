@@ -82,6 +82,30 @@ t.test('configure options', async (t) => {
       'should treat strictSSL: null as true just like tls.connect')
   })
 
+  t.test('when NODE_TLS_REJECT_UNAUTHORIZED is defined', async (t) => {
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
+
+    t.same(configureOptions({ }).rejectUnauthorized, false,
+      'should return rejectUnauthorized false when NODE_TLS_REJECT_UNAUTHORIZED="0" ' +
+      'and strictSSL is undefined')
+
+    t.same(configureOptions({ strictSSL: null }).rejectUnauthorized, false,
+      'should return rejectUnauthorized false when NODE_TLS_REJECT_UNAUTHORIZED="0" ' +
+      'and strictSSL is null')
+
+    t.same(configureOptions({ strictSSL: true }).rejectUnauthorized, true,
+      'should return rejectUnauthorized true when NODE_TLS_REJECT_UNAUTHORIZED="0" ' +
+      'and strictSSL is true')
+
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '1'
+
+    t.same(configureOptions({ strictSSL: false }).rejectUnauthorized, false,
+      'should return rejectUnauthorized false when NODE_TLS_REJECT_UNAUTHORIZED="1" ' +
+      'and strictSSL is false')
+
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = undefined
+  })
+
   t.test('should set dns property correctly', async (t) => {
     t.test('no property given', async (t) => {
       const actualOpts = { method: 'GET' }
