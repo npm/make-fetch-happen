@@ -1,5 +1,11 @@
 # Changelog
 
+## [14.0.2](https://github.com/npm/make-fetch-happen/compare/v14.0.1...v14.0.2) (2024-10-16)
+### Bug Fixes
+* [`fa5f233`](https://github.com/npm/make-fetch-happen/commit/fa5f233e99458478fa5b18e77d953996e0b7a078) [#324](https://github.com/npm/make-fetch-happen/pull/324) don't use the request signal in the agent (#324) (@thewilkybarkid, @wraithgar)
+### Chores
+* [`b3742c5`](https://github.com/npm/make-fetch-happen/commit/b3742c551a74382d34f0ed9f2cd5bcd3fc900f08) [#323](https://github.com/npm/make-fetch-happen/pull/323) bump @npmcli/template-oss from 4.23.3 to 4.23.4 (#323) (@dependabot[bot], @npm-cli-bot)
+
 ## [14.0.1](https://github.com/npm/make-fetch-happen/compare/v14.0.0...v14.0.1) (2024-10-02)
 ### Dependencies
 * [`5eae0b6`](https://github.com/npm/make-fetch-happen/commit/5eae0b6331b8e893add029ae443fe0330e3f30ff) [#321](https://github.com/npm/make-fetch-happen/pull/321) bump `cacache@19.0.1`
