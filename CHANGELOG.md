@@ -1,5 +1,11 @@
 # Changelog
 
+## [14.0.3](https://github.com/npm/make-fetch-happen/compare/v14.0.2...v14.0.3) (2024-10-21)
+### Bug Fixes
+* [`3e0fe87`](https://github.com/npm/make-fetch-happen/commit/3e0fe87763e4c954ec6f39e1b5f44eac0e68f15f) [#316](https://github.com/npm/make-fetch-happen/pull/316) stop ignoring NODE_TLS_REJECT_UNAUTHORIZED when strictSSL is not defined (#316) (@brunoargolo, Bruno Oliveira)
+### Dependencies
+* [`05fbcc3`](https://github.com/npm/make-fetch-happen/commit/05fbcc3d2cf0b29461edec96ef3fde73f4cf24c4) [#327](https://github.com/npm/make-fetch-happen/pull/327) bump negotiator from 0.6.4 to 1.0.0 (#327) (@dependabot[bot])
+
 ## [14.0.2](https://github.com/npm/make-fetch-happen/compare/v14.0.1...v14.0.2) (2024-10-16)
 ### Bug Fixes
 * [`fa5f233`](https://github.com/npm/make-fetch-happen/commit/fa5f233e99458478fa5b18e77d953996e0b7a078) [#324](https://github.com/npm/make-fetch-happen/pull/324) don't use the request signal in the agent (#324) (@thewilkybarkid, @wraithgar)
