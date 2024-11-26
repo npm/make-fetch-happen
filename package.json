@@ -47,7 +47,7 @@
   },
   "devDependencies": {
     "@npmcli/eslint-config": "^5.0.0",
-    "@npmcli/template-oss": "4.23.4",
+    "@npmcli/template-oss": "4.23.5",
     "nock": "^13.2.4",
     "safe-buffer": "^5.2.1",
     "standard-version": "^9.3.2",
