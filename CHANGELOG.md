@@ -1,5 +1,17 @@
 # Changelog
 
+## [15.0.0](https://github.com/npm/make-fetch-happen/compare/v14.0.3...v15.0.0) (2025-07-24)
+### ⚠️ BREAKING CHANGES
+* `make-fetch-happen` now supports node `^20.17.0 || >=22.9.0`
+### Bug Fixes
+* [`070a458`](https://github.com/npm/make-fetch-happen/commit/070a45860e94ccf3104c31cee37cf56df3a23dec) [#331](https://github.com/npm/make-fetch-happen/pull/331) align to npm 11 node engine range (@owlstronaut)
+### Dependencies
+* [`2eb291c`](https://github.com/npm/make-fetch-happen/commit/2eb291c659738f13a2ba92f538584ccc8fdced6f) [#331](https://github.com/npm/make-fetch-happen/pull/331) `cacache@20.0.0`
+* [`0ff7492`](https://github.com/npm/make-fetch-happen/commit/0ff7492000ad07e217c5676f9afb464c326d7aa8) [#331](https://github.com/npm/make-fetch-happen/pull/331) `@npmcli/template-oss@4.25.0`
+### Chores
+* [`525c84c`](https://github.com/npm/make-fetch-happen/commit/525c84cced73fb29780b5fa421b9bad364feedb0) [#331](https://github.com/npm/make-fetch-happen/pull/331) template-oss apply fix (@owlstronaut)
+* [`a00560d`](https://github.com/npm/make-fetch-happen/commit/a00560da0ddc4747816ea668b6168a91ab10ca3e) [#330](https://github.com/npm/make-fetch-happen/pull/330) bump @npmcli/template-oss from 4.23.4 to 4.24.3 (#330) (@owlstronaut)
+
 ## [14.0.3](https://github.com/npm/make-fetch-happen/compare/v14.0.2...v14.0.3) (2024-10-21)
 ### Bug Fixes
 * [`3e0fe87`](https://github.com/npm/make-fetch-happen/commit/3e0fe87763e4c954ec6f39e1b5f44eac0e68f15f) [#316](https://github.com/npm/make-fetch-happen/pull/316) stop ignoring NODE_TLS_REJECT_UNAUTHORIZED when strictSSL is not defined (#316) (@brunoargolo, Bruno Oliveira)
