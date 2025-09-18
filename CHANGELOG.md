@@ -1,5 +1,9 @@
 # Changelog
 
+## [15.0.2](https://github.com/npm/make-fetch-happen/compare/v15.0.1...v15.0.2) (2025-09-18)
+### Dependencies
+* [`dfced01`](https://github.com/npm/make-fetch-happen/commit/dfced01a3b33a970891fe05f238c8597e2486dcb) [#335](https://github.com/npm/make-fetch-happen/pull/335) `@npmcli/agent@4.0.0`
+
 ## [15.0.1](https://github.com/npm/make-fetch-happen/compare/v15.0.0...v15.0.1) (2025-08-19)
 ### Dependencies
 * [`852a0d3`](https://github.com/npm/make-fetch-happen/commit/852a0d38eb70ac1241dd3fad96dd33c4a9f2a7a6) [#333](https://github.com/npm/make-fetch-happen/pull/333) `cacache@20.0.1`
