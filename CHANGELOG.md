@@ -1,5 +1,11 @@
 # Changelog
 
+## [15.0.3](https://github.com/npm/make-fetch-happen/compare/v15.0.2...v15.0.3) (2025-11-13)
+### Dependencies
+* [`8e31112`](https://github.com/npm/make-fetch-happen/commit/8e311128250cf5ba5c51e1686e75668a304b23aa) [#337](https://github.com/npm/make-fetch-happen/pull/337) `minipass-fetch@5.0.0`
+* [`c4b22e3`](https://github.com/npm/make-fetch-happen/commit/c4b22e3529c3c085199091e89e4a11046235dbae) [#337](https://github.com/npm/make-fetch-happen/pull/337) `ssri@13.0.0`
+* [`3fe68b2`](https://github.com/npm/make-fetch-happen/commit/3fe68b253528d296547c5f53be2cff3d3d9fcbf9) [#337](https://github.com/npm/make-fetch-happen/pull/337) `proc-log@6.0.0`
+
 ## [15.0.2](https://github.com/npm/make-fetch-happen/compare/v15.0.1...v15.0.2) (2025-09-18)
 ### Dependencies
 * [`dfced01`](https://github.com/npm/make-fetch-happen/commit/dfced01a3b33a970891fe05f238c8597e2486dcb) [#335](https://github.com/npm/make-fetch-happen/pull/335) `@npmcli/agent@4.0.0`
