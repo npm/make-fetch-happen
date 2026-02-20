@@ -33,6 +33,7 @@
   "author": "GitHub Inc.",
   "license": "ISC",
   "dependencies": {
+    "@gar/promise-retry": "^1.0.0",
     "@npmcli/agent": "^4.0.0",
     "cacache": "^20.0.1",
     "http-cache-semantics": "^4.1.1",
