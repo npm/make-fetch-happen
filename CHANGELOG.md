@@ -1,5 +1,10 @@
 # Changelog
 
+## [15.0.4](https://github.com/npm/make-fetch-happen/compare/v15.0.3...v15.0.4) (2026-02-24)
+### Dependencies
+* [`57684bb`](https://github.com/npm/make-fetch-happen/commit/57684bbf0911fa5d0f3f9ae5413565e8682e223e) add `@gar/promise-retry@1.0.0`
+* [`5bc5715`](https://github.com/npm/make-fetch-happen/commit/5bc571587d75b4161576c4eed923f41575736345) remove promise-retry
+
 ## [15.0.3](https://github.com/npm/make-fetch-happen/compare/v15.0.2...v15.0.3) (2025-11-13)
 ### Dependencies
 * [`8e31112`](https://github.com/npm/make-fetch-happen/commit/8e311128250cf5ba5c51e1686e75668a304b23aa) [#337](https://github.com/npm/make-fetch-happen/pull/337) `minipass-fetch@5.0.0`
