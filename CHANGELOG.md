@@ -1,5 +1,11 @@
 # Changelog
 
+## [15.0.5](https://github.com/npm/make-fetch-happen/compare/v15.0.4...v15.0.5) (2026-03-16)
+### Bug Fixes
+* [`321e370`](https://github.com/npm/make-fetch-happen/commit/321e3702ca1779d84e0e404c0006d7f62b6e05bc) [#343](https://github.com/npm/make-fetch-happen/pull/343) url logging npm credentials (@kadarbasha)
+### Dependencies
+* [`5eba860`](https://github.com/npm/make-fetch-happen/commit/5eba86048c7663fdb95ee236240cbbcec619d94f) [#343](https://github.com/npm/make-fetch-happen/pull/343) `@npmcli/redact@4.0.0`
+
 ## [15.0.4](https://github.com/npm/make-fetch-happen/compare/v15.0.3...v15.0.4) (2026-02-24)
 ### Dependencies
 * [`57684bb`](https://github.com/npm/make-fetch-happen/commit/57684bbf0911fa5d0f3f9ae5413565e8682e223e) add `@gar/promise-retry@1.0.0`
