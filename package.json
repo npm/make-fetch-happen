@@ -47,7 +47,7 @@
     "ssri": "^14.0.0"
   },
   "devDependencies": {
-    "@npmcli/eslint-config": "^5.0.0",
+    "@npmcli/eslint-config": "^7.0.0",
     "@npmcli/template-oss": "5.1.0",
     "nock": "^13.2.4",
     "safe-buffer": "^5.2.1",
