@@ -1,5 +1,24 @@
 # Changelog
 
+## [16.0.0](https://github.com/npm/make-fetch-happen/compare/v15.0.5...v16.0.0) (2026-05-19)
+### ⚠️ BREAKING CHANGES
+* `make-fetch-happen` now supports node `^22.22.2 || ^24.15.0 || >=26.0.0`
+* template-oss-apply
+### Features
+* [`b28a204`](https://github.com/npm/make-fetch-happen/commit/b28a204a028b55a2e69e31f433189e829c66c89c) [#358](https://github.com/npm/make-fetch-happen/pull/358) bump to new node engine range (@owlstronaut)
+* [`693b053`](https://github.com/npm/make-fetch-happen/commit/693b053732c1fda00cdf11c7bc9fd79f3a0f9957) [#358](https://github.com/npm/make-fetch-happen/pull/358) template-oss-apply (@owlstronaut)
+### Dependencies
+* [`4bc0cf6`](https://github.com/npm/make-fetch-happen/commit/4bc0cf6c2cdd69824345b36a6a177575f7fa8f7f) [#358](https://github.com/npm/make-fetch-happen/pull/358) `minipass-fetch@6.0.0`
+* [`49b3838`](https://github.com/npm/make-fetch-happen/commit/49b3838d4e52cb749dd837f59915c207da422085) [#358](https://github.com/npm/make-fetch-happen/pull/358) `proc-log@7.0.0`
+* [`693a0ea`](https://github.com/npm/make-fetch-happen/commit/693a0eadbfc001ba347b44f1ccc0ef88c1c172bb) [#358](https://github.com/npm/make-fetch-happen/pull/358) `ssri@14.0.0`
+* [`1b2d8cd`](https://github.com/npm/make-fetch-happen/commit/1b2d8cda639eea6cb4c6a26568502526888b99ad) [#358](https://github.com/npm/make-fetch-happen/pull/358) `cacache@21.0.0`
+* [`f1e3e27`](https://github.com/npm/make-fetch-happen/commit/f1e3e27cec615c6de285cf24b7e118ae7cf7e42f) [#358](https://github.com/npm/make-fetch-happen/pull/358) `@npmcli/redact@5.0.0`
+* [`6ddc227`](https://github.com/npm/make-fetch-happen/commit/6ddc227ab663b31ad92c5037adb450441eb7f561) [#358](https://github.com/npm/make-fetch-happen/pull/358) `@npmcli/agent@5.0.0`
+### Chores
+* [`dcb59b6`](https://github.com/npm/make-fetch-happen/commit/dcb59b62f8902d13dacc74cdef6d56959af20d13) [#358](https://github.com/npm/make-fetch-happen/pull/358) `@npmcli/eslint-config@7.0.0` (@owlstronaut)
+* [`0d7ff4a`](https://github.com/npm/make-fetch-happen/commit/0d7ff4a8845a6d014dd7ab847cdb3e70ee407796) [#358](https://github.com/npm/make-fetch-happen/pull/358) template-oss-apply (@owlstronaut)
+* [`a5fcf33`](https://github.com/npm/make-fetch-happen/commit/a5fcf3315cb3154651278fe67d7ebf766ed5430e) [#358](https://github.com/npm/make-fetch-happen/pull/358) bumping @npmcli/template-oss from 4.25.0 to 5.1.0 (@owlstronaut)
+
 ## [15.0.5](https://github.com/npm/make-fetch-happen/compare/v15.0.4...v15.0.5) (2026-03-16)
 ### Bug Fixes
 * [`321e370`](https://github.com/npm/make-fetch-happen/commit/321e3702ca1779d84e0e404c0006d7f62b6e05bc) [#343](https://github.com/npm/make-fetch-happen/pull/343) url logging npm credentials (@kadarbasha)
