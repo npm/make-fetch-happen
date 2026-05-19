@@ -39,7 +39,7 @@
     "cacache": "^21.0.0",
     "http-cache-semantics": "^4.1.1",
     "minipass": "^7.0.2",
-    "minipass-fetch": "^5.0.0",
+    "minipass-fetch": "^6.0.0",
     "minipass-flush": "^1.0.5",
     "minipass-pipeline": "^1.2.4",
     "negotiator": "^1.0.0",
