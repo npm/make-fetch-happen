@@ -1,5 +1,11 @@
 # Changelog
 
+## [16.0.1](https://github.com/npm/make-fetch-happen/compare/v16.0.0...v16.0.1) (2026-05-26)
+### Bug Fixes
+* [`5711b4f`](https://github.com/npm/make-fetch-happen/commit/5711b4f1926c54aed7881f6fee0fce94cfa1c921) [#363](https://github.com/npm/make-fetch-happen/pull/363) remove unused CI system badge (@owlstronaut)
+### Chores
+* [`a24c68d`](https://github.com/npm/make-fetch-happen/commit/a24c68dd6630dcd26486ae1d10adde29b30c3311) [#360](https://github.com/npm/make-fetch-happen/pull/360) add backport branch (@owlstronaut)
+
 ## [16.0.0](https://github.com/npm/make-fetch-happen/compare/v15.0.5...v16.0.0) (2026-05-19)
 ### ⚠️ BREAKING CHANGES
 * `make-fetch-happen` now supports node `^22.22.2 || ^24.15.0 || >=26.0.0`
