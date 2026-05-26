@@ -1,5 +1,12 @@
 # Changelog
 
+## [15.0.6](https://github.com/npm/make-fetch-happen/compare/v15.0.5...v15.0.6) (2026-05-26)
+### Bug Fixes
+* [`db5a15d`](https://github.com/npm/make-fetch-happen/commit/db5a15da3a65af0d7d9bd9710f3b042e733a03ac) [#365](https://github.com/npm/make-fetch-happen/pull/365) remove unused CI system badge (@owlstronaut)
+* [`3370665`](https://github.com/npm/make-fetch-happen/commit/3370665f7bdf1f44490b789d4604c2f9a8923870) empty commit to force @npmcli/agent release update (@owlstronaut)
+### Chores
+* [`84e50fb`](https://github.com/npm/make-fetch-happen/commit/84e50fb573112950eaf3cf34d3538c0572aa9ecc) [#365](https://github.com/npm/make-fetch-happen/pull/365) add backport branch (@owlstronaut)
+
 ## [15.0.5](https://github.com/npm/make-fetch-happen/compare/v15.0.4...v15.0.5) (2026-03-16)
 ### Bug Fixes
 * [`321e370`](https://github.com/npm/make-fetch-happen/commit/321e3702ca1779d84e0e404c0006d7f62b6e05bc) [#343](https://github.com/npm/make-fetch-happen/pull/343) url logging npm credentials (@kadarbasha)
