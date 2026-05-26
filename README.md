@@ -1,5 +1,5 @@
 # make-fetch-happen
-[![npm version](https://img.shields.io/npm/v/make-fetch-happen.svg)](https://npm.im/make-fetch-happen) [![license](https://img.shields.io/npm/l/make-fetch-happen.svg)](https://npm.im/make-fetch-happen) [![Travis](https://img.shields.io/travis/npm/make-fetch-happen.svg)](https://travis-ci.org/npm/make-fetch-happen) [![Coverage Status](https://coveralls.io/repos/github/npm/make-fetch-happen/badge.svg?branch=latest)](https://coveralls.io/github/npm/make-fetch-happen?branch=latest)
+[![npm version](https://img.shields.io/npm/v/make-fetch-happen.svg)](https://npm.im/make-fetch-happen) [![license](https://img.shields.io/npm/l/make-fetch-happen.svg)](https://npm.im/make-fetch-happen) [![Coverage Status](https://coveralls.io/repos/github/npm/make-fetch-happen/badge.svg?branch=latest)](https://coveralls.io/github/npm/make-fetch-happen?branch=latest)
 
 [`make-fetch-happen`](https://github.com/npm/make-fetch-happen) is a Node.js
 library that wraps [`minipass-fetch`](https://github.com/npm/minipass-fetch) with additional
