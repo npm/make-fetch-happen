@@ -19,6 +19,9 @@ t.test('catches error for inaccessible cache', async t => {
     cachePath: path.resolve(cache, 'file'),
   })
 
-  await t.rejects(res.text(), { code: 'ENOTDIR' })
+  // depending on the cacache version, creating the cache dir over a file
+  // surfaces as ENOTDIR (older) or EEXIST (cacache >= 21.0.1, which mkdir's
+  // the cache dir first); either way the inaccessible cache must reject
+  await t.rejects(res.text(), { code: /^(ENOTDIR|EEXIST)$/ })
   t.ok(req.isDone())
 })
