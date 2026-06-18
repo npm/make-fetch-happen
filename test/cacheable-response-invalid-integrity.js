@@ -37,6 +37,8 @@ t.test('cacheable request with invalid integrity', async t => {
 
   await t.rejects(res.json(), { code: 'EINTEGRITY' })
   t.ok(req.isDone())
-  const dir = await readdir(cache)
+  // cacache writes a CACHEDIR.TAG marker when it creates the cache dir; the
+  // important thing is that no cache entry (content-v2/index-v2) was written
+  const dir = (await readdir(cache)).filter((file) => file !== 'CACHEDIR.TAG')
   t.same(dir, ['tmp'], 'did not write to cache, only temp')
 })
