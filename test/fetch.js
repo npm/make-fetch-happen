@@ -73,6 +73,71 @@ t.test('500-level responses not thrown', async t => {
 })
 
 t.test('calls opts.onRetry', async t => {
+  t.test('preserves the latest cause across response and network failures', async t => {
+    const srv = nock(HOST)
+      .get('/mixed-retries').reply(503)
+      .get('/mixed-retries').replyWithError({ message: 'retry please', code: 'ECONNRESET' })
+      .get('/mixed-retries').reply(200, CONTENT)
+    const causes = []
+    const res = await fetch(`${HOST}/mixed-retries`, {
+      retry: { retries: 2, minTimeout: 1, maxTimeout: 1 },
+      onRetry: cause => causes.push(cause),
+    })
+    t.equal(causes.length, 2)
+    t.equal(causes[0].status, 503)
+    t.type(causes[1], FetchError)
+    t.equal(causes[1].code, 'ECONNRESET')
+    t.same(await res.buffer(), CONTENT)
+    t.ok(srv.isDone())
+  })
+
+  t.test('propagates an onRetry exception without treating it as a request failure', async t => {
+    const srv = nock(HOST).get('/callback-error').reply(500)
+    const error = new Error('callback failed')
+    let calls = 0
+    await t.rejects(fetch(`${HOST}/callback-error`, {
+      retry: { retries: 2, minTimeout: 1, maxTimeout: 1 },
+      onRetry: () => {
+        calls++
+        throw error
+      },
+    }), error)
+    t.equal(calls, 1)
+    t.ok(srv.isDone())
+  })
+
+  for (const failure of ['response', 'error']) {
+    for (const retries of [false, 0, 2]) {
+      t.test(`${failure} with ${retries} retries notifies only actual retries`, async t => {
+        const srv = nock(HOST).get('/retry-count').times(Number(retries) + 1)
+        if (failure === 'response') {
+          srv.reply(500)
+        } else {
+          srv.replyWithError({ message: 'retry please', code: 'ECONNRESET' })
+        }
+
+        const causes = []
+        const result = fetch(`${HOST}/retry-count`, {
+          retry: retries === false ? false : { retries, minTimeout: 1, maxTimeout: 1 },
+          onRetry: cause => causes.push(cause),
+        })
+        if (failure === 'response') {
+          const res = await result
+          t.equal(res.status, 500, 'returns the exhausted response')
+          t.equal(res.headers.get('x-fetch-attempts'), String(Number(retries) + 1))
+          t.same(causes.map(cause => cause.headers.get('x-fetch-attempts')),
+            Array.from({ length: Number(retries) }, (_, i) => String(i + 1)),
+            'receives the response that caused each retry')
+        } else {
+          await t.rejects(result, { code: 'ECONNRESET' })
+          t.ok(causes.every(cause => cause instanceof FetchError && cause.code === 'ECONNRESET'))
+        }
+        t.equal(causes.length, Number(retries), 'one notification for each actual retry')
+        t.ok(nock.isDone(), 'made the expected number of requests')
+      })
+    }
+  }
+
   t.test('when request is retriable', async (t) => {
     const logs = []
     const logHandler = (...logparams) => {
