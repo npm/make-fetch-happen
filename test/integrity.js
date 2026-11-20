@@ -1,9 +1,12 @@
 'use strict'
 
 const nock = require('nock')
+const { Minipass } = require('minipass')
+const minipassFetch = require('minipass-fetch')
 const ssri = require('ssri')
 const t = require('tap')
 const zlib = require('zlib')
+const configureOptions = require('../lib/options.js')
 
 const CACHE = t.testdir()
 const CONTENT = Buffer.from('hello, world!', 'utf8')
@@ -16,6 +19,38 @@ const fetch = require('../lib/index.js').defaults({ retry: false })
 
 nock.disableNetConnect()
 t.beforeEach(() => nock.cleanAll())
+
+for (const content of [Buffer.alloc(0), CONTENT]) {
+  t.test(`integrity events from an already completed ${content.length}-byte response`, async t => {
+    const completedFetch = Object.assign(async () => {
+      const body = new Minipass()
+      body.end(content)
+      return new minipassFetch.Response(body)
+    }, minipassFetch)
+    const remote = t.mock('../lib/remote.js', { 'minipass-fetch': completedFetch })
+    const integrity = ssri.fromData(content).toString()
+    const response = await remote(new minipassFetch.Request(HOST), configureOptions({ integrity }))
+    const sizes = []
+    const integrities = []
+    response.body.on('size', size => sizes.push(size))
+    response.body.on('integrity', hash => integrities.push(hash.toString()))
+    t.same(await response.buffer(), content)
+    t.same(sizes, [content.length], 'forwards size, including zero, before completion')
+    t.same(integrities, [integrity], 'forwards the verified digest')
+  })
+}
+
+t.test('rejects an already completed empty response with incorrect integrity', async t => {
+  const completedFetch = Object.assign(async () => {
+    const body = new Minipass()
+    body.end()
+    return new minipassFetch.Response(body)
+  }, minipassFetch)
+  const remote = t.mock('../lib/remote.js', { 'minipass-fetch': completedFetch })
+  const response = await remote(new minipassFetch.Request(HOST),
+    configureOptions({ integrity: INTEGRITY }))
+  await t.rejects(response.buffer(), { code: 'EINTEGRITY' })
+})
 
 t.test('basic integrity verification', async (t) => {
   const srv = nock(HOST)
