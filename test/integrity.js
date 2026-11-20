@@ -52,6 +52,35 @@ t.test('rejects an already completed empty response with incorrect integrity', a
   await t.rejects(response.buffer(), { code: 'EINTEGRITY' })
 })
 
+t.test('destroying an unconsumed verified response destroys its source', async t => {
+  const source = new Minipass()
+  const sourceFetch = Object.assign(async () => new minipassFetch.Response(source), minipassFetch)
+  const remote = t.mock('../lib/remote.js', { 'minipass-fetch': sourceFetch })
+  const response = await remote(new minipassFetch.Request(HOST),
+    configureOptions({ integrity: INTEGRITY }))
+  t.teardown(() => source.destroy())
+  response.body.destroy()
+  t.equal(source.destroyed, true, 'destroys the source before any read')
+})
+
+t.test('forwards source errors before a verified response is consumed', async t => {
+  const source = new Minipass()
+  const sourceFetch = Object.assign(async () => new minipassFetch.Response(source), minipassFetch)
+  const remote = t.mock('../lib/remote.js', { 'minipass-fetch': sourceFetch })
+  const response = await remote(new minipassFetch.Request(HOST),
+    configureOptions({ integrity: INTEGRITY }))
+  t.teardown(() => {
+    source.destroy()
+    response.body.destroy()
+  })
+  const errors = []
+  response.body.on('error', error => errors.push(error))
+  const error = new Error('source failed before consumption')
+  source.emit('error', error)
+  t.equal(errors.length, 1, 'forwards the error exactly once')
+  t.equal(errors[0], error, 'preserves the original error')
+})
+
 t.test('basic integrity verification', async (t) => {
   const srv = nock(HOST)
     .get('/wowsosafe')
