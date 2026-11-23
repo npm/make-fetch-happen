@@ -1,5 +1,12 @@
 # Changelog
 
+## [16.0.2](https://github.com/npm/make-fetch-happen/compare/v16.0.1...v16.0.2) (2026-11-23)
+### Dependencies
+* [`c792c39`](https://github.com/npm/make-fetch-happen/commit/c792c3944264fdba31abbb751ccf29f9ec0504dd) [#382](https://github.com/npm/make-fetch-happen/pull/382) `cacache@21.0.2` (#382) (@jeffkl, @Copilot)
+### Chores
+* [`c7f6935`](https://github.com/npm/make-fetch-happen/commit/c7f6935c5c96a6e6c1ca0b91400351f23067955b) [#371](https://github.com/npm/make-fetch-happen/pull/371) tolerate cacache CACHEDIR.TAG and EEXIST from cacache >= 21.0.1 (Michael Smith)
+* [`cc5f79c`](https://github.com/npm/make-fetch-happen/commit/cc5f79c07c25334a876729bbe0f4afca763cce3f) [#369](https://github.com/npm/make-fetch-happen/pull/369) bump @npmcli/template-oss from 5.1.0 to 5.1.1 (#369) (@dependabot[bot])
+
 ## [16.0.1](https://github.com/npm/make-fetch-happen/compare/v16.0.0...v16.0.1) (2026-05-26)
 ### Bug Fixes
 * [`5711b4f`](https://github.com/npm/make-fetch-happen/commit/5711b4f1926c54aed7881f6fee0fce94cfa1c921) [#363](https://github.com/npm/make-fetch-happen/pull/363) remove unused CI system badge (@owlstronaut)
