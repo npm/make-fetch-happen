@@ -373,6 +373,40 @@ t.test('removes cookie header if changing hostnames', async (t) => {
   t.notOk(httpsSrv.isDone(), 'redirect request does not happen')
 })
 
+t.test('removes authorization and cookie headers if changing ports', async (t) => {
+  const httpSrv = nock(HOST, {
+    reqheaders: {
+      authorization: 'test',
+      cookie: 'test=true',
+    },
+  })
+    .get('/redirect')
+    .reply(301, '', { Location: `${HOST}:4443/test` })
+
+  const targetSrv = nock(`${HOST}:4443`, {
+    reqheaders: {
+      authorization: 'test',
+      cookie: 'test=true',
+    },
+  })
+    .get('/test')
+    .reply(200, () => {
+      t.equal(true, false, 'meaningful failure, this should never be executed')
+      return CONTENT
+    })
+
+  await t.rejects(
+    fetch(`${HOST}/redirect`, {
+      headers: { authorization: 'test', cookie: 'test=true' },
+    }),
+    {
+      code: 'ERR_NOCK_NO_MATCH',
+    }
+  )
+  t.ok(httpSrv.isDone())
+  t.notOk(targetSrv.isDone(), 'redirect request does not happen')
+})
+
 t.test('supports passthrough of options on redirect', async (t) => {
   const httpSrv = nock(HTTPHOST)
     .get('/redirect')
